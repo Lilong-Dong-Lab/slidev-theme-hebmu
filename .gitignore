@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.slidev/
+.firecrawl/
+*.local
+.DS_Store
