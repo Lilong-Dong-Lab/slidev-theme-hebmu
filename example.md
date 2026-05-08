@@ -151,11 +151,11 @@ graph LR
     B --> C[模块识别]
     C --> D[Hub基因]
     D --> E[功能富集]
-    style A fill:#dbeafe,stroke:#1e40af
-    style B fill:#dbeafe,stroke:#1e40af
-    style C fill:#dbeafe,stroke:#1e40af
-    style D fill:#dbeafe,stroke:#1e40af
-    style E fill:#dbeafe,stroke:#1e40af
+    style A fill:#ede0f5,stroke:#621887
+    style B fill:#ede0f5,stroke:#621887
+    style C fill:#ede0f5,stroke:#621887
+    style D fill:#ede0f5,stroke:#621887
+    style E fill:#ede0f5,stroke:#621887
 ```
 
 ---

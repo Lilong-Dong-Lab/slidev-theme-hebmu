@@ -1,0 +1,24 @@
+/* Code block styling */
+.slidev-layout pre {
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 0.75rem 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.slidev-layout code {
+  font-size: 0.9em;
+  border-radius: 0.25rem;
+  padding: 0.15em 0.35em;
+}
+
+.slidev-layout :not(pre) > code {
+  background: color-mix(in srgb, var(--hebmu-primary) 8%, transparent);
+  color: var(--hebmu-primary-light);
+}
+
+.slidev-layout pre code {
+  background: transparent;
+  padding: 0;
+}

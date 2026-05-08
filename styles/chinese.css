@@ -1,0 +1,16 @@
+/* Chinese typography overrides — CJK needs taller line-height and wider letter-spacing */
+.slidev-layout {
+  line-height: 1.8;
+  letter-spacing: 0.02em;
+}
+
+.slidev-layout h1,
+.slidev-layout h2,
+.slidev-layout h3 {
+  letter-spacing: 0.03em;
+}
+
+/* Goto dialog override */
+#slidev-goto-dialog[class~="-top-20"] .autocomplete-list {
+  display: none !important;
+}
