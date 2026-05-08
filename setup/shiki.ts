@@ -4,7 +4,7 @@ export default defineShikiSetup(async ({ highlighter }) => {
   return {
     theme: {
       dark: "one-dark-pro",
-      default: "vitesse-light",
+      light: "vitesse-light",
     },
   };
 });

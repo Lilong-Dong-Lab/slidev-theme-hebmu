@@ -4,3 +4,18 @@ dist/
 .firecrawl/
 *.local
 .DS_Store
+
+# MCP / browser testing artifacts
+.playwright-mcp/
+
+# Claude Code / skills
+.claude/
+.agents/
+skills-lock.json
+
+# Verification screenshots
+slide-*.png
+slidev-*.png
+
+# Editor / tooling
+.prettierrc
