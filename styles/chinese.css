@@ -1,13 +1,13 @@
 /* Chinese typography overrides — CJK needs taller line-height and wider letter-spacing */
 .slidev-layout {
-  line-height: 1.8;
-  letter-spacing: 0.02em;
+  line-height: 1.35;
+  letter-spacing: 0;
 }
 
 .slidev-layout h1,
 .slidev-layout h2,
 .slidev-layout h3 {
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
 }
 
 /* Goto dialog override */
