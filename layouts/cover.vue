@@ -1,56 +1,78 @@
 <template>
-  <div class="slidev-layout cover" :style="coverStyle">
-    <!-- Purple wave divider -->
-    <div class="cover-wave">
-      <svg
-        viewBox="0 0 1440 320"
-        preserveAspectRatio="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M0,192 C240,280 480,100 720,192 C960,280 1200,100 1440,192 L1440,320 L0,320 Z"
-          fill="var(--hebmu-primary)"
-        />
-      </svg>
-    </div>
+  <div class="slidev-layout keynote-cover">
+    <div
+      class="cover-photo"
+      :style="{
+        backgroundImage: `url('${resolveAssetUrl(
+          coverBackgroundUrl ||
+            $slidev.themeConfigs?.coverBackgroundUrl ||
+            '/hebmu-assets/campus-cover.jpeg',
+        )}')`,
+      }"
+    ></div>
+    <svg
+      class="cover-wave"
+      viewBox="0 0 1024 768"
+      preserveAspectRatio="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M0 455 C170 516 370 520 580 486 C752 458 890 406 1024 324 L1024 377 C832 492 622 545 394 558 C226 568 96 542 0 496 Z"
+        fill="var(--hebmu-primary)"
+        opacity="0.86"
+      />
+      <path
+        d="M0 477 C184 536 386 535 598 503 C762 478 900 427 1024 352 L1024 768 L0 768 Z"
+        fill="#ffffff"
+      />
+    </svg>
 
-    <!-- Text area -->
-    <div class="cover-content">
+    <img
+      class="cover-logo"
+      :src="
+        resolveAssetUrl(
+          logoUrl ||
+            $slidev.themeConfigs?.logoUrl ||
+            '/hebmu-assets/hebmu-logo.png',
+        )
+      "
+      alt="Hebei Medical University"
+    />
+
+    <div class="cover-title">
       <slot />
-
-      <!-- Course info line -->
-      <div v-if="courseName || sessionNumber" class="cover-course-info">
-        <span v-if="courseName" class="cover-course">{{ courseName }}</span>
-        <span v-if="courseNameEn" class="cover-course-en">{{
-          courseNameEn
-        }}</span>
-        <span v-if="sessionNumber" class="cover-session"
-          >第 {{ sessionNumber }} 学时</span
-        >
-      </div>
-
-      <!-- Author & date -->
-      <div v-if="coverAuthors.length || coverDate" class="cover-meta">
-        <p v-if="coverAuthors.length">
-          <template v-for="(author, idx) in coverAuthors">
-            <TextWithOptionalLink :link="coverAuthorUrls[idx]" :text="author" />
-            <span v-if="idx < coverAuthors.length - 2">, </span>
-            <span v-if="idx === coverAuthors.length - 2"> and </span>
-          </template>
-        </p>
-        <p v-if="coverDate">
-          {{ coverAuthors.length ? ` · ${coverDate}` : coverDate }}
-        </p>
+      <div
+        v-if="courseName || courseNameEn || sessionNumber"
+        class="cover-course"
+      >
+        <span v-if="courseName">{{ courseName }}</span>
+        <span v-if="courseNameEn">{{ courseNameEn }}</span>
+        <span v-if="sessionNumber">第 {{ sessionNumber }} 学时</span>
       </div>
     </div>
 
-    <!-- University logo -->
-    <div class="cover-logo">
-      <img src="/logo-placeholder.svg" alt="University Logo" />
+    <div v-if="coverAuthors.length || coverDate" class="cover-meta">
+      <p v-if="coverAuthors.length">
+        授课老师：
+        <template v-for="(author, idx) in coverAuthors" :key="author">
+          <TextWithOptionalLink :link="coverAuthorUrls[idx]" :text="author" />
+          <span v-if="idx < coverAuthors.length - 1">、</span>
+        </template>
+      </p>
+      <p v-if="coverDate">课程时间： {{ coverDate }}</p>
     </div>
 
-    <!-- Background attribution -->
-    <div class="cover-attribution" v-if="coverBackgroundSource">
+    <Pagination
+      v-if="
+        !$slidev.themeConfigs?.paginationPagesDisabled?.includes(
+          $slidev.nav.currentPage,
+        )
+      "
+      :x="$slidev.themeConfigs?.paginationX || 'r'"
+      :y="$slidev.themeConfigs?.paginationY || 'b'"
+    />
+    <div v-if="coverBackgroundSource" class="cover-attribution">
       <TextWithOptionalLink
         :link="coverBackgroundSourceUrl"
         :text="coverBackgroundSource"
@@ -61,27 +83,29 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { handleBackground } from "../layout-helper";
+import { resolveAssetUrl } from "../layout-helper";
 
 const {
   coverAuthor: coverAuthorInput,
   coverAuthorUrl: coverAuthorUrlInput,
-  coverBackgroundUrl,
   coverBackgroundSource,
   coverBackgroundSourceUrl,
-  coverDate = new Date().toLocaleDateString(),
+  coverBackgroundUrl,
+  coverDate,
   courseName,
   courseNameEn,
+  logoUrl,
   sessionNumber,
 } = defineProps<{
   coverAuthor?: string | string[];
   coverAuthorUrl?: string | string[];
-  coverBackgroundUrl?: string;
   coverBackgroundSource?: string;
   coverBackgroundSourceUrl?: string;
+  coverBackgroundUrl?: string;
   coverDate?: string | Date;
   courseName?: string;
   courseNameEn?: string;
+  logoUrl?: string;
   sessionNumber?: number;
 }>();
 
@@ -93,104 +117,95 @@ const toArray = (v: string | string[] | undefined): string[] => {
 
 const coverAuthors = computed(() => toArray(coverAuthorInput));
 const coverAuthorUrls = computed(() => toArray(coverAuthorUrlInput));
-const coverStyle = computed(() => handleBackground(coverBackgroundUrl, true));
 </script>
 
 <style scoped>
-.cover {
-  display: flex;
-  position: relative;
-  padding: 0;
+.keynote-cover {
+  background: #ffffff;
+}
+
+.cover-photo {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 520px;
+  background-position: center top;
+  background-size: cover;
 }
 
 .cover-wave {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 55%;
-  z-index: 1;
-  pointer-events: none;
-}
-
-.cover-wave svg {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.cover-content {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 2;
-  padding: 2rem 3.5rem 4rem;
-  color: #ffffff;
-}
-
-.cover-content :deep(h1) {
-  color: #ffffff;
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.cover-content :deep(h2) {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 1.25rem;
-  font-weight: 400;
-  margin-bottom: 0.5rem;
-}
-
-.cover-course-info {
-  display: flex;
-  gap: 0.75rem;
-  font-size: 0.85rem;
-  opacity: 0.8;
-  margin-bottom: 0.5rem;
-}
-
-.cover-course {
-  font-weight: 600;
-}
-
-.cover-session {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 0.1rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.8rem;
-}
-
-.cover-meta {
-  font-size: 0.9rem;
-  opacity: 0.75;
-  margin-top: 0.25rem;
+  inset: 0;
+  width: 1024px;
+  height: 768px;
 }
 
 .cover-logo {
   position: absolute;
-  bottom: 1.5rem;
-  right: 2rem;
-  z-index: 3;
+  right: 62px;
+  bottom: 88px;
+  width: 136px;
+  height: 136px;
+  object-fit: contain;
 }
 
-.cover-logo img {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  opacity: 0.9;
+.cover-title {
+  position: absolute;
+  left: 205px;
+  right: 205px;
+  bottom: 112px;
+  color: var(--hebmu-primary);
+  text-align: center;
+}
+
+.cover-title :deep(h1) {
+  color: var(--hebmu-primary);
+  font-size: 37px;
+  font-weight: 700;
+  line-height: 1.16;
+  white-space: nowrap;
+}
+
+.cover-title :deep(h2) {
+  margin-top: 8px;
+  color: #808080;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.cover-title :deep(p) {
+  margin-top: 8px;
+  color: #808080;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.cover-course {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+  color: #808080;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.cover-meta {
+  position: absolute;
+  left: 6px;
+  bottom: 30px;
+  color: #808080;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .cover-attribution {
   position: absolute;
-  bottom: 0.25rem;
-  right: 0.5rem;
-  z-index: 3;
-  font-size: 0.65rem;
-  opacity: 0.5;
-  color: #ffffff;
+  right: 40px;
+  bottom: 28px;
+  color: #808080;
+  font-size: 8px;
 }
 </style>
