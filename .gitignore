@@ -16,6 +16,8 @@ skills-lock.json
 # Verification screenshots
 slide-*.png
 slidev-*.png
+slidev-theme-hebmu-demo/
+legacy/
 
 # Editor / tooling
 .prettierrc

@@ -41,9 +41,9 @@ sessionNumber: 18
 
 **Implementation notes**:
 - Port from `slidev-theme-academic` `cover.vue`, adding `courseName`, `courseNameEn`, `sessionNumber` props
-- Include a placeholder `<img>` for the university logo (top-right or bottom-left)
-- Use `handleBackground` from `layout-helper.ts` for background images
-- Supports multiple authors (array) with "and" joining
+- Include the university logo and campus background from `themeConfig` fallbacks
+- Use `resolveAssetUrl` from `layout-helper.ts` for theme asset URLs
+- Supports multiple authors (array) with Chinese punctuation joining
 
 ### section
 
@@ -71,7 +71,7 @@ sectionTitleEn: Protein-Protein Interactions
 **Implementation notes**:
 - NEW layout — no academic equivalent.
 - Large centered section number, bilingual title below
-- Use `BilingualTitle` component for the title pair
+- `BilingualTitle` remains available as a public component for custom slide content
 - Thin horizontal accent line between number and title
 
 ### default
@@ -127,10 +127,7 @@ sessionNumber: 18
 Two-column comparison layout.
 
 **Props**:
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `cols` | `string` | `"2"` | CSS grid columns (e.g. `"2"`, `"3"`) |
-| `gap` | `string` | `"8"` | Gap between columns (Tailwind units) |
+None.
 
 **Slot**: Content with `::left::` / `::right::` separators.
 
@@ -154,8 +151,8 @@ layout: two-col
 ```
 
 **Implementation notes**:
-- NEW layout. Use Slidev's built-in `::left::` / `::right::` slot syntax or CSS grid.
-- `<div class="slidev-layout two-col"><div class="grid grid-cols-[var(--cols)] gap-[var(--gap)]"><slot /></div></div>`
+- NEW layout. Uses Slidev's built-in `::left::` / `::right::` named slot syntax.
+- Renders a fixed two-column grid styled by `.keynote-two-col-grid`.
 
 ### figure
 
@@ -210,7 +207,6 @@ Break divider between lecture halves (10-minute break). Session format: 40min le
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `breakMinutes` | `number` | `10` | Break duration in minutes |
-| `showTimer` | `boolean` | `false` | Show countdown timer (stretch goal) |
 
 **Implementation notes**:
 - NEW layout.
@@ -258,16 +254,15 @@ Auto-registered by filename. `Pagination.vue` → `<Pagination />`.
 
 ### Pagination
 
-Page numbering (current / total) on every slide.
+Current slide number on every slide.
 
 **Props**:
 | Prop | Type | Values | Default | Description |
 |------|------|--------|---------|-------------|
 | `x` | `string` | `'l'`, `'r'` | `'r'` | Horizontal position |
 | `y` | `string` | `'b'`, `'t'` | `'b'` | Vertical position |
-| `classNames` | `string \| string[]` | — | `undefined` | Additional CSS classes |
 
-**Behavior**: Uses `<SlideCurrentNo />` and `<SlidesTotal />`. Renders "X / Y" in fixed position.
+**Behavior**: Uses `<SlideCurrentNo />`. Renders the current page number in fixed position.
 
 **ThemeConfig integration**: `themeConfig.paginationX`, `themeConfig.paginationY`, `themeConfig.paginationPagesDisabled: [1, 5]`.
 
@@ -297,7 +292,7 @@ Individual footnote item. Child of `Footnotes`.
 
 ### BilingualTitle
 
-Chinese title + English subtitle pair. Used by `section` and `intro` layouts.
+Chinese title + English subtitle pair for custom slide content.
 
 **Props**: `titleZh: string` (rendered as `<h2>`), `titleEn: string` (rendered as `<h3 class="opacity-60">`).
 
@@ -332,11 +327,3 @@ Reusable figure rendering with optional caption and footnote number.
 **Props**: `figureUrl: string` (resolved via `resolveAssetUrl`), `figureCaption?: string`, `figureFootnoteNumber?: number`.
 
 **Source**: Port from `slidev-theme-academic` `FigureWithOptionalCaption.vue`.
-
-### TextWithOptionalLink
-
-Text with optional hyperlink wrapper.
-
-**Props**: `text: string`, `link?: string`.
-
-**Source**: Port from `slidev-theme-academic` `TextWithOptionalLink.vue`.

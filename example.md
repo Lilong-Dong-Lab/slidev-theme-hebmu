@@ -39,8 +39,6 @@ exportFilename: slidev-theme-hebmu-demo
 
 ---
 layout: intro
-courseTitle: '生物信息学'
-sessionNumber: 18
 ---
 
 # 本节内容概览

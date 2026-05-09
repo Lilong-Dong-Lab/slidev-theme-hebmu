@@ -8,7 +8,7 @@
     />
     <div class="keynote-section-content">
       <div v-if="sectionNumber" class="keynote-section-number">
-        第 {{ sectionNumber }} 节
+        第{{ sectionNumber }}节
       </div>
       <div v-if="sectionTitle" class="keynote-section-title">
         {{ sectionTitle }}

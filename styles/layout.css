@@ -110,7 +110,7 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 88px;
+  height: 74px;
   background: linear-gradient(90deg, #eeeeee 0%, #f7f7f7 50%, #eeeeee 100%);
 }
 
@@ -168,7 +168,7 @@
   position: absolute;
   inset: 0;
   z-index: 1;
-  padding: 178px 56px 58px;
+  padding: 178px 56px 100px;
 }
 
 .keynote-stage::before {
@@ -176,7 +176,7 @@
   top: 150px;
   left: 45px;
   right: 45px;
-  bottom: 38px;
+  bottom: 78px;
   z-index: -1;
   border: 2px solid var(--hebmu-border);
   border-radius: 9px;
@@ -303,7 +303,7 @@
 .keynote-stage .keynote-footnotes {
   position: absolute;
   right: 56px;
-  bottom: 52px;
+  bottom: 92px;
   left: 56px;
   width: auto;
   color: var(--hebmu-primary-light);
@@ -410,29 +410,53 @@
   line-height: 1.32;
 }
 
+.keynote-section {
+  display: grid;
+  place-items: center;
+}
+
 .keynote-section-content {
-  margin-top: 210px;
+  position: relative;
+  z-index: 1;
+  width: min(760px, calc(100% - 112px));
+  margin: 0;
   color: var(--hebmu-primary);
   text-align: center;
 }
 
 .keynote-section-number {
-  font-size: 42px;
+  color: color-mix(in srgb, var(--hebmu-primary) 24%, var(--hebmu-bg));
+  font-size: 54px;
   font-weight: 700;
-  opacity: 0.75;
+  line-height: 1.1;
+}
+
+.keynote-section-number::after {
+  display: block;
+  width: 68px;
+  height: 3px;
+  margin: 24px auto 0;
+  border-radius: 999px;
+  background: var(--hebmu-primary);
+  content: "";
 }
 
 .keynote-section-title {
-  margin-top: 24px;
-  font-size: 46px;
+  margin-top: 0;
+  font-size: 36px;
   font-weight: 700;
   line-height: 1.18;
 }
 
+.keynote-section-number + .keynote-section-title,
+.keynote-section-number + .keynote-section-title-en {
+  margin-top: 24px;
+}
+
 .keynote-section-title-en {
-  margin-top: 12px;
+  margin-top: 10px;
   color: var(--hebmu-text-muted);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
 }
 
@@ -521,4 +545,8 @@
   color: var(--hebmu-text-muted);
   font-size: 28px;
   font-weight: 700;
+}
+
+#slidev-goto-dialog[class~="-top-20"] .autocomplete-list {
+  display: none !important;
 }

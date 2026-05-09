@@ -12,11 +12,11 @@
         'is-unframed': hideFrame,
       }"
     >
+      <slot />
       <div v-if="courseTitle || sessionNumber" class="intro-meta">
         <span v-if="courseTitle">{{ courseTitle }}</span>
         <SessionInfo v-if="sessionNumber" :session-number="sessionNumber" />
       </div>
-      <slot />
     </main>
   </div>
 </template>
@@ -44,12 +44,17 @@ withDefaults(
 
 <style scoped>
 .intro-meta {
+  position: absolute;
+  top: 72px;
+  left: 102px;
+  right: 28px;
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 14px;
   color: var(--hebmu-primary);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 </style>

@@ -56,7 +56,15 @@
       <p v-if="coverAuthors.length">
         授课老师：
         <template v-for="(author, idx) in coverAuthors" :key="author">
-          <TextWithOptionalLink :link="coverAuthorUrls[idx]" :text="author" />
+          <a
+            v-if="coverAuthorUrls[idx]"
+            :href="coverAuthorUrls[idx]"
+            rel="noreferrer"
+            target="_blank"
+          >
+            {{ author }}
+          </a>
+          <span v-else>{{ author }}</span>
           <span v-if="idx < coverAuthors.length - 1">、</span>
         </template>
       </p>
@@ -73,10 +81,15 @@
       :y="$slidev.themeConfigs?.paginationY || 'b'"
     />
     <div v-if="coverBackgroundSource" class="cover-attribution">
-      <TextWithOptionalLink
-        :link="coverBackgroundSourceUrl"
-        :text="coverBackgroundSource"
-      />
+      <a
+        v-if="coverBackgroundSourceUrl"
+        :href="coverBackgroundSourceUrl"
+        rel="noreferrer"
+        target="_blank"
+      >
+        {{ coverBackgroundSource }}
+      </a>
+      <span v-else>{{ coverBackgroundSource }}</span>
     </div>
   </div>
 </template>

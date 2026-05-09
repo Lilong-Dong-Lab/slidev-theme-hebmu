@@ -47,7 +47,7 @@ htmlAttrs:
 | `default` | Standard content slide | — |
 | `center` | Vertically centered emphasis | — |
 | `intro` | Course/session overview | `courseTitle`, `sessionNumber` |
-| `two-col` | Two-column comparison | `cols`, `gap` |
+| `two-col` | Two-column comparison | — |
 | `figure` | Full-slide figure with caption | `figureUrl`, `figureCaption` |
 | `figure-side` | Content + figure side-by-side | `figureUrl`, `figureX` |
 | `table-of-contents` | Keynote-style agenda/content slide | `contentItems`, `active`, `contentImageUrl` |
@@ -59,7 +59,7 @@ htmlAttrs:
 
 | Component | Description |
 |---|---|
-| `<Pagination>` | Page numbering (current/total) |
+| `<Pagination>` | Current slide number |
 | `<Footnotes>` / `<Footnote>` | Reference footnotes |
 | `<BilingualTitle>` | Chinese + English title pair |
 | `<SessionInfo>` | 学时 session progress |

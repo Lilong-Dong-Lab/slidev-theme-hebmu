@@ -48,7 +48,7 @@ Colors extracted from Keynote lecture slides (PPTX theme XML). `accent1` = `#621
 - Weights: `h1` = 700, `h2` = 600, body = 400
 - Do NOT bundle font files — system fonts + fallback chain
 
-### Chinese Typography (`styles/chinese.css`)
+### Chinese Typography (`styles/layout.css`)
 
 - `line-height: 1.8` (CJK needs taller than Latin 1.5)
 - `letter-spacing: 0.02em`
@@ -70,13 +70,13 @@ See @docs/specs.md for detailed prop tables, usage examples, and implementation 
 
 - Layout files: kebab-case, matching layout name exactly (`figure-side.vue` → `layout: figure-side`)
 - Component files: PascalCase (`BilingualTitle.vue` → `<BilingualTitle />`)
-- CSS files: kebab-case (`chinese.css`, `mermaid.css`)
+- CSS files: kebab-case (`layout.css`, `code.css`)
 - CSS custom properties: `--hebmu-{name}` prefix
 - Layout CSS classes: `.slidev-layout.{name}`
 
 ## Implementation Plan
 
-**Status**: Implemented — 12 layouts, 9 components, styles and setup files complete. See @docs/specs.md for layout/component specs.
+**Status**: Implemented — 12 layouts, 7 components, styles and setup files complete. See @docs/specs.md for layout/component specs.
 
 All layouts, components, and styles have been ported or built. Run `bun run dev` to preview.
 

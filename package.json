@@ -13,6 +13,16 @@
     "chinese",
     "hebmu"
   ],
+  "files": [
+    "components",
+    "global-top.vue",
+    "layout-helper.ts",
+    "layouts",
+    "public",
+    "README.md",
+    "setup",
+    "styles"
+  ],
   "slidev": {
     "colorSchema": "light",
     "highlighter": "shiki",
