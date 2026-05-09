@@ -1,22 +1,18 @@
 <template>
   <div
-    class="absolute bottom-0 left-0 w-full"
+    class="keynote-footnotes"
     :class="{
-      'bg-main': filled,
-      'z-1': filled,
+      'keynote-footnotes-filled': filled,
     }"
   >
     <hr v-if="separator" />
     <ul
-      class="flex flex-wrap !list-none px-3 py-2"
+      class="keynote-footnotes-list"
       :class="{
-        'flex-col': y === 'col',
-        'items-start': x === 'l' && y === 'col',
-        'items-end': x === 'r' && y === 'col',
-        'justify-start': x === 'l' && y === 'row',
-        'justify-end': x === 'r' && y === 'row',
-        'gap-col-3': y === 'row',
-        'gap-row-0.5': y === 'col',
+        'keynote-footnotes-col': y === 'col',
+        'keynote-footnotes-row': y === 'row',
+        'keynote-footnotes-left': x === 'l',
+        'keynote-footnotes-right': x === 'r',
       }"
     >
       <slot />

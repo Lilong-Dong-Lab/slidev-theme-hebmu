@@ -1,20 +1,13 @@
 <template>
-  <div class="absolute p-2 text-xs" :class="classNames">
-    <SlideCurrentNo /> / <SlidesTotal />
+  <div class="absolute pagination-widget" :class="positionClasses">
+    <SlideCurrentNo />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, type PropType } from "vue";
 
-const {
-  classNames: classNamesInput,
-  x,
-  y,
-} = defineProps({
-  classNames: {
-    type: [Array, String] as PropType<string[] | string>,
-  },
+const { x, y } = defineProps({
   x: {
     default: "r",
     type: String as PropType<"l" | "r">,
@@ -27,15 +20,20 @@ const {
   },
 });
 
-const classNames = computed(() => [
-  ...(classNamesInput
-    ? Array.isArray(classNamesInput)
-      ? classNamesInput
-      : [classNamesInput]
-    : []),
+const positionClasses = computed(() => [
   x === "l" && "left-0",
   x === "r" && "right-0",
   y === "t" && "top-0",
   y === "b" && "bottom-0",
 ]);
 </script>
+
+<style scoped>
+.pagination-widget {
+  padding: 10px 21px;
+  color: var(--hebmu-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+</style>

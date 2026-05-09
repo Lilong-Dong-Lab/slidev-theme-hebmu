@@ -1,7 +1,7 @@
 <template>
-  <li class="ml-0! text-xs whitespace-nowrap">
-    <sup v-if="number">{{ number }}</sup>
-    <slot />
+  <li class="keynote-footnote">
+    <span v-if="number" class="keynote-footnote-number">{{ number }}</span>
+    <span class="keynote-footnote-text"><slot /></span>
   </li>
 </template>
 
