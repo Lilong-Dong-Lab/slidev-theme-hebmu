@@ -1,35 +1,55 @@
 <template>
-  <div class="slidev-layout intro">
-    <div class="my-auto">
-      <div v-if="courseTitle || sessionNumber" class="intro-header">
-        <span v-if="courseTitle" class="intro-course">{{ courseTitle }}</span>
+  <div class="slidev-layout keynote-layout keynote-default keynote-intro">
+    <KeynoteChrome
+      :hide-footer="hideFooter"
+      :hide-logo="hideLogo"
+      :hide-page="hidePage"
+      :hide-wave="hideWave"
+    />
+    <main
+      class="keynote-stage"
+      :class="{
+        'is-unframed': hideFrame,
+      }"
+    >
+      <div v-if="courseTitle || sessionNumber" class="intro-meta">
+        <span v-if="courseTitle">{{ courseTitle }}</span>
         <SessionInfo v-if="sessionNumber" :session-number="sessionNumber" />
       </div>
       <slot />
-    </div>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  courseTitle?: string;
-  sessionNumber?: number;
-}>();
+withDefaults(
+  defineProps<{
+    courseTitle?: string;
+    hideFooter?: boolean;
+    hideFrame?: boolean;
+    hideLogo?: boolean;
+    hidePage?: boolean;
+    hideWave?: boolean;
+    sessionNumber?: number;
+  }>(),
+  {
+    hideFooter: false,
+    hideFrame: false,
+    hideLogo: false,
+    hidePage: false,
+    hideWave: false,
+  },
+);
 </script>
 
 <style scoped>
-.intro-header {
+.intro-meta {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid var(--hebmu-primary);
-}
-
-.intro-course {
-  font-size: 0.9rem;
-  font-weight: 600;
+  margin-bottom: 14px;
   color: var(--hebmu-primary);
+  font-size: 16px;
+  font-weight: 600;
 }
 </style>

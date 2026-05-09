@@ -1,45 +1,48 @@
 <template>
-  <div class="slidev-layout quote">
-    <blockquote>
-      <slot />
-    </blockquote>
-    <div v-if="quoteAuthor || quoteSource" class="quote-attribution">
-      <span v-if="quoteAuthor" class="quote-author">{{ quoteAuthor }}</span>
-      <span v-if="quoteAuthor && quoteSource">, </span>
-      <span v-if="quoteSource" class="quote-source">{{ quoteSource }}</span>
-    </div>
+  <div class="slidev-layout keynote-layout keynote-default keynote-quote">
+    <KeynoteChrome
+      :hide-footer="hideFooter"
+      :hide-logo="hideLogo"
+      :hide-page="hidePage"
+      :hide-wave="hideWave"
+    />
+    <main
+      class="keynote-stage"
+      :class="{
+        'is-unframed': hideFrame,
+      }"
+    >
+      <blockquote>
+        <slot />
+      </blockquote>
+      <div v-if="quoteAuthor || quoteSource" class="quote-attribution">
+        <span v-if="quoteAuthor" class="quote-author">{{ quoteAuthor }}</span>
+        <span v-if="quoteAuthor && quoteSource">, </span>
+        <span v-if="quoteSource" class="quote-source">{{ quoteSource }}</span>
+      </div>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  quoteSource?: string;
-  quoteAuthor?: string;
-}>();
+withDefaults(
+  defineProps<{
+    hideFooter?: boolean;
+    hideFrame?: boolean;
+    hideLogo?: boolean;
+    hidePage?: boolean;
+    hideWave?: boolean;
+    quoteSource?: string;
+    quoteAuthor?: string;
+  }>(),
+  {
+    hideFooter: false,
+    hideFrame: false,
+    hideLogo: false,
+    hidePage: false,
+    hideWave: false,
+  },
+);
 </script>
 
-<style scoped>
-.quote blockquote {
-  border-left: 5px solid var(--hebmu-primary);
-  padding-left: 1.5rem;
-  font-size: 1.5rem;
-  line-height: 1.6;
-  color: var(--hebmu-text);
-  font-style: italic;
-}
-
-.quote-attribution {
-  margin-top: 1rem;
-  padding-left: 1.5rem;
-  font-size: 0.9rem;
-  color: var(--hebmu-text-muted);
-}
-
-.quote-author {
-  font-weight: 600;
-}
-
-.quote-source {
-  font-style: italic;
-}
-</style>
+<style scoped></style>
