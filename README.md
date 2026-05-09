@@ -50,7 +50,7 @@ htmlAttrs:
 | `two-col` | Two-column comparison | `cols`, `gap` |
 | `figure` | Full-slide figure with caption | `figureUrl`, `figureCaption` |
 | `figure-side` | Content + figure side-by-side | `figureUrl`, `figureX` |
-| `table-of-contents` | Auto-generated TOC | — |
+| `table-of-contents` | Keynote-style agenda/content slide | `contentItems`, `active`, `contentImageUrl` |
 | `break` | Break divider (10 min) | `breakMinutes` |
 | `end` | Thank you / Q&A | `endMessage`, `endMessageEn` |
 | `quote` | Key definition blockquote | `quoteSource`, `quoteAuthor` |
@@ -74,6 +74,23 @@ themeConfig:
   paginationX: 'r'     # 'l' or 'r'
   paginationY: 'b'     # 't' or 'b'
   paginationPagesDisabled: [1]  # Pages without pagination
+  contentItems:                 # optional default items for table-of-contents
+    - 生物信息学及工具
+    - 药物发现：从0到1的数字旅程
+    - CADD实战：从靶点到候选药物
+```
+
+Use the Keynote-style content slide with per-slide frontmatter:
+
+```markdown
+---
+layout: table-of-contents
+active: 2
+contentItems:
+  - 生物信息学及工具
+  - 药物发现：从0到1的数字旅程
+  - CADD实战：从靶点到候选药物
+---
 ```
 
 ## Development

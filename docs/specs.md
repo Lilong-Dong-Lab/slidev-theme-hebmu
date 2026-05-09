@@ -186,11 +186,21 @@ Content + figure side-by-side.
 
 ### table-of-contents
 
-Auto-generated table of contents from slide sections.
+Keynote-style agenda/content slide matching the original `目录 | CONTENT` visual pattern.
 
-**Props**: None. **Slot**: Custom heading above TOC (defaults to `<h1>目录 Table of Contents</h1>`).
+**Props**:
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `active` | `number` | inferred | Highlighted item number |
+| `contentItems` | `(string \| object)[]` | section titles / TOC fallback | Agenda labels |
+| `items` | `(string \| object)[]` | `undefined` | Alias for `contentItems` |
+| `contentTitle` | `string` | `"目录 \| CONTENT"` | Main heading |
+| `contentImageUrl` | `string` | `themeConfig.contentImageUrl`, then cover image | Left-side campus image |
+| `contentImagePosition` | `string` | `"center"` | CSS `object-position` for the left image |
+| `logoUrl` | `string` | `themeConfig.logoUrl` | Top logo override |
+| `hidePage` | `boolean` | `false` | Hide pagination |
 
-**Implementation**: Port from `slidev-theme-academic` `table-of-contents.vue`. Uses Slidev's built-in `<Toc />` component.
+**Implementation**: Dedicated layout, not Slidev's built-in `<Toc />`. Uses a purple left crescent/photo panel, centered university logo, and a numbered agenda list with grey inactive items and purple active item.
 
 ### break
 
