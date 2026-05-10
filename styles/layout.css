@@ -27,7 +27,7 @@
   font-family:
     "PingFang SC", "Noto Sans SC", "Microsoft YaHei", "Hiragino Sans GB", Arial,
     system-ui, sans-serif;
-  font-size: 24px;
+  font-size: 20px;
   line-height: 1.5;
   letter-spacing: 0;
 }
@@ -57,7 +57,7 @@
 
 .slidev-layout h3 {
   color: var(--hebmu-primary);
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   line-height: 1.18;
 }
@@ -203,7 +203,7 @@
   font-family:
     "PingFang SC", "Noto Sans SC", "Microsoft YaHei", "Hiragino Sans GB", Arial,
     system-ui, sans-serif;
-  font-size: 33px;
+  font-size: 32px;
   font-weight: 700;
   line-height: 1.18;
   overflow-wrap: anywhere;
@@ -228,7 +228,7 @@
 
 .keynote-default .keynote-stage h1 {
   color: var(--hebmu-primary);
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 700;
   line-height: 1.18;
   overflow-wrap: anywhere;
@@ -237,7 +237,7 @@
 
 .keynote-default .keynote-stage h2 {
   color: var(--hebmu-primary);
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.2;
   overflow-wrap: anywhere;
@@ -253,7 +253,7 @@
 .keynote-stage td,
 .keynote-stage th {
   color: var(--hebmu-text);
-  font-size: 25px;
+  font-size: 20px;
 }
 
 .keynote-stage p,
@@ -276,7 +276,7 @@
   border-left: 6px solid var(--hebmu-accent);
   padding-left: 24px;
   color: var(--hebmu-primary);
-  font-size: 28px;
+  font-size: 20px;
   font-style: normal;
   font-weight: 700;
   line-height: 1.4;
@@ -410,12 +410,12 @@
 .keynote-default .keynote-stage > ul,
 .keynote-default .keynote-stage > ol {
   color: var(--hebmu-text);
-  font-size: 30px;
+  font-size: 20px;
 }
 
 .keynote-default .keynote-stage > ul li,
 .keynote-default .keynote-stage > ol li {
-  font-size: 30px;
+  font-size: 20px;
   line-height: 1.45;
 }
 
@@ -428,7 +428,7 @@
 
 .keynote-center-content {
   color: var(--hebmu-primary);
-  font-size: 38px;
+  font-size: 32px;
   font-weight: 700;
   line-height: 1.32;
 }
@@ -466,7 +466,7 @@
 
 .keynote-section-title {
   margin-top: 0;
-  font-size: 36px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.18;
 }
@@ -562,7 +562,7 @@
 .keynote-quote blockquote {
   margin: 80px 56px 0;
   color: var(--hebmu-primary);
-  font-size: 33px;
+  font-size: 28px;
   font-style: normal;
   font-weight: 700;
   line-height: 1.45;
@@ -595,13 +595,13 @@
 }
 
 .keynote-break-content h1 {
-  font-size: 58px;
+  font-size: 32px;
 }
 
 .keynote-break-content p {
   margin-top: 18px;
   color: var(--hebmu-text-muted);
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
 }
 
@@ -629,23 +629,23 @@
 }
 
 .keynote-density-compact .keynote-slide-title {
-  font-size: 31px;
+  font-size: 32px;
   line-height: 1.14;
 }
 
 .keynote-density-compact.keynote-default .keynote-stage h1 {
-  font-size: 22px;
+  font-size: 32px;
 }
 
 .keynote-density-compact.keynote-default .keynote-stage h2 {
-  font-size: 20px;
+  font-size: 28px;
 }
 
 .keynote-density-compact .keynote-stage p,
 .keynote-density-compact .keynote-stage li,
 .keynote-density-compact .keynote-stage td,
 .keynote-density-compact .keynote-stage th {
-  font-size: 21px;
+  font-size: 20px;
 }
 
 .keynote-density-compact .keynote-stage p,
@@ -661,7 +661,7 @@
 .keynote-density-compact.keynote-default .keynote-stage > ol,
 .keynote-density-compact.keynote-default .keynote-stage > ul li,
 .keynote-density-compact.keynote-default .keynote-stage > ol li {
-  font-size: 25px;
+  font-size: 20px;
   line-height: 1.32;
 }
 
@@ -711,7 +711,7 @@
 
 .keynote-cover .cover-title h1 {
   color: var(--hebmu-primary);
-  font-size: 37px;
+  font-size: 32px;
   font-weight: 700;
   line-height: 1.16;
   overflow-wrap: anywhere;
@@ -721,7 +721,7 @@
 .keynote-cover .cover-title h2 {
   margin-top: 8px;
   color: var(--hebmu-text-muted);
-  font-size: 21px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.2;
 }
@@ -801,7 +801,7 @@
 
 .keynote-end .end-message h1 {
   color: var(--hebmu-primary);
-  font-size: 52px;
+  font-size: 32px;
   font-weight: 700;
   line-height: 1.12;
 }
@@ -809,7 +809,7 @@
 .keynote-end .end-message p {
   margin-top: 12px;
   color: var(--hebmu-text-muted);
-  font-size: 23px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 1.15;
 }
@@ -822,7 +822,7 @@
   display: grid;
   gap: 12px;
   color: var(--hebmu-text);
-  font-size: 21.5px;
+  font-size: 20px;
   line-height: 1.1;
 }
 
