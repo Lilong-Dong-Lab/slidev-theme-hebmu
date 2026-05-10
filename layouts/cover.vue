@@ -10,23 +10,7 @@
         )}')`,
       }"
     ></div>
-    <svg
-      class="cover-wave"
-      viewBox="0 0 1024 768"
-      preserveAspectRatio="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <path
-        d="M0 455 C170 516 370 520 580 486 C752 458 890 406 1024 324 L1024 377 C832 492 622 545 394 558 C226 568 96 542 0 496 Z"
-        fill="var(--hebmu-primary)"
-        opacity="0.86"
-      />
-      <path
-        d="M0 477 C184 536 386 535 598 503 C762 478 900 427 1024 352 L1024 768 L0 768 Z"
-        fill="#ffffff"
-      />
-    </svg>
+    <WaveDivider />
 
     <img
       class="cover-logo"
@@ -71,15 +55,6 @@
       <p v-if="coverDate">课程时间： {{ coverDate }}</p>
     </div>
 
-    <Pagination
-      v-if="
-        !$slidev.themeConfigs?.paginationPagesDisabled?.includes(
-          $slidev.nav.currentPage,
-        )
-      "
-      :x="$slidev.themeConfigs?.paginationX || 'r'"
-      :y="$slidev.themeConfigs?.paginationY || 'b'"
-    />
     <div v-if="coverBackgroundSource" class="cover-attribution">
       <a
         v-if="coverBackgroundSourceUrl"
@@ -131,94 +106,3 @@ const toArray = (v: string | string[] | undefined): string[] => {
 const coverAuthors = computed(() => toArray(coverAuthorInput));
 const coverAuthorUrls = computed(() => toArray(coverAuthorUrlInput));
 </script>
-
-<style scoped>
-.keynote-cover {
-  background: #ffffff;
-}
-
-.cover-photo {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 520px;
-  background-position: center top;
-  background-size: cover;
-}
-
-.cover-wave {
-  position: absolute;
-  inset: 0;
-  width: 1024px;
-  height: 768px;
-}
-
-.cover-logo {
-  position: absolute;
-  right: 62px;
-  bottom: 88px;
-  width: 136px;
-  height: 136px;
-  object-fit: contain;
-}
-
-.cover-title {
-  position: absolute;
-  left: 205px;
-  right: 205px;
-  bottom: 112px;
-  color: var(--hebmu-primary);
-  text-align: center;
-}
-
-.cover-title :deep(h1) {
-  color: var(--hebmu-primary);
-  font-size: 37px;
-  font-weight: 700;
-  line-height: 1.16;
-  white-space: nowrap;
-}
-
-.cover-title :deep(h2) {
-  margin-top: 8px;
-  color: #808080;
-  font-size: 21px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.cover-title :deep(p) {
-  margin-top: 8px;
-  color: #808080;
-  font-size: 21px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.cover-course {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 10px;
-  color: #808080;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.cover-meta {
-  position: absolute;
-  left: 6px;
-  bottom: 30px;
-  color: #808080;
-  font-size: 21px;
-  font-weight: 700;
-  line-height: 1.45;
-}
-
-.cover-attribution {
-  position: absolute;
-  right: 40px;
-  bottom: 28px;
-  color: #808080;
-  font-size: 8px;
-}
-</style>

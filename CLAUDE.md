@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Slidev presentation theme for Hebei Medical University (河北医科大学) academic teaching. Chinese-first with bilingual (中/EN) support. Consumed by course projects via local path dependency in `package.json`.
 
 - **Package**: `slidev-theme-hebmu` (Slidev resolves `theme: hebmu`)
-- **Slidev**: >=0.48.0, `colorSchema: "both"` (light + dark)
+- **Slidev**: >=0.48.0, `colorSchema: "light"`
 - **Package manager**: bun
 - **No tests**: Visual testing via `example.md` only
 

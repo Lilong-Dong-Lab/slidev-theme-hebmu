@@ -1,39 +1,24 @@
 <template>
-  <div class="slidev-layout keynote-layout keynote-default">
-    <KeynoteChrome
-      :hide-footer="hideFooter"
-      :hide-logo="hideLogo"
-      :hide-page="hidePage"
-      :hide-wave="hideWave"
-    />
-    <main
-      class="keynote-stage"
-      :class="{
-        'is-unframed': hideFrame,
-      }"
-    >
-      <slot />
-    </main>
-  </div>
+  <KeynoteShell
+    :auto-slide-title="autoSlideTitle"
+    :density="density"
+    :hide-footer="hideFooter"
+    :hide-frame="hideFrame"
+    :hide-logo="hideLogo"
+    :hide-page="hidePage"
+    :hide-title="hideTitle"
+    :hide-wave="hideWave"
+    :slide-title="slideTitle"
+    layout-class="keynote-default"
+  >
+    <slot />
+  </KeynoteShell>
 </template>
 
 <script setup lang="ts">
-withDefaults(
-  defineProps<{
-    hideFooter?: boolean;
-    hideFrame?: boolean;
-    hideLogo?: boolean;
-    hidePage?: boolean;
-    hideWave?: boolean;
-  }>(),
-  {
-    hideFooter: false,
-    hideFrame: false,
-    hideLogo: false,
-    hidePage: false,
-    hideWave: false,
-  },
-);
+import { type KeynoteShellProps, keynoteShellDefaults } from "../layout-helper";
+
+withDefaults(defineProps<KeynoteShellProps>(), keynoteShellDefaults);
 </script>
 
 <style scoped></style>

@@ -1,44 +1,35 @@
 <template>
-  <div class="slidev-layout keynote-layout keynote-default keynote-intro">
-    <KeynoteChrome
-      :hide-footer="hideFooter"
-      :hide-logo="hideLogo"
-      :hide-page="hidePage"
-      :hide-wave="hideWave"
-    />
-    <main
-      class="keynote-stage"
-      :class="{
-        'is-unframed': hideFrame,
-      }"
-    >
-      <slot />
-      <div v-if="courseTitle || sessionNumber" class="intro-meta">
-        <span v-if="courseTitle">{{ courseTitle }}</span>
-        <SessionInfo v-if="sessionNumber" :session-number="sessionNumber" />
-      </div>
-    </main>
-  </div>
+  <KeynoteShell
+    :auto-slide-title="autoSlideTitle"
+    :density="density"
+    :hide-footer="hideFooter"
+    :hide-frame="hideFrame"
+    :hide-logo="hideLogo"
+    :hide-page="hidePage"
+    :hide-title="hideTitle"
+    :hide-wave="hideWave"
+    :slide-title="slideTitle"
+    layout-class="keynote-default keynote-intro"
+  >
+    <slot />
+    <div v-if="courseTitle || sessionNumber" class="intro-meta">
+      <span v-if="courseTitle">{{ courseTitle }}</span>
+      <SessionInfo v-if="sessionNumber" :session-number="sessionNumber" />
+    </div>
+  </KeynoteShell>
 </template>
 
 <script setup lang="ts">
+import { type KeynoteShellProps, keynoteShellDefaults } from "../layout-helper";
+
 withDefaults(
-  defineProps<{
-    courseTitle?: string;
-    hideFooter?: boolean;
-    hideFrame?: boolean;
-    hideLogo?: boolean;
-    hidePage?: boolean;
-    hideWave?: boolean;
-    sessionNumber?: number;
-  }>(),
-  {
-    hideFooter: false,
-    hideFrame: false,
-    hideLogo: false,
-    hidePage: false,
-    hideWave: false,
-  },
+  defineProps<
+    KeynoteShellProps & {
+      courseTitle?: string;
+      sessionNumber?: number;
+    }
+  >(),
+  keynoteShellDefaults,
 );
 </script>
 
@@ -55,6 +46,6 @@ withDefaults(
   font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 </style>

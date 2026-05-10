@@ -5,26 +5,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type PropType } from "vue";
+import { computed } from "vue";
 
-const { x, y } = defineProps({
-  x: {
-    default: "r",
-    type: String as PropType<"l" | "r">,
-    validator: (value: string) => value === "l" || value === "r",
+const props = withDefaults(
+  defineProps<{
+    x?: "l" | "r";
+    y?: "b" | "t";
+  }>(),
+  {
+    x: "r",
+    y: "b",
   },
-  y: {
-    default: "b",
-    type: String as PropType<"b" | "t">,
-    validator: (value: string) => value === "b" || value === "t",
-  },
-});
+);
 
 const positionClasses = computed(() => [
-  x === "l" && "left-0",
-  x === "r" && "right-0",
-  y === "t" && "top-0",
-  y === "b" && "bottom-0",
+  props.x === "l" && "left-0",
+  props.x === "r" && "right-0",
+  props.y === "t" && "top-0",
+  props.y === "b" && "bottom-0",
 ]);
 </script>
 

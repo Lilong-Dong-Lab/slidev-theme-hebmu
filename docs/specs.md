@@ -4,7 +4,42 @@ Detailed specs for all layouts and components. Referenced from CLAUDE.md via `@d
 
 ## Layouts
 
-Each layout is a Vue SFC in `layouts/`. Auto-registered by filename (minus `.vue`). Every layout must wrap content in `<div class="slidev-layout {name}">` and use `<slot />`.
+Each layout is a Vue SFC in `layouts/`. Auto-registered by filename (minus `.vue`). Standard content layouts use `KeynoteShell`, which wraps content in `<div class="slidev-layout keynote-layout">`, renders `KeynoteChrome`, and provides the framed `.keynote-stage`.
+
+## ThemeConfig
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `footerMode` | `'compact' \| 'full' \| 'none'` | `'compact'` | Global footer behavior. Compact shows department + page number; full also shows author, email, and WeChat. |
+| `paginationX` | `'l' \| 'r'` | `'r'` | Pagination horizontal position. |
+| `paginationY` | `'t' \| 'b'` | `'b'` | Pagination vertical position. |
+| `paginationPagesDisabled` | `number[]` | `undefined` | Slide numbers without pagination. |
+
+The theme is light-first. Dark mode is not implemented in this release.
+
+Most standard content layouts accept `density: 'normal' | 'compact'`. Use `compact` for table-heavy, code-heavy, or long-step slides.
+
+## Mermaid
+
+Mermaid is configured in `setup/mermaid.ts` for Slidev 51 / Mermaid 11. The
+theme uses `theme: 'base'`, `htmlLabels: true`, `securityLevel: 'loose'`, and
+`flowchart.useMaxWidth: true` so Chinese labels, `<br/>` line breaks, and PNG/PDF
+export stay stable. Dense diagrams should use Slidev's per-block scale option,
+for example a Mermaid code fence with `{scale: 0.88}`.
+
+Standard framed layouts (`default`, `intro`, `two-col`, `figure`,
+`figure-side`, `figure-footnote`) render their title through the shared
+`SlideTitle` component. If `slideTitle` is provided, it is used directly and H1
+headings remain in the frame as smaller section headers. If `slideTitle` is not
+provided, the first markdown H1 is inferred as the slide title and hidden from
+the frame for backward compatibility.
+
+Common title props:
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `slideTitle` | `string` | inferred from first H1 | Explicit chrome title |
+| `hideTitle` | `boolean` | `false` on framed content layouts | Hide the chrome title |
+| `autoSlideTitle` | `boolean` | `true` | Infer title from the first H1 when `slideTitle` is absent |
 
 ### cover
 
@@ -78,17 +113,17 @@ sectionTitleEn: Protein-Protein Interactions
 
 Standard content slide (~31% of slides in production).
 
-**Props**: None. **Slot**: Full slide content.
+**Props**: `density?: 'normal' | 'compact'` plus common title props. **Slot**: Full slide content.
 
-**Implementation**: `<div class="slidev-layout default"><slot /></div>`
+**Implementation**: Uses `KeynoteShell` with `layoutClass="keynote-default"`.
 
 ### center
 
 Vertically centered content for emphasis, key takeaways, or single statements.
 
-**Props**: None. **Slot**: Centered content.
+**Props**: `density?: 'normal' | 'compact'`. **Slot**: Centered content.
 
-**Implementation**: `<div class="slidev-layout center"><div class="my-auto"><slot /></div></div>`
+**Implementation**: Uses `KeynoteShell` with an unframed centered stage.
 
 ### intro
 
@@ -98,7 +133,9 @@ Course/session overview slide. Displays course title and session information.
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `courseTitle` | `string` | `undefined` | Course title |
+| `density` | `'normal' \| 'compact'` | `'normal'` | Content density |
 | `sessionNumber` | `number` | `undefined` | Current session (学时) number |
+| `slideTitle` | `string` | inferred from first H1 | Explicit chrome title |
 
 **Slot**: Overview content (bullets, summary).
 
@@ -127,7 +164,7 @@ sessionNumber: 18
 Two-column comparison layout.
 
 **Props**:
-None.
+`density?: 'normal' | 'compact'` plus common title props.
 
 **Slot**: Content with `::left::` / `::right::` separators.
 
@@ -164,8 +201,47 @@ Full-slide image with optional caption and footnote.
 | `figureUrl` | `string` | required | Image URL |
 | `figureCaption` | `string` | `undefined` | Caption text |
 | `figureFootnoteNumber` | `number` | `undefined` | Footnote reference number |
+| `density` | `'normal' \| 'compact'` | `'normal'` | Content density |
+| `slideTitle` | `string` | inferred from first H1 | Explicit chrome title |
 
 **Implementation**: Port directly from `slidev-theme-academic` `figure.vue`. Uses `FigureWithOptionalCaption` component.
+
+### figure-footnote
+
+Full-slide image with optional caption plus a reserved citation area.
+
+Use this layout when the slide needs both a large figure and a `<Footnotes>`
+block. The footnote block participates in the layout flow, so the figure area
+shrinks before citations can overlap the caption or global footer.
+
+**Props**:
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `figureUrl` | `string` | required | Image URL |
+| `figureCaption` | `string` | `undefined` | Caption text |
+| `figureFootnoteNumber` | `number` | `undefined` | Footnote reference number appended to the caption |
+| `density` | `'normal' \| 'compact'` | `'normal'` | Content density |
+| `slideTitle` | `string` | inferred from first H1 | Explicit chrome title |
+
+**Usage**:
+```markdown
+---
+layout: figure-footnote
+figureUrl: /hebmu-assets/campus-end.jpeg
+figureCaption: '全页图片布局示例'
+figureFootnoteNumber: 1
+---
+
+# 图片及脚注示例
+
+<Footnotes :separator="true" x="l" y="col">
+  <Footnote :number="1">Author A, et al. Journal. Year.</Footnote>
+</Footnotes>
+```
+
+**Implementation**: Reuses `KeynoteShell` and `FigureWithOptionalCaption`, with
+`.keynote-figure-footnote-stage` overriding `<Footnotes>` from absolute
+positioning to normal flex flow.
 
 ### figure-side
 
@@ -178,6 +254,8 @@ Content + figure side-by-side.
 | `figureCaption` | `string` | `undefined` | Caption text |
 | `figureFootnoteNumber` | `number` | `undefined` | Footnote reference number |
 | `figureX` | `'l' \| 'r'` | `'r'` | Figure position (left or right) |
+| `density` | `'normal' \| 'compact'` | `'normal'` | Content density |
+| `slideTitle` | `string` | inferred from first H1 | Explicit chrome title |
 
 **Implementation**: Port directly from `slidev-theme-academic` `figure-side.vue`.
 
@@ -239,6 +317,7 @@ Key definition or principle in blockquote style.
 |------|------|---------|-------------|
 | `quoteSource` | `string` | `undefined` | Source attribution |
 | `quoteAuthor` | `string` | `undefined` | Author attribution |
+| `density` | `'normal' \| 'compact'` | `'normal'` | Content density |
 
 **Slot**: Quote content (markdown supported).
 
@@ -251,6 +330,10 @@ Key definition or principle in blockquote style.
 ## Components
 
 Auto-registered by filename. `Pagination.vue` → `<Pagination />`.
+
+### KeynoteShell
+
+Internal shared frame for standard layouts. It renders the theme chrome, framed content stage, hide props, and density class. It is auto-registered but intended for layout implementation rather than slide-author use.
 
 ### Pagination
 

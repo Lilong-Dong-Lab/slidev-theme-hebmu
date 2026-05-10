@@ -22,22 +22,20 @@
 </template>
 
 <script setup lang="ts">
+import {
+  type KeynoteChromeProps,
+  keynoteChromeDefaults,
+} from "../layout-helper";
+
 withDefaults(
-  defineProps<{
-    hideFooter?: boolean;
-    hideLogo?: boolean;
-    hidePage?: boolean;
-    hideWave?: boolean;
-    sectionNumber?: number;
-    sectionTitle?: string;
-    sectionTitleEn?: string;
-  }>(),
-  {
-    hideFooter: false,
-    hideLogo: false,
-    hidePage: false,
-    hideWave: false,
-  },
+  defineProps<
+    KeynoteChromeProps & {
+      sectionNumber?: number;
+      sectionTitle?: string;
+      sectionTitleEn?: string;
+    }
+  >(),
+  keynoteChromeDefaults,
 );
 </script>
 

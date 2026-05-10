@@ -17,22 +17,17 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(
-  defineProps<{
-    breakMinutes?: number;
-    hideFooter?: boolean;
-    hideLogo?: boolean;
-    hidePage?: boolean;
-    hideWave?: boolean;
-  }>(),
-  {
-    breakMinutes: 10,
-    hideFooter: false,
-    hideLogo: false,
-    hidePage: false,
-    hideWave: false,
-  },
-);
+import {
+  type KeynoteChromeProps,
+  keynoteChromeDefaults,
+} from "../layout-helper";
+
+withDefaults(defineProps<KeynoteChromeProps & { breakMinutes?: number }>(), {
+  ...keynoteChromeDefaults,
+  breakMinutes: 10,
+  hideFooter: true,
+  hidePage: true,
+});
 </script>
 
 <style scoped></style>

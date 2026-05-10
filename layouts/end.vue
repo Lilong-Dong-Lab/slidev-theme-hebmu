@@ -10,23 +10,7 @@
         )}')`,
       }"
     ></div>
-    <svg
-      class="end-wave"
-      viewBox="0 0 1024 768"
-      preserveAspectRatio="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <path
-        d="M0 472 C174 550 356 556 568 522 C754 492 900 432 1024 348 L1024 390 C840 514 610 590 372 582 C202 576 88 548 0 504 Z"
-        fill="var(--hebmu-primary)"
-        opacity="0.86"
-      />
-      <path
-        d="M0 504 C178 574 394 574 608 534 C762 506 902 458 1024 390 L1024 768 L0 768 Z"
-        fill="#ffffff"
-      />
-    </svg>
+    <WaveDivider />
 
     <div class="end-message">
       <h1>{{ props.endMessage }}</h1>
@@ -35,17 +19,33 @@
 
     <div class="end-contact">
       <div class="end-contact-row">
-        <span class="end-contact-icon">P</span>
+        <span class="end-contact-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M18 20a6 6 0 0 0-12 0" />
+            <circle cx="12" cy="8" r="4" />
+          </svg>
+        </span>
         <strong>Presenter</strong>
         <span>{{ $slidev.themeConfigs?.footerAuthor || "董立龙" }}</span>
       </div>
       <div v-if="$slidev.themeConfigs?.footerTel" class="end-contact-row">
-        <span class="end-contact-icon">T</span>
+        <span class="end-contact-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.4 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9Z"
+            />
+          </svg>
+        </span>
         <strong>Tel.</strong>
         <span>{{ $slidev.themeConfigs.footerTel }}</span>
       </div>
       <div class="end-contact-row">
-        <span class="end-contact-icon">E</span>
+        <span class="end-contact-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <path d="m3 7 9 6 9-6" />
+          </svg>
+        </span>
         <strong>Email</strong>
         <a
           :href="`mailto:${$slidev.themeConfigs?.footerEmail || 'lilong.dong@hebmu.edu.cn'}`"
@@ -54,7 +54,20 @@
         </a>
       </div>
       <div class="end-contact-row">
-        <span class="end-contact-icon">W</span>
+        <span class="end-contact-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M10.5 15.5c-4.2 0-7.5-2.7-7.5-6s3.3-6 7.5-6 7.5 2.7 7.5 6-3.3 6-7.5 6Z"
+            />
+            <path d="m7.5 15-2.2 2 .7-3" />
+            <path
+              d="M14 13.4c1 2 3.5 3.4 6.2 3.4.4 0 .8 0 1.2-.1l-.5 2.3-1.7-1.5"
+            />
+            <path d="M16.9 8.1c2.4.6 4.1 2.2 4.1 4.2 0 1.5-1 2.9-2.5 3.6" />
+            <path d="M8 8.2h.1" />
+            <path d="M13 8.2h.1" />
+          </svg>
+        </span>
         <strong>Wechat</strong>
         <span>{{
           $slidev.themeConfigs?.footerWechat || "donglilonghugo"
@@ -104,103 +117,3 @@ const props = withDefaults(
   },
 );
 </script>
-
-<style scoped>
-.keynote-end {
-  background: #ffffff;
-}
-
-.end-photo {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 500px;
-  background-position: center 40%;
-  background-size: cover;
-}
-
-.end-wave {
-  position: absolute;
-  inset: 0;
-  width: 1024px;
-  height: 768px;
-}
-
-.end-message {
-  position: absolute;
-  left: 116px;
-  bottom: 86px;
-  width: 220px;
-  color: var(--hebmu-primary);
-  text-align: center;
-  white-space: pre-line;
-}
-
-.end-message h1 {
-  color: var(--hebmu-primary);
-  font-size: 42px;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.end-message p {
-  margin-top: 8px;
-  color: #808080;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.end-contact {
-  position: absolute;
-  left: 356px;
-  right: 240px;
-  bottom: 52px;
-  display: grid;
-  gap: 14px;
-  color: #000000;
-  font-size: 21px;
-  line-height: 1.1;
-}
-
-.end-contact-row {
-  display: grid;
-  grid-template-columns: 34px 126px minmax(0, 1fr);
-  align-items: center;
-  gap: 14px;
-}
-
-.end-contact-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--hebmu-primary);
-  color: #ffffff;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.end-contact strong {
-  font-weight: 700;
-}
-
-.end-contact a {
-  color: var(--hebmu-info);
-  text-decoration: underline;
-}
-
-.end-logo {
-  position: absolute;
-  right: 36px;
-  bottom: 58px;
-  width: 132px;
-  height: 132px;
-  object-fit: contain;
-}
-
-.end-slot-layer {
-  position: relative;
-  z-index: 10;
-}
-</style>

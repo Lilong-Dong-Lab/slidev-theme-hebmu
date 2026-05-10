@@ -1,8 +1,8 @@
 <template>
   <div class="keynote-chrome" aria-hidden="true">
-    <div v-if="hideWave" class="keynote-header-band"></div>
+    <div v-if="props.hideWave" class="keynote-header-band"></div>
     <svg
-      v-if="!hideWave"
+      v-if="!props.hideWave"
       class="keynote-wave"
       viewBox="0 0 1024 768"
       preserveAspectRatio="none"
@@ -68,50 +68,49 @@
       />
     </svg>
     <img
-      v-if="!hideLogo"
+      v-if="!props.hideLogo"
       class="keynote-logo"
-      :src="
-        resolveAssetUrl(
-          $slidev.themeConfigs?.logoUrl || '/hebmu-assets/hebmu-logo.png',
-        )
-      "
+      :src="resolveAssetUrl(logoUrl)"
       alt=""
     />
-    <footer v-if="!hideFooter" class="keynote-footer">
+    <footer v-if="showFooter" class="keynote-footer" :class="footerModeClass">
       <span class="keynote-footer-dept">
-        {{
-          $slidev.themeConfigs?.footerDepartment ||
-          "河北医科大学 基础医学院 医药信息学教研室"
-        }}
+        {{ footerDepartment }}
       </span>
-      <span class="keynote-footer-contact">
-        {{ $slidev.themeConfigs?.footerAuthor || "董立龙" }} | Email
-        <a
-          :href="`mailto:${$slidev.themeConfigs?.footerEmail || 'lilong.dong@hebmu.edu.cn'}`"
-        >
-          {{ $slidev.themeConfigs?.footerEmail || "lilong.dong@hebmu.edu.cn" }}
-        </a>
-        | Wechat
-        {{ $slidev.themeConfigs?.footerWechat || "donglilonghugo" }}
+      <span v-if="footerMode === 'full'" class="keynote-footer-contact">
+        {{ footerAuthor }} | Email
+        <a :href="`mailto:${footerEmail}`">{{ footerEmail }}</a>
+        | Wechat {{ footerWechat }}
       </span>
     </footer>
     <Pagination
-      v-if="
-        !hidePage &&
-        !$slidev.themeConfigs?.paginationPagesDisabled?.includes(
-          $slidev.nav.currentPage,
-        )
-      "
-      :x="$slidev.themeConfigs?.paginationX || 'r'"
-      :y="$slidev.themeConfigs?.paginationY || 'b'"
+      v-if="!props.hidePage && !paginationDisabled"
+      :x="paginationX"
+      :y="paginationY"
     />
   </div>
 </template>
 
 <script setup lang="ts">
+import { useSlideContext } from "@slidev/client";
+import { computed } from "vue";
 import { resolveAssetUrl } from "../layout-helper";
 
-withDefaults(
+type FooterMode = "compact" | "full" | "none";
+
+type ThemeConfigs = {
+  footerAuthor?: string;
+  footerDepartment?: string;
+  footerEmail?: string;
+  footerMode?: FooterMode;
+  footerWechat?: string;
+  logoUrl?: string;
+  paginationPagesDisabled?: number[];
+  paginationX?: "l" | "r";
+  paginationY?: "b" | "t";
+};
+
+const props = withDefaults(
   defineProps<{
     hideFooter?: boolean;
     hideLogo?: boolean;
@@ -124,5 +123,47 @@ withDefaults(
     hidePage: false,
     hideWave: false,
   },
+);
+
+const { $slidev } = useSlideContext();
+
+const themeConfigs = computed(
+  () => ($slidev.themeConfigs || {}) as ThemeConfigs,
+);
+
+const footerMode = computed<FooterMode>(() => {
+  const mode = themeConfigs.value.footerMode;
+  if (mode === "full" || mode === "none") return mode;
+  return "compact";
+});
+
+const footerModeClass = computed(() => `keynote-footer-${footerMode.value}`);
+const showFooter = computed(
+  () => !props.hideFooter && footerMode.value !== "none",
+);
+
+const logoUrl = computed(
+  () => themeConfigs.value.logoUrl || "/hebmu-assets/hebmu-logo.png",
+);
+const footerDepartment = computed(
+  () =>
+    themeConfigs.value.footerDepartment ||
+    "河北医科大学 基础医学院 医药信息学教研室",
+);
+const footerAuthor = computed(
+  () => themeConfigs.value.footerAuthor || "董立龙",
+);
+const footerEmail = computed(
+  () => themeConfigs.value.footerEmail || "lilong.dong@hebmu.edu.cn",
+);
+const footerWechat = computed(
+  () => themeConfigs.value.footerWechat || "donglilonghugo",
+);
+const paginationX = computed(() => themeConfigs.value.paginationX || "r");
+const paginationY = computed(() => themeConfigs.value.paginationY || "b");
+const paginationDisabled = computed(() =>
+  (themeConfigs.value.paginationPagesDisabled || []).includes(
+    $slidev.nav.currentPage,
+  ),
 );
 </script>

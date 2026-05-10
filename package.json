@@ -15,6 +15,7 @@
   ],
   "files": [
     "components",
+    "global-bottom.vue",
     "global-top.vue",
     "layout-helper.ts",
     "layouts",
@@ -30,12 +31,13 @@
       "canvasWidth": 1024,
       "aspectRatio": "4/3",
       "fonts": {
-        "sans": "Arial",
+        "sans": "PingFang SC",
         "mono": "Fira Code"
       },
       "themeConfig": {
         "paginationX": "r",
         "paginationY": "b",
+        "footerMode": "compact",
         "logoUrl": "/hebmu-assets/hebmu-logo.png",
         "coverBackgroundUrl": "/hebmu-assets/campus-cover.jpeg",
         "endBackgroundUrl": "/hebmu-assets/campus-end.jpeg",
@@ -56,11 +58,11 @@
     "screenshot": "slidev export example.md --format png"
   },
   "dependencies": {
-    "@slidev/types": "^0.29.2",
-    "unocss": "^0.62.3"
+    "@slidev/types": "^51.0.0"
   },
   "devDependencies": {
     "@slidev/cli": "^51.0.0",
-    "playwright-chromium": "^1.52.0"
+    "playwright-chromium": "^1.52.0",
+    "unocss": "^0.62.3"
   }
 }

@@ -21,26 +21,18 @@
 </template>
 
 <script setup lang="ts">
-import type { PropType } from "vue";
-
-defineProps({
-  filled: {
-    default: false,
-    type: Boolean,
+withDefaults(
+  defineProps<{
+    filled?: boolean;
+    separator?: boolean;
+    x?: "l" | "r";
+    y?: "col" | "row";
+  }>(),
+  {
+    filled: false,
+    separator: false,
+    x: "r",
+    y: "row",
   },
-  separator: {
-    default: false,
-    type: Boolean,
-  },
-  x: {
-    default: "r",
-    type: String as PropType<"l" | "r">,
-    validator: (value: string) => value === "l" || value === "r",
-  },
-  y: {
-    default: "row",
-    type: String as PropType<"col" | "row">,
-    validator: (value: string) => value === "col" || value === "row",
-  },
-});
+);
 </script>

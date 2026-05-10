@@ -9,15 +9,10 @@
     :hide-title="hideTitle"
     :hide-wave="hideWave"
     :slide-title="slideTitle"
-    :stage-class="[
-      'keynote-figure-side-stage',
-      figureX === 'l' && 'figure-left',
-    ]"
-    layout-class="keynote-default keynote-figure-side"
+    layout-class="keynote-default keynote-figure keynote-figure-footnote"
+    stage-class="keynote-figure-footnote-stage"
   >
-    <div>
-      <slot />
-    </div>
+    <slot />
     <FigureWithOptionalCaption
       :caption="figureCaption"
       :footnoteNumber="figureFootnoteNumber"
@@ -35,10 +30,9 @@ withDefaults(
       figureCaption?: string;
       figureFootnoteNumber?: number;
       figureUrl: string;
-      figureX?: "l" | "r";
     }
   >(),
-  { ...keynoteShellDefaults, figureX: "r" },
+  keynoteShellDefaults,
 );
 </script>
 

@@ -15,11 +15,12 @@ transition: slide-left
 mdc: true
 colorSchema: light
 fonts:
-  sans: 'Arial'
+  sans: 'PingFang SC'
   mono: 'Fira Code'
 themeConfig:
   paginationX: 'r'
   paginationY: 'b'
+  footerMode: 'compact'
   logoUrl: '/hebmu-assets/hebmu-logo.png'
   coverBackgroundUrl: '/hebmu-assets/campus-cover.jpeg'
   endBackgroundUrl: '/hebmu-assets/campus-end.jpeg'
@@ -57,6 +58,30 @@ contentItems:
   - 网络构建与可视化
   - 网络拓扑分析与实操
 ---
+
+---
+layout: table-of-contents
+active: 4
+contentItems:
+  - 蛋白质相互作用网络基础
+  - PPI 数据库与数据准备
+  - 网络构建与可视化
+  - 网络拓扑分析与实操
+  - 长标题和紧凑排版验证
+---
+
+---
+layout: default
+density: compact
+---
+
+# 长标题换行与紧凑页脚示例：从数据库证据整合到蛋白质相互作用网络解释
+
+这页用于验证标题自动换行、正文深色可读性和普通页脚的紧凑显示。主题仍保留河北医科大学紫色识别，但正文内容不再全部使用紫色。
+
+- 长标题应该自然换行，不截断核心信息
+- 普通内容页默认只显示部门和页码
+- 紧凑密度适合表格、代码和步骤说明
 
 ---
 layout: section
@@ -124,6 +149,7 @@ sectionTitleEn: Data Sources and Preparation
 
 ---
 layout: default
+density: compact
 ---
 
 # 常用 PPI 与通路数据库
@@ -137,11 +163,13 @@ layout: default
 
 ---
 layout: figure-side
+title: STRING 数据库
+slideTitle: STRING 数据库
 figureUrl: /hebmu-assets/hebmu-logo.png
 figureCaption: '数据库界面或检索结果截图可放在此处'
 figureX: r
 ---
-# STRING 数据库
+# 数据库特点
 
 - 已知和预测的 PPI
 - 多种证据来源
@@ -152,6 +180,7 @@ figureX: r
 
 ---
 layout: default
+density: compact
 ---
 
 # 从表达矩阵筛选候选基因
@@ -194,17 +223,16 @@ layout: default
 
 # PPI 分析流程
 
-```mermaid
-graph LR
-    A[表达矩阵] --> B[DESeq2筛选候选基因]
-    B --> C[STRING/BioGRID 查询PPI]
-    C --> D[导出边表]
-    D --> E[Cytoscape可视化]
-    D --> F[NetworkX拓扑分析]
-    F --> G[Hub基因和功能模块]
-    style A fill:#ede0f5,stroke:#621887
-    style D fill:#ede0f5,stroke:#621887
-    style G fill:#ede0f5,stroke:#621887
+```mermaid {scale: 0.50}
+flowchart LR
+    Root["PPI<br/>分析流程"]:::hebmuRoot
+    Root --> Filter["候选基因筛选"]:::hebmuPill
+    Root --> Query["PPI 数据获取"]:::hebmuPill
+    Root --> Analyze["网络分析解释"]:::hebmuPill
+
+    Filter --- FilterNote["表达矩阵 + DESeq2"]:::hebmuNote
+    Query --- QueryNote["STRING/BioGRID 查询并导出边表"]:::hebmuNote
+    Analyze --- AnalyzeNote["Cytoscape可视化；NetworkX 识别Hub基因和功能模块"]:::hebmuNote
 ```
 
 ---
@@ -212,7 +240,7 @@ layout: figure
 figureUrl: /hebmu-assets/campus-end.jpeg
 figureCaption: '全页图片布局示例：可替换为 Cytoscape 网络图'
 ---
-
+# Cytoscape 实操步骤
 ---
 layout: default
 ---
@@ -233,6 +261,7 @@ sectionTitleEn: Network Topology Analysis
 
 ---
 layout: default
+density: compact
 ---
 
 # 使用 NetworkX 计算拓扑指标
@@ -260,13 +289,26 @@ print("Top bridge genes:", bridge_genes)
 layout: default
 ---
 
-# 脚注示例 Footnotes
+# 脚注示例 Footnotes (文本文字)
 
 蛋白质相互作用网络是理解细胞功能的重要工具。
 
 <Footnotes :separator="true">
   <Footnote :number="1">Barabási AL, et al. Network biology: understanding the cell's functional organization. Nat Rev Genet. 2004.</Footnote>
   <Footnote :number="2">Szklarczyk D, et al. STRING v11: protein-protein interaction networks. Nucleic Acids Res. 2019.</Footnote>
+</Footnotes>
+
+---
+layout: figure-footnote
+figureUrl: /hebmu-assets/campus-end.jpeg
+figureCaption: '全页图片布局示例：可替换为 Cytoscape 网络图'
+figureFootnoteNumber: 1
+---
+
+# 图片及脚注示例
+
+<Footnotes :separator="true" x="l" y="col">
+  <Footnote :number="1">Barabási AL, et al. Network biology: understanding the cell's functional organization. Nat Rev Genet. 2004.</Footnote>
 </Footnotes>
 
 ---
