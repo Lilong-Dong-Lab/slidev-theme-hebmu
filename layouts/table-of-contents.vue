@@ -186,13 +186,13 @@ const contentImage = computed(
     props.imageUrl ||
     (themeConfigs.value.contentImageUrl as string | undefined) ||
     (themeConfigs.value.coverBackgroundUrl as string | undefined) ||
-    "/hebmu-assets/campus-cover.jpeg",
+    "/campus-cover.jpeg",
 );
 
 const contentLogo = computed(
   () =>
     props.logoUrl ||
     (themeConfigs.value.logoUrl as string | undefined) ||
-    "/hebmu-assets/hebmu-logo.png",
+    "/hebmu-logo.png",
 );
 </script>

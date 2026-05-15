@@ -21,9 +21,9 @@ themeConfig:
   paginationX: 'r'
   paginationY: 'b'
   footerMode: 'compact'
-  logoUrl: '/hebmu-assets/hebmu-logo.png'
-  coverBackgroundUrl: '/hebmu-assets/campus-cover.jpeg'
-  endBackgroundUrl: '/hebmu-assets/campus-end.jpeg'
+  logoUrl: '/hebmu-logo.png'
+  coverBackgroundUrl: '/campus-cover.jpeg'
+  endBackgroundUrl: '/campus-end.jpeg'
   footerDepartment: '河北医科大学 基础医学院 医药信息学教研室'
   footerAuthor: '董立龙'
   footerEmail: 'lilong.dong@hebmu.edu.cn'
@@ -165,7 +165,7 @@ density: compact
 layout: figure-side
 title: STRING 数据库
 slideTitle: STRING 数据库
-figureUrl: /hebmu-assets/hebmu-logo.png
+figureUrl: /hebmu-logo.png
 figureCaption: '数据库界面或检索结果截图可放在此处'
 figureX: r
 ---
@@ -237,7 +237,7 @@ flowchart LR
 
 ---
 layout: figure
-figureUrl: /hebmu-assets/campus-end.jpeg
+figureUrl: /campus-end.jpeg
 figureCaption: '全页图片布局示例：可替换为 Cytoscape 网络图'
 ---
 # Cytoscape 实操步骤
@@ -300,7 +300,7 @@ layout: default
 
 ---
 layout: figure-footnote
-figureUrl: /hebmu-assets/campus-end.jpeg
+figureUrl: /campus-end.jpeg
 figureCaption: '全页图片布局示例：可替换为 Cytoscape 网络图'
 figureFootnoteNumber: 1
 ---

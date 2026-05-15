@@ -227,7 +227,7 @@ shrinks before citations can overlap the caption or global footer.
 ```markdown
 ---
 layout: figure-footnote
-figureUrl: /hebmu-assets/campus-end.jpeg
+figureUrl: /campus-end.jpeg
 figureCaption: '全页图片布局示例'
 figureFootnoteNumber: 1
 ---

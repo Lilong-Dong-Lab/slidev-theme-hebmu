@@ -133,7 +133,7 @@ const showFooter = computed(
 );
 
 const logoUrl = computed(
-  () => themeConfigs.value.logoUrl || "/hebmu-assets/hebmu-logo.png",
+  () => themeConfigs.value.logoUrl || "/hebmu-logo.png",
 );
 const footerDepartment = computed(
   () =>

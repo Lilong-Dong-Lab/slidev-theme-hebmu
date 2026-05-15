@@ -6,7 +6,7 @@
         backgroundImage: `url('${resolveAssetUrl(
           props.endBackgroundUrl ||
             $slidev.themeConfigs?.endBackgroundUrl ||
-            '/hebmu-assets/campus-end.jpeg',
+            '/campus-end.jpeg',
         )}')`,
       }"
     ></div>
@@ -81,7 +81,7 @@
         resolveAssetUrl(
           props.logoUrl ||
             $slidev.themeConfigs?.logoUrl ||
-            '/hebmu-assets/hebmu-logo.png',
+            '/hebmu-logo.png',
         )
       "
       alt="Hebei Medical University"
