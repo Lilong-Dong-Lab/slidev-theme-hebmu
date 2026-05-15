@@ -1,5 +1,5 @@
 <template>
-  <div class="slidev-layout keynote-layout keynote-section">
+  <div class="slidev-layout section keynote-layout keynote-section">
     <KeynoteChrome
       :hide-footer="hideFooter"
       :hide-logo="hideLogo"
@@ -38,5 +38,3 @@ withDefaults(
   keynoteChromeDefaults,
 );
 </script>
-
-<style scoped></style>

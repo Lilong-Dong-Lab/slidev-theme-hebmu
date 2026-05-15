@@ -1,5 +1,5 @@
 <template>
-  <div class="slidev-layout keynote-content">
+  <div class="slidev-layout table-of-contents keynote-content">
     <div class="keynote-content-left" aria-hidden="true">
       <div class="keynote-content-disc"></div>
       <div class="keynote-content-photo">
@@ -64,7 +64,7 @@
 <script setup lang="ts">
 import { useSlideContext } from "@slidev/client";
 import { computed } from "vue";
-import { resolveAssetUrl } from "../layout-helper";
+import { type ThemeConfigs, resolveAssetUrl } from "../layout-helper";
 
 type ContentItemInput =
   | string
@@ -106,7 +106,7 @@ const props = withDefaults(
 const { $slidev } = useSlideContext();
 
 const themeConfigs = computed(
-  () => ($slidev.themeConfigs || {}) as Record<string, unknown>,
+  () => ($slidev.themeConfigs || {}) as ThemeConfigs,
 );
 
 const configuredItems = computed(

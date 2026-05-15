@@ -9,7 +9,7 @@
     :hide-title="hideTitle"
     :hide-wave="hideWave"
     :slide-title="slideTitle"
-    layout-class="keynote-default keynote-intro"
+    layout-class="intro keynote-default keynote-intro"
   >
     <slot />
     <div v-if="courseTitle || sessionNumber" class="intro-meta">

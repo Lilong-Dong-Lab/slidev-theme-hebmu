@@ -1,5 +1,5 @@
 <template>
-  <div class="slidev-layout keynote-cover">
+  <div class="slidev-layout cover keynote-cover">
     <div
       class="cover-photo"
       :style="{

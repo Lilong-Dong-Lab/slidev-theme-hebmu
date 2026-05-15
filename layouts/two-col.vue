@@ -9,7 +9,7 @@
     :hide-title="hideTitle"
     :hide-wave="hideWave"
     :slide-title="slideTitle"
-    layout-class="keynote-default keynote-two-col"
+    layout-class="two-col keynote-default keynote-two-col"
   >
     <slot />
     <div class="keynote-two-col-grid">
@@ -28,5 +28,3 @@ import { type KeynoteShellProps, keynoteShellDefaults } from "../layout-helper";
 
 withDefaults(defineProps<KeynoteShellProps>(), keynoteShellDefaults);
 </script>
-
-<style scoped></style>

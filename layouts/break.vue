@@ -1,5 +1,5 @@
 <template>
-  <div class="slidev-layout keynote-layout keynote-break">
+  <div class="slidev-layout break keynote-layout keynote-break">
     <KeynoteChrome
       :hide-footer="hideFooter"
       :hide-logo="hideLogo"
@@ -29,5 +29,3 @@ withDefaults(defineProps<KeynoteChromeProps & { breakMinutes?: number }>(), {
   hidePage: true,
 });
 </script>
-
-<style scoped></style>

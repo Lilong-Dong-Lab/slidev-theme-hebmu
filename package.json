@@ -5,6 +5,7 @@
   "author": {
     "name": "Hugo Dong"
   },
+  "type": "module",
   "license": "MIT",
   "keywords": [
     "slidev-theme",
@@ -26,7 +27,6 @@
   ],
   "slidev": {
     "colorSchema": "light",
-    "highlighter": "shiki",
     "defaults": {
       "canvasWidth": 1024,
       "aspectRatio": "4/3",
@@ -49,6 +49,7 @@
     }
   },
   "engines": {
+    "node": ">=20.12.0",
     "slidev": ">=0.48.0"
   },
   "scripts": {
@@ -58,11 +59,11 @@
     "screenshot": "slidev export example.md --format png"
   },
   "dependencies": {
-    "@slidev/types": "^51.0.0"
+    "@slidev/types": "^52.0.0"
   },
   "devDependencies": {
-    "@slidev/cli": "^51.0.0",
+    "@slidev/cli": "^52.0.0",
     "playwright-chromium": "^1.52.0",
-    "unocss": "^0.62.3"
+    "unocss": "^66.6.8"
   }
 }

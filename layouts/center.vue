@@ -6,7 +6,7 @@
     :hide-logo="hideLogo"
     :hide-page="hidePage"
     :hide-wave="hideWave"
-    layout-class="keynote-center"
+    layout-class="center keynote-center"
   >
     <div class="keynote-center-content">
       <slot />
@@ -23,5 +23,3 @@ withDefaults(defineProps<KeynoteShellProps>(), {
   hideTitle: true,
 });
 </script>
-
-<style scoped></style>

@@ -125,5 +125,12 @@ export default defineMermaidSetup(() => ({
       font-weight: 700;
       text-align: left;
     }
+
+    .edgeLabel,
+    .edgeLabel p,
+    .labelBkg {
+      color: #4e136c !important;
+      background-color: rgba(255, 255, 255, 0.85) !important;
+    }
   `,
 }));

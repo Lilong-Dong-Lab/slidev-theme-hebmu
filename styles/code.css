@@ -24,13 +24,13 @@
   padding: 0;
 }
 
-.keynote-density-compact pre {
+.slidev-layout.keynote-density-compact pre {
   padding: 0.55rem 0.75rem;
   margin: 0.5rem 0;
   font-size: 0.78rem;
   line-height: 1.45;
 }
 
-.keynote-density-compact code {
+.slidev-layout.keynote-density-compact code {
   font-size: 0.86em;
 }

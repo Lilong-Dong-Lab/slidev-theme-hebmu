@@ -94,21 +94,11 @@
 <script setup lang="ts">
 import { useSlideContext } from "@slidev/client";
 import { computed } from "vue";
-import { resolveAssetUrl } from "../layout-helper";
-
-type FooterMode = "compact" | "full" | "none";
-
-type ThemeConfigs = {
-  footerAuthor?: string;
-  footerDepartment?: string;
-  footerEmail?: string;
-  footerMode?: FooterMode;
-  footerWechat?: string;
-  logoUrl?: string;
-  paginationPagesDisabled?: number[];
-  paginationX?: "l" | "r";
-  paginationY?: "b" | "t";
-};
+import {
+  type FooterMode,
+  type ThemeConfigs,
+  resolveAssetUrl,
+} from "../layout-helper";
 
 const props = withDefaults(
   defineProps<{

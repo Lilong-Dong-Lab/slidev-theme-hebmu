@@ -1,5 +1,5 @@
 <template>
-  <div class="slidev-layout keynote-end">
+  <div class="slidev-layout end keynote-end">
     <div
       class="end-photo"
       :style="{
@@ -102,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { resolveAssetUrl } from "../layout-helper";
+import { type ThemeConfigs, resolveAssetUrl } from "../layout-helper";
 
 const props = withDefaults(
   defineProps<{

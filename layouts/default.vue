@@ -9,7 +9,7 @@
     :hide-title="hideTitle"
     :hide-wave="hideWave"
     :slide-title="slideTitle"
-    layout-class="keynote-default"
+    layout-class="default keynote-default"
   >
     <slot />
   </KeynoteShell>
@@ -20,5 +20,3 @@ import { type KeynoteShellProps, keynoteShellDefaults } from "../layout-helper";
 
 withDefaults(defineProps<KeynoteShellProps>(), keynoteShellDefaults);
 </script>
-
-<style scoped></style>

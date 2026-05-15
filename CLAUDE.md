@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Slidev presentation theme for Hebei Medical University (河北医科大学) academic teaching. Chinese-first with bilingual (中/EN) support. Consumed by course projects via local path dependency in `package.json`.
 
 - **Package**: `slidev-theme-hebmu` (Slidev resolves `theme: hebmu`)
-- **Slidev**: >=0.48.0, `colorSchema: "light"`
+- **Slidev**: >=0.48.0, `colorSchema: "light"`, 4:3 aspect ratio, 1024px canvas width
 - **Package manager**: bun
 - **No tests**: Visual testing via `example.md` only
 
@@ -18,6 +18,7 @@ bun install          # Install deps
 bun run dev          # Preview with example.md (hot-reload, theme: ./)
 bun run build        # Build
 bun run export       # Export to PDF
+bun run screenshot   # Export to PNG
 ```
 
 ## Design System
@@ -64,7 +65,7 @@ Colors extracted from Keynote lecture slides (PPTX theme XML). `accent1` = `#621
 
 ## Layout & Component Specs
 
-See @docs/specs.md for detailed prop tables, usage examples, and implementation notes for all 12 layouts and 7 components.
+See @docs/specs.md for detailed prop tables, usage examples, and implementation notes for all 12 layouts and 10 components.
 
 ## Naming Conventions
 
@@ -76,7 +77,7 @@ See @docs/specs.md for detailed prop tables, usage examples, and implementation 
 
 ## Implementation Plan
 
-**Status**: Implemented — 12 layouts, 7 components, styles and setup files complete. See @docs/specs.md for layout/component specs.
+**Status**: Implemented — 12 layouts, 10 components, styles and setup files complete. Code highlighting configured in `setup/shiki.ts`, Mermaid in `setup/mermaid.ts`. See @docs/specs.md for layout/component specs.
 
 All layouts, components, and styles have been ported or built. Run `bun run dev` to preview.
 

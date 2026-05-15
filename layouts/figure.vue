@@ -9,7 +9,7 @@
     :hide-title="hideTitle"
     :hide-wave="hideWave"
     :slide-title="slideTitle"
-    layout-class="keynote-default keynote-figure"
+    layout-class="figure keynote-default keynote-figure"
     stage-class="keynote-figure-stage"
   >
     <slot />
@@ -35,5 +35,3 @@ withDefaults(
   keynoteShellDefaults,
 );
 </script>
-
-<style scoped></style>

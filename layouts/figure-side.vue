@@ -13,7 +13,7 @@
       'keynote-figure-side-stage',
       figureX === 'l' && 'figure-left',
     ]"
-    layout-class="keynote-default keynote-figure-side"
+    layout-class="figure-side keynote-default keynote-figure-side"
   >
     <div>
       <slot />
@@ -41,5 +41,3 @@ withDefaults(
   { ...keynoteShellDefaults, figureX: "r" },
 );
 </script>
-
-<style scoped></style>

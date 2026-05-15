@@ -86,18 +86,18 @@
   font-family: "Fira Code", "SF Mono", Menlo, Monaco, Consolas, monospace;
 }
 
-.keynote-layout {
+.slidev-layout.keynote-layout {
   background: var(--hebmu-bg);
 }
 
-.keynote-chrome {
+.slidev-layout .keynote-chrome {
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
 }
 
-.keynote-header-band {
+.slidev-layout .keynote-header-band {
   position: absolute;
   top: 0;
   left: 0;
@@ -106,7 +106,7 @@
   background: linear-gradient(90deg, #eeeeee 0%, #f7f7f7 50%, #eeeeee 100%);
 }
 
-.keynote-wave {
+.slidev-layout .keynote-wave {
   position: absolute;
   top: 0;
   left: 0;
@@ -114,15 +114,15 @@
   height: 100%;
 }
 
-.keynote-wave-muted {
+.slidev-layout .keynote-wave-muted {
   fill: var(--hebmu-header-bg);
 }
 
-.keynote-wave-accent {
+.slidev-layout .keynote-wave-accent {
   fill: var(--hebmu-purple-soft);
 }
 
-.keynote-logo {
+.slidev-layout .keynote-logo {
   position: absolute;
   top: 20px;
   left: 24px;
@@ -131,7 +131,7 @@
   object-fit: contain;
 }
 
-.keynote-footer {
+.slidev-layout .keynote-footer {
   position: absolute;
   left: 20px;
   right: 48px;
@@ -146,33 +146,33 @@
   overflow-wrap: anywhere;
 }
 
-.keynote-footer-compact {
+.slidev-layout .keynote-footer-compact {
   grid-template-columns: minmax(0, 1fr);
   right: 76px;
 }
 
-.keynote-footer-full {
+.slidev-layout .keynote-footer-full {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
 }
 
-.keynote-footer-contact {
+.slidev-layout .keynote-footer-contact {
   text-align: center;
   white-space: normal;
 }
 
-.keynote-footer a {
+.slidev-layout .keynote-footer a {
   color: var(--hebmu-info);
   text-decoration: underline;
 }
 
-.keynote-stage {
+.slidev-layout .keynote-stage {
   position: absolute;
   inset: 0;
   z-index: 1;
   padding: 178px 56px 100px;
 }
 
-.keynote-stage::before {
+.slidev-layout .keynote-stage::before {
   position: absolute;
   top: 150px;
   left: 45px;
@@ -184,15 +184,15 @@
   content: "";
 }
 
-.keynote-stage.is-unframed::before {
+.slidev-layout .keynote-stage.is-unframed::before {
   display: none;
 }
 
-.keynote-stage.is-unframed {
+.slidev-layout .keynote-stage.is-unframed {
   padding: 154px 70px 58px;
 }
 
-.keynote-slide-title {
+.slidev-layout .keynote-slide-title {
   position: absolute;
   top: 31px;
   left: 100px;
@@ -211,22 +211,24 @@
   white-space: normal;
 }
 
-.keynote-stage-title-auto > h1:first-child,
-.keynote-stage-title-auto > div:first-child > h1:first-child {
+.slidev-layout .keynote-stage-title-auto > h1:first-child,
+.slidev-layout .keynote-stage-title-auto > div:first-child > h1:first-child {
   display: none;
 }
 
-.keynote-stage-title-auto
+.slidev-layout
+  .keynote-stage-title-auto
   > h1:first-child
   + :is(p, ul, ol, table, pre, blockquote, figure, .keynote-two-col-grid),
-.keynote-stage-title-auto
+.slidev-layout
+  .keynote-stage-title-auto
   > div:first-child
   > h1:first-child
   + :is(p, ul, ol, table, pre, blockquote) {
   margin-top: 0;
 }
 
-.keynote-default .keynote-stage h1 {
+.slidev-layout.keynote-default .keynote-stage h1 {
   color: var(--hebmu-primary);
   font-size: 32px;
   font-weight: 700;
@@ -235,7 +237,7 @@
   text-wrap: balance;
 }
 
-.keynote-default .keynote-stage h2 {
+.slidev-layout.keynote-default .keynote-stage h2 {
   color: var(--hebmu-primary);
   font-size: 28px;
   font-weight: 700;
@@ -243,36 +245,42 @@
   overflow-wrap: anywhere;
 }
 
-.keynote-default .keynote-stage h1 + :is(p, ul, ol, table, pre, blockquote),
-.keynote-default .keynote-stage h2 + :is(p, ul, ol, table, pre, blockquote) {
+.slidev-layout.keynote-default
+  .keynote-stage
+  h1
+  + :is(p, ul, ol, table, pre, blockquote),
+.slidev-layout.keynote-default
+  .keynote-stage
+  h2
+  + :is(p, ul, ol, table, pre, blockquote) {
   margin-top: 8px;
 }
 
-.keynote-stage p,
-.keynote-stage li,
-.keynote-stage td,
-.keynote-stage th {
+.slidev-layout .keynote-stage p,
+.slidev-layout .keynote-stage li,
+.slidev-layout .keynote-stage td,
+.slidev-layout .keynote-stage th {
   color: var(--hebmu-text);
   font-size: 20px;
 }
 
-.keynote-stage p,
-.keynote-stage ul,
-.keynote-stage ol,
-.keynote-stage table,
-.keynote-stage pre,
-.keynote-stage blockquote {
+.slidev-layout .keynote-stage p,
+.slidev-layout .keynote-stage ul,
+.slidev-layout .keynote-stage ol,
+.slidev-layout .keynote-stage table,
+.slidev-layout .keynote-stage pre,
+.slidev-layout .keynote-stage blockquote {
   margin-top: 16px;
 }
 
-.keynote-stage > p:first-child,
-.keynote-stage > ul:first-child,
-.keynote-stage > ol:first-child,
-.keynote-stage > table:first-child {
+.slidev-layout .keynote-stage > p:first-child,
+.slidev-layout .keynote-stage > ul:first-child,
+.slidev-layout .keynote-stage > ol:first-child,
+.slidev-layout .keynote-stage > table:first-child {
   margin-top: 0;
 }
 
-.keynote-stage blockquote {
+.slidev-layout .keynote-stage blockquote {
   border-left: 6px solid var(--hebmu-accent);
   padding-left: 24px;
   color: var(--hebmu-primary);
@@ -282,13 +290,13 @@
   line-height: 1.4;
 }
 
-.keynote-stage table {
+.slidev-layout .keynote-stage table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
 }
 
-.keynote-stage th {
+.slidev-layout .keynote-stage th {
   padding: 18px 10px;
   border: 1px solid #ffffff;
   background: var(--hebmu-primary-light);
@@ -297,7 +305,7 @@
   text-align: left;
 }
 
-.keynote-stage td {
+.slidev-layout .keynote-stage td {
   padding: 16px 10px;
   border: 1px solid #ffffff;
   background: var(--hebmu-row-a);
@@ -308,25 +316,25 @@
   word-break: normal;
 }
 
-.keynote-stage td a {
+.slidev-layout .keynote-stage td a {
   overflow-wrap: anywhere;
 }
 
-.keynote-stage tr:nth-child(odd) td {
+.slidev-layout .keynote-stage tr:nth-child(odd) td {
   background: var(--hebmu-row-b);
 }
 
-.keynote-stage td:first-child,
-.keynote-stage td:nth-child(2) {
+.slidev-layout .keynote-stage td:first-child,
+.slidev-layout .keynote-stage td:nth-child(2) {
   color: var(--hebmu-text);
   font-weight: 700;
 }
 
-.keynote-stage .slidev-vclick-target {
+.slidev-layout .keynote-stage .slidev-vclick-target {
   transition: opacity 180ms ease;
 }
 
-.keynote-stage .keynote-footnotes {
+.slidev-layout .keynote-stage .keynote-footnotes {
   position: absolute;
   right: 56px;
   bottom: 92px;
@@ -338,19 +346,19 @@
   line-height: 1.22;
 }
 
-.keynote-stage .keynote-footnotes-filled {
+.slidev-layout .keynote-stage .keynote-footnotes-filled {
   z-index: 1;
   background: var(--hebmu-bg);
 }
 
-.keynote-stage .keynote-footnotes hr {
+.slidev-layout .keynote-stage .keynote-footnotes hr {
   margin: 0;
   border: 0;
   border-top: 1px solid
     color-mix(in srgb, var(--hebmu-primary-light) 24%, transparent);
 }
 
-.keynote-stage .keynote-footnotes-list {
+.slidev-layout .keynote-stage .keynote-footnotes-list {
   display: flex;
   flex-wrap: wrap;
   gap: 3px 18px;
@@ -359,25 +367,25 @@
   list-style: none;
 }
 
-.keynote-stage .keynote-footnotes-col {
+.slidev-layout .keynote-stage .keynote-footnotes-col {
   flex-direction: column;
 }
 
-.keynote-stage .keynote-footnotes-row {
+.slidev-layout .keynote-stage .keynote-footnotes-row {
   flex-direction: row;
 }
 
-.keynote-stage .keynote-footnotes-left {
+.slidev-layout .keynote-stage .keynote-footnotes-left {
   align-items: flex-start;
   justify-content: flex-start;
 }
 
-.keynote-stage .keynote-footnotes-right {
+.slidev-layout .keynote-stage .keynote-footnotes-right {
   align-items: flex-end;
   justify-content: flex-end;
 }
 
-.keynote-stage .keynote-footnote {
+.slidev-layout .keynote-stage .keynote-footnote {
   display: inline-grid;
   grid-template-columns: auto minmax(0, 1fr);
   column-gap: 4px;
@@ -391,7 +399,7 @@
   white-space: normal;
 }
 
-.keynote-stage .keynote-footnote-number {
+.slidev-layout .keynote-stage .keynote-footnote-number {
   min-width: 1em;
   color: var(--hebmu-primary-light);
   font-size: 0.88em;
@@ -399,46 +407,46 @@
   text-align: right;
 }
 
-.keynote-stage .keynote-footnote-text {
+.slidev-layout .keynote-stage .keynote-footnote-text {
   min-width: 0;
 }
 
-.keynote-default .keynote-stage {
+.slidev-layout.keynote-default .keynote-stage {
   color: var(--hebmu-text);
 }
 
-.keynote-default .keynote-stage > ul,
-.keynote-default .keynote-stage > ol {
+.slidev-layout.keynote-default .keynote-stage > ul,
+.slidev-layout.keynote-default .keynote-stage > ol {
   color: var(--hebmu-text);
   font-size: 20px;
 }
 
-.keynote-default .keynote-stage > ul li,
-.keynote-default .keynote-stage > ol li {
+.slidev-layout.keynote-default .keynote-stage > ul li,
+.slidev-layout.keynote-default .keynote-stage > ol li {
   font-size: 20px;
   line-height: 1.45;
 }
 
-.keynote-center .keynote-stage {
+.slidev-layout.keynote-center .keynote-stage {
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
 }
 
-.keynote-center-content {
+.slidev-layout .keynote-center-content {
   color: var(--hebmu-primary);
   font-size: 32px;
   font-weight: 700;
   line-height: 1.32;
 }
 
-.keynote-section {
+.slidev-layout.keynote-section {
   display: grid;
   place-items: center;
 }
 
-.keynote-section-content {
+.slidev-layout .keynote-section-content {
   position: relative;
   z-index: 1;
   width: min(760px, calc(100% - 112px));
@@ -447,14 +455,14 @@
   text-align: center;
 }
 
-.keynote-section-number {
+.slidev-layout .keynote-section-number {
   color: color-mix(in srgb, var(--hebmu-primary) 24%, var(--hebmu-bg));
   font-size: 54px;
   font-weight: 700;
   line-height: 1.1;
 }
 
-.keynote-section-number::after {
+.slidev-layout .keynote-section-number::after {
   display: block;
   width: 68px;
   height: 3px;
@@ -464,69 +472,69 @@
   content: "";
 }
 
-.keynote-section-title {
+.slidev-layout .keynote-section-title {
   margin-top: 0;
   font-size: 28px;
   font-weight: 700;
   line-height: 1.18;
 }
 
-.keynote-section-number + .keynote-section-title,
-.keynote-section-number + .keynote-section-title-en {
+.slidev-layout .keynote-section-number + .keynote-section-title,
+.slidev-layout .keynote-section-number + .keynote-section-title-en {
   margin-top: 24px;
 }
 
-.keynote-section-title-en {
+.slidev-layout .keynote-section-title-en {
   margin-top: 10px;
   color: var(--hebmu-text-muted);
   font-size: 22px;
   font-weight: 700;
 }
 
-.keynote-two-col-grid {
+.slidev-layout .keynote-two-col-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 28px;
   height: 100%;
 }
 
-.keynote-two-col-grid > * {
+.slidev-layout .keynote-two-col-grid > * {
   min-width: 0;
 }
 
-.keynote-figure-stage {
+.slidev-layout .keynote-figure-stage {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.keynote-figure-stage figure {
+.slidev-layout .keynote-figure-stage figure {
   min-height: 0;
   flex: 1;
 }
 
-.keynote-figure-footnote-stage {
+.slidev-layout .keynote-figure-footnote-stage {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.keynote-figure-footnote-stage figure {
+.slidev-layout .keynote-figure-footnote-stage figure {
   order: 1;
   min-height: 0;
   flex: 1 1 auto;
 }
 
-.keynote-figure-footnote-stage figure img {
+.slidev-layout .keynote-figure-footnote-stage figure img {
   min-height: 0;
   flex: 1 1 auto;
 }
 
-.keynote-figure-footnote-stage figcaption {
+.slidev-layout .keynote-figure-footnote-stage figcaption {
   margin-top: 6px;
 }
 
-.keynote-figure-footnote-stage .keynote-footnotes {
+.slidev-layout .keynote-figure-footnote-stage .keynote-footnotes {
   position: static;
   order: 2;
   flex: 0 0 auto;
@@ -535,31 +543,31 @@
   background: var(--hebmu-bg);
 }
 
-.keynote-figure-footnote-stage .keynote-footnotes-list {
+.slidev-layout .keynote-figure-footnote-stage .keynote-footnotes-list {
   padding-right: 0;
   padding-left: 0;
 }
 
-.keynote-figure-side-stage {
+.slidev-layout .keynote-figure-side-stage {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   gap: 28px;
   align-items: center;
 }
 
-.keynote-figure-side-stage.figure-left {
+.slidev-layout .keynote-figure-side-stage.figure-left {
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
 }
 
-.keynote-figure-side-stage.figure-left figure {
+.slidev-layout .keynote-figure-side-stage.figure-left figure {
   order: -1;
 }
 
-.keynote-toc .slidev-toc {
+.slidev-layout .keynote-toc .slidev-toc {
   color: var(--hebmu-primary-light);
 }
 
-.keynote-quote blockquote {
+.slidev-layout.keynote-quote blockquote {
   margin: 80px 56px 0;
   color: var(--hebmu-primary);
   font-size: 28px;
@@ -568,7 +576,7 @@
   line-height: 1.45;
 }
 
-.quote-attribution {
+.slidev-layout .quote-attribution {
   margin: 20px 56px 0;
   color: var(--hebmu-text-muted);
   font-size: 18px;
@@ -588,17 +596,17 @@
   font-weight: 700;
 }
 
-.keynote-break-content {
+.slidev-layout .keynote-break-content {
   margin-top: 230px;
   color: var(--hebmu-primary);
   text-align: center;
 }
 
-.keynote-break-content h1 {
+.slidev-layout .keynote-break-content h1 {
   font-size: 32px;
 }
 
-.keynote-break-content p {
+.slidev-layout .keynote-break-content p {
   margin-top: 18px;
   color: var(--hebmu-text-muted);
   font-size: 20px;
@@ -619,64 +627,64 @@
   color: var(--hebmu-primary);
 }
 
-.keynote-density-compact .keynote-stage {
+.slidev-layout.keynote-density-compact .keynote-stage {
   padding: 166px 50px 92px;
 }
 
-.keynote-density-compact .keynote-stage::before {
+.slidev-layout.keynote-density-compact .keynote-stage::before {
   top: 144px;
   bottom: 74px;
 }
 
-.keynote-density-compact .keynote-slide-title {
+.slidev-layout.keynote-density-compact .keynote-slide-title {
   font-size: 32px;
   line-height: 1.14;
 }
 
-.keynote-density-compact.keynote-default .keynote-stage h1 {
+.slidev-layout.keynote-density-compact.keynote-default .keynote-stage h1 {
   font-size: 32px;
 }
 
-.keynote-density-compact.keynote-default .keynote-stage h2 {
+.slidev-layout.keynote-density-compact.keynote-default .keynote-stage h2 {
   font-size: 28px;
 }
 
-.keynote-density-compact .keynote-stage p,
-.keynote-density-compact .keynote-stage li,
-.keynote-density-compact .keynote-stage td,
-.keynote-density-compact .keynote-stage th {
+.slidev-layout.keynote-density-compact .keynote-stage p,
+.slidev-layout.keynote-density-compact .keynote-stage li,
+.slidev-layout.keynote-density-compact .keynote-stage td,
+.slidev-layout.keynote-density-compact .keynote-stage th {
   font-size: 20px;
 }
 
-.keynote-density-compact .keynote-stage p,
-.keynote-density-compact .keynote-stage ul,
-.keynote-density-compact .keynote-stage ol,
-.keynote-density-compact .keynote-stage table,
-.keynote-density-compact .keynote-stage pre,
-.keynote-density-compact .keynote-stage blockquote {
+.slidev-layout.keynote-density-compact .keynote-stage p,
+.slidev-layout.keynote-density-compact .keynote-stage ul,
+.slidev-layout.keynote-density-compact .keynote-stage ol,
+.slidev-layout.keynote-density-compact .keynote-stage table,
+.slidev-layout.keynote-density-compact .keynote-stage pre,
+.slidev-layout.keynote-density-compact .keynote-stage blockquote {
   margin-top: 10px;
 }
 
-.keynote-density-compact.keynote-default .keynote-stage > ul,
-.keynote-density-compact.keynote-default .keynote-stage > ol,
-.keynote-density-compact.keynote-default .keynote-stage > ul li,
-.keynote-density-compact.keynote-default .keynote-stage > ol li {
+.slidev-layout.keynote-density-compact.keynote-default .keynote-stage > ul,
+.slidev-layout.keynote-density-compact.keynote-default .keynote-stage > ol,
+.slidev-layout.keynote-density-compact.keynote-default .keynote-stage > ul li,
+.slidev-layout.keynote-density-compact.keynote-default .keynote-stage > ol li {
   font-size: 20px;
   line-height: 1.32;
 }
 
-.keynote-density-compact .keynote-stage th,
-.keynote-density-compact .keynote-stage td {
+.slidev-layout.keynote-density-compact .keynote-stage th,
+.slidev-layout.keynote-density-compact .keynote-stage td {
   padding: 9px 8px;
 }
 
 /* ── Cover layout ── */
 
-.keynote-cover {
+.slidev-layout.keynote-cover {
   background: var(--hebmu-bg);
 }
 
-.keynote-cover .cover-photo {
+.slidev-layout.keynote-cover .cover-photo {
   position: absolute;
   inset: 0 0 auto;
   height: 520px;
@@ -684,14 +692,14 @@
   background-size: cover;
 }
 
-.keynote-cover .cover-wave {
+.slidev-layout.keynote-cover .cover-wave {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
 
-.keynote-cover .cover-logo {
+.slidev-layout.keynote-cover .cover-logo {
   position: absolute;
   right: 62px;
   bottom: 88px;
@@ -700,7 +708,7 @@
   object-fit: contain;
 }
 
-.keynote-cover .cover-title {
+.slidev-layout.keynote-cover .cover-title {
   position: absolute;
   left: 205px;
   right: 205px;
@@ -709,7 +717,7 @@
   text-align: center;
 }
 
-.keynote-cover .cover-title h1 {
+.slidev-layout.keynote-cover .cover-title h1 {
   color: var(--hebmu-primary);
   font-size: 32px;
   font-weight: 700;
@@ -718,7 +726,7 @@
   text-wrap: balance;
 }
 
-.keynote-cover .cover-title h2 {
+.slidev-layout.keynote-cover .cover-title h2 {
   margin-top: 8px;
   color: var(--hebmu-text-muted);
   font-size: 28px;
@@ -726,7 +734,7 @@
   line-height: 1.2;
 }
 
-.keynote-cover .cover-title p {
+.slidev-layout.keynote-cover .cover-title p {
   margin-top: 8px;
   color: var(--hebmu-text-muted);
   font-size: 21px;
@@ -734,7 +742,7 @@
   line-height: 1.2;
 }
 
-.keynote-cover .cover-course {
+.slidev-layout.keynote-cover .cover-course {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -745,7 +753,7 @@
   font-weight: 700;
 }
 
-.keynote-cover .cover-meta {
+.slidev-layout.keynote-cover .cover-meta {
   position: absolute;
   left: 18px;
   bottom: 30px;
@@ -755,7 +763,7 @@
   line-height: 1.45;
 }
 
-.keynote-cover .cover-attribution {
+.slidev-layout.keynote-cover .cover-attribution {
   position: absolute;
   right: 40px;
   bottom: 28px;
@@ -765,11 +773,11 @@
 
 /* ── End layout ── */
 
-.keynote-end {
+.slidev-layout.keynote-end {
   background: var(--hebmu-bg);
 }
 
-.keynote-end .end-photo {
+.slidev-layout.keynote-end .end-photo {
   position: absolute;
   inset: 0 0 auto;
   height: 520px;
@@ -777,14 +785,14 @@
   background-size: cover;
 }
 
-.keynote-end .cover-wave {
+.slidev-layout.keynote-end .cover-wave {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
 
-.keynote-end .end-message {
+.slidev-layout.keynote-end .end-message {
   position: absolute;
   left: 96px;
   bottom: 45px;
@@ -799,14 +807,14 @@
   white-space: pre-line;
 }
 
-.keynote-end .end-message h1 {
+.slidev-layout.keynote-end .end-message h1 {
   color: var(--hebmu-primary);
   font-size: 32px;
   font-weight: 700;
   line-height: 1.12;
 }
 
-.keynote-end .end-message p {
+.slidev-layout.keynote-end .end-message p {
   margin-top: 12px;
   color: var(--hebmu-text-muted);
   font-size: 20px;
@@ -814,7 +822,7 @@
   line-height: 1.15;
 }
 
-.keynote-end .end-contact {
+.slidev-layout.keynote-end .end-contact {
   position: absolute;
   left: 374px;
   right: 220px;
@@ -826,7 +834,7 @@
   line-height: 1.1;
 }
 
-.keynote-end .end-contact-row {
+.slidev-layout.keynote-end .end-contact-row {
   display: grid;
   grid-template-columns: 36px 124px minmax(0, 1fr);
   align-items: center;
@@ -834,7 +842,7 @@
   min-height: 34px;
 }
 
-.keynote-end .end-contact-icon {
+.slidev-layout.keynote-end .end-contact-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -847,7 +855,7 @@
   font-weight: 700;
 }
 
-.keynote-end .end-contact-icon svg {
+.slidev-layout.keynote-end .end-contact-icon svg {
   width: 22px;
   height: 22px;
   fill: none;
@@ -857,16 +865,16 @@
   stroke-width: 2.2;
 }
 
-.keynote-end .end-contact strong {
+.slidev-layout.keynote-end .end-contact strong {
   font-weight: 700;
 }
 
-.keynote-end .end-contact a {
+.slidev-layout.keynote-end .end-contact a {
   color: var(--hebmu-info);
   text-decoration: underline;
 }
 
-.keynote-end .end-logo {
+.slidev-layout.keynote-end .end-logo {
   position: absolute;
   right: 36px;
   bottom: 58px;
@@ -875,25 +883,25 @@
   object-fit: contain;
 }
 
-.keynote-end .end-slot-layer {
+.slidev-layout.keynote-end .end-slot-layer {
   position: relative;
   z-index: 10;
 }
 
 /* ── Table of contents layout ── */
 
-.keynote-content {
+.slidev-layout.keynote-content {
   background: var(--hebmu-bg);
 }
 
-.keynote-content-left {
+.slidev-layout .keynote-content-left {
   position: absolute;
   inset: 0 auto 0 0;
   width: 38.25%;
   overflow: hidden;
 }
 
-.keynote-content-disc {
+.slidev-layout .keynote-content-disc {
   position: absolute;
   border-radius: 50%;
   pointer-events: none;
@@ -905,7 +913,7 @@
   background: var(--hebmu-primary-light);
 }
 
-.keynote-content-ribbon {
+.slidev-layout .keynote-content-ribbon {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -915,11 +923,11 @@
   pointer-events: none;
 }
 
-.keynote-content-ribbon path {
+.slidev-layout .keynote-content-ribbon path {
   fill: rgba(47, 0, 76, 0.32);
 }
 
-.keynote-content-band {
+.slidev-layout .keynote-content-band {
   position: absolute;
   left: 0;
   width: 95%;
@@ -929,15 +937,15 @@
   background: rgba(255, 255, 255, 0.22);
 }
 
-.keynote-content-band-top {
+.slidev-layout .keynote-content-band-top {
   top: 204px;
 }
 
-.keynote-content-band-bottom {
+.slidev-layout .keynote-content-band-bottom {
   top: 557px;
 }
 
-.keynote-content-photo {
+.slidev-layout .keynote-content-photo {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -947,7 +955,7 @@
   overflow: hidden;
 }
 
-.keynote-content-photo img {
+.slidev-layout .keynote-content-photo img {
   position: absolute;
   top: 29%;
   left: 0;
@@ -957,7 +965,7 @@
   object-fit: cover;
 }
 
-.keynote-content-dot {
+.slidev-layout .keynote-content-dot {
   position: absolute;
   display: block;
   border-radius: 50%;
@@ -965,21 +973,21 @@
   background: rgba(255, 255, 255, 0.24);
 }
 
-.keynote-content .dot-a {
+.slidev-layout.keynote-content .dot-a {
   top: 120px;
   left: 0;
   width: 35px;
   height: 35px;
 }
 
-.keynote-content .dot-b {
+.slidev-layout.keynote-content .dot-b {
   top: 129px;
   left: 259px;
   width: 50px;
   height: 50px;
 }
 
-.keynote-content .dot-c {
+.slidev-layout.keynote-content .dot-c {
   top: 176px;
   left: 126px;
   width: 101px;
@@ -987,19 +995,19 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-.keynote-content .dot-d {
+.slidev-layout.keynote-content .dot-d {
   top: 607px;
   left: 96px;
   width: 34px;
   height: 34px;
 }
 
-.keynote-content-main {
+.slidev-layout .keynote-content-main {
   position: absolute;
   inset: 0 0 0 37.3%;
 }
 
-.keynote-content-logo {
+.slidev-layout .keynote-content-logo {
   position: absolute;
   top: 16px;
   left: 50%;
@@ -1009,7 +1017,7 @@
   transform: translateX(-50%);
 }
 
-.keynote-content-title {
+.slidev-layout .keynote-content-title {
   position: absolute;
   top: 226px;
   left: 0;
@@ -1024,7 +1032,7 @@
   text-wrap: balance;
 }
 
-.keynote-content-list {
+.slidev-layout .keynote-content-list {
   position: absolute;
   top: 300px;
   bottom: 56px;
@@ -1039,7 +1047,7 @@
   list-style: none;
 }
 
-.keynote-content-item {
+.slidev-layout .keynote-content-item {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
   gap: 20px;
@@ -1051,11 +1059,11 @@
   line-height: 1.12;
 }
 
-.keynote-content-item.is-active {
+.slidev-layout .keynote-content-item.is-active {
   color: var(--hebmu-primary-light);
 }
 
-.keynote-content-number {
+.slidev-layout .keynote-content-number {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1068,11 +1076,11 @@
   line-height: 1;
 }
 
-.keynote-content-item.is-active .keynote-content-number {
+.slidev-layout .keynote-content-item.is-active .keynote-content-number {
   background: var(--hebmu-primary-light);
 }
 
-.keynote-content-text {
+.slidev-layout .keynote-content-text {
   min-width: 0;
   overflow-wrap: anywhere;
 }

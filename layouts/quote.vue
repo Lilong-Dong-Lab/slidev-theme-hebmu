@@ -6,7 +6,7 @@
     :hide-logo="hideLogo"
     :hide-page="hidePage"
     :hide-wave="hideWave"
-    layout-class="keynote-default keynote-quote"
+    layout-class="quote keynote-default keynote-quote"
   >
     <blockquote>
       <slot />
@@ -29,5 +29,3 @@ withDefaults(
   { ...keynoteShellDefaults },
 );
 </script>
-
-<style scoped></style>

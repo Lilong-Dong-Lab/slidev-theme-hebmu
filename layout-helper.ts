@@ -5,6 +5,26 @@ export function resolveAssetUrl(url: string) {
   return baseUrl + url;
 }
 
+export type FooterMode = "compact" | "full" | "none";
+
+export interface ThemeConfigs {
+  footerAuthor?: string;
+  footerDepartment?: string;
+  footerEmail?: string;
+  footerMode?: FooterMode;
+  footerTel?: string;
+  footerWechat?: string;
+  logoUrl?: string;
+  paginationPagesDisabled?: number[];
+  paginationX?: "l" | "r";
+  paginationY?: "b" | "t";
+  contentItems?: (string | object)[];
+  contentImageUrl?: string;
+  coverBackgroundUrl?: string;
+  endBackgroundUrl?: string;
+  tocItems?: (string | object)[];
+}
+
 export interface KeynoteChromeProps {
   hideFooter?: boolean;
   hideLogo?: boolean;
