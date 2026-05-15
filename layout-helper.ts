@@ -5,6 +5,13 @@ export function resolveAssetUrl(url: string) {
   return `${prefix}theme${url}`;
 }
 
+export function resolveUrl(url: string) {
+  if (!url.startsWith("/")) return url;
+  const baseUrl = import.meta.env.BASE_URL;
+  const prefix = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  return `${prefix}${url.slice(1)}`;
+}
+
 export type FooterMode = "compact" | "full" | "none";
 
 export interface ThemeConfigs {
