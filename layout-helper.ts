@@ -1,8 +1,8 @@
 export function resolveAssetUrl(url: string) {
-  const baseUrl = import.meta.env.BASE_URL;
   if (!url.startsWith("/")) return url;
-  if (baseUrl.endsWith("/")) return baseUrl + url.slice(1);
-  return baseUrl + url;
+  const baseUrl = import.meta.env.BASE_URL;
+  const prefix = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  return `${prefix}theme${url}`;
 }
 
 export type FooterMode = "compact" | "full" | "none";
