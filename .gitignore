@@ -3,6 +3,7 @@ dist/
 .slidev/
 .firecrawl/
 *.local
+CLAUDE.local.md
 .DS_Store
 
 # MCP / browser testing artifacts
