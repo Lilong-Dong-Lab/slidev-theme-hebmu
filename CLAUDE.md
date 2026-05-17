@@ -25,28 +25,12 @@ bun run screenshot   # Export to PNG
 
 ### Colors (CSS custom properties in `styles/layout.css`)
 
-Prefix: `--hebmu-{name}`. Define in `:root`, override in `.dark`.
-
-| Variable | Light | Dark | Purpose |
-|---|---|---|---|
-| `--hebmu-primary` | `#4E136C` | `#4E136C` | Dark purple — headers, table headers, emphasis |
-| `--hebmu-primary-light` | `#621887` | `#621887` | Purple — accents, decorative elements |
-| `--hebmu-accent` | `#ED7D31` | `#ED7D31` | Orange — callouts, highlights |
-| `--hebmu-info` | `#4472C4` | `#4472C4` | Blue — links, info boxes |
-| `--hebmu-success` | `#70AD47` | `#70AD47` | Green — success indicators |
-| `--hebmu-warning` | `#FFC000` | `#FFC000` | Gold — warnings, badges |
-| `--hebmu-bg` | `#ffffff` | `#121212` | Slide background |
-| `--hebmu-text` | `#1a1a2e` | `#e5e7eb` | Body text |
-| `--hebmu-text-muted` | `#535353` | `#9ca3af` | Secondary/caption text |
-| `--hebmu-border` | `#DDDDDD` | `#374151` | Borders, dividers |
-
-Colors extracted from Keynote lecture slides (PPTX theme XML). `accent1` = `#621887` purple primary.
+Prefix: `--hebmu-{name}`. Define in `:root`, override in `.dark`. Primary purple `#4E136C`, accent orange `#ED7D31`. Full color table in `@docs/specs.md`.
 
 ### Fonts
 
 - **Sans**: `PingFang SC` → `Hiragino Sans GB` → `Microsoft YaHei` → `Noto Sans SC` → `system-ui` → `sans-serif`
 - **Mono**: `Fira Code` → `SF Mono` → `Menlo` → `Monaco` → `monospace`
-- Weights: `h1` = 700, `h2` = 600, body = 400
 - Do NOT bundle font files — system fonts + fallback chain
 
 ### Chinese Typography (`styles/layout.css`)
@@ -54,18 +38,14 @@ Colors extracted from Keynote lecture slides (PPTX theme XML). `accent1` = `#621
 - `line-height: 1.8` (CJK needs taller than Latin 1.5)
 - `letter-spacing: 0.02em`
 - Table `font-size: 0.82rem`, `border-collapse: collapse`
-- Port from: `@/Users/hugodong/Documents/AcademicWorkplace/01_TEACHING_PORTFOLIO/Course_Development/BIOINFO_Bioinformatics/lectures/styles/index.css`
 
 ### Spacing
 
-- Slide padding: `px-14 py-10`
-- Section gaps: `gap-8`
-- Content blocks: `mt-4` to `mt-8`
-- Table cells: `py-2 px-3`
+Slide padding: `px-14 py-10`. Section gaps: `gap-8`. Table cells: `py-2 px-3`.
 
 ## Layout & Component Specs
 
-See @docs/specs.md for detailed prop tables, usage examples, and implementation notes for all 12 layouts and 10 components.
+See `@docs/specs.md` for detailed prop tables, usage examples, and implementation notes for all 12 layouts and 10 components.
 
 ## Naming Conventions
 
@@ -74,12 +54,6 @@ See @docs/specs.md for detailed prop tables, usage examples, and implementation 
 - CSS files: kebab-case (`layout.css`, `code.css`)
 - CSS custom properties: `--hebmu-{name}` prefix
 - Layout CSS classes: `.slidev-layout.{name}`
-
-## Implementation Plan
-
-**Status**: Implemented — 12 layouts, 10 components, styles and setup files complete. Code highlighting configured in `setup/shiki.ts`, Mermaid in `setup/mermaid.ts`. See @docs/specs.md for layout/component specs.
-
-All layouts, components, and styles have been ported or built. Run `bun run dev` to preview.
 
 ## Slidev Theme Authoring Gotchas
 
@@ -96,26 +70,10 @@ All layouts, components, and styles have been ported or built. Run `bun run dev`
 11. **CSS `@apply`**: Slidev uses UnoCSS (not Tailwind). `@apply` works with UnoCSS utilities.
 12. **Dark mode**: `:root` for light, `.dark` selector for dark overrides.
 
-## Consumer Usage
+## User Context
 
-Course projects reference via `file:` path dependency:
+The project author is a professor who also builds the tooling. They are a beginner with Slidev and Vue internals — when touching Vue components or Slidev layout mechanics, explain what's happening and why, and walk through the reasoning behind code changes.
 
-```json
-{ "dependencies": { "slidev-theme-hebmu": "file:../../../Teaching_Resources/Template_Lectures/slidev-theme-hebmu" } }
-```
+## Conventions
 
-Frontmatter:
-```yaml
-theme: hebmu
-fonts:
-  sans: 'PingFang SC'
-  mono: 'Fira Code'
-themeConfig:
-  paginationX: 'r'
-  paginationY: 'b'
-  paginationPagesDisabled: [1]
-defaults:
-  layout: default
-htmlAttrs:
-  lang: zh-CN
-```
+See `@AGENTS.md` for coding style, commit conventions (Conventional Commits), PR guidelines, and testing practices.
