@@ -257,11 +257,15 @@
 }
 
 .slidev-layout .keynote-stage p,
-.slidev-layout .keynote-stage li,
+.slidev-layout .keynote-stage li {
+  color: var(--hebmu-text);
+  font-size: 20px;
+}
+
 .slidev-layout .keynote-stage td,
 .slidev-layout .keynote-stage th {
   color: var(--hebmu-text);
-  font-size: 20px;
+  font-size: 0.75rem;
 }
 
 .slidev-layout .keynote-stage p,
@@ -293,11 +297,11 @@
 .slidev-layout .keynote-stage table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .slidev-layout .keynote-stage th {
-  padding: 18px 10px;
+  padding: 0.5em 1em;
   border: 1px solid #ffffff;
   background: var(--hebmu-primary-light);
   color: #ffffff;
@@ -306,7 +310,7 @@
 }
 
 .slidev-layout .keynote-stage td {
-  padding: 16px 10px;
+  padding: 0.5em 1em;
   border: 1px solid #ffffff;
   background: var(--hebmu-row-a);
   color: var(--hebmu-text);
@@ -650,10 +654,13 @@
 }
 
 .slidev-layout.keynote-density-compact .keynote-stage p,
-.slidev-layout.keynote-density-compact .keynote-stage li,
+.slidev-layout.keynote-density-compact .keynote-stage li {
+  font-size: 20px;
+}
+
 .slidev-layout.keynote-density-compact .keynote-stage td,
 .slidev-layout.keynote-density-compact .keynote-stage th {
-  font-size: 20px;
+  font-size: 0.65rem;
 }
 
 .slidev-layout.keynote-density-compact .keynote-stage p,
@@ -675,7 +682,7 @@
 
 .slidev-layout.keynote-density-compact .keynote-stage th,
 .slidev-layout.keynote-density-compact .keynote-stage td {
-  padding: 9px 8px;
+  padding: 0.35em 0.75em;
 }
 
 /* ── Cover layout ── */
