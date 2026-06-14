@@ -27,8 +27,7 @@ theme uses `theme: 'base'`, `htmlLabels: true`, `securityLevel: 'loose'`, and
 export stay stable. Dense diagrams should use Slidev's per-block scale option,
 for example a Mermaid code fence with `{scale: 0.88}`.
 
-Standard framed layouts (`default`, `intro`, `two-col`, `figure`,
-`figure-side`, `figure-footnote`) render their title through the shared
+Standard framed layouts (`default`, `intro`, `figure`) render their title through the shared
 `SlideTitle` component. If `slideTitle` is provided, it is used directly and H1
 headings remain in the frame as smaller section headers. If `slideTitle` is not
 provided, the first markdown H1 is inferred as the slide title and hidden from
@@ -117,13 +116,10 @@ Standard content slide (~31% of slides in production).
 
 **Implementation**: Uses `KeynoteShell` with `layoutClass="keynote-default"`.
 
-### center
-
-Vertically centered content for emphasis, key takeaways, or single statements.
-
-**Props**: `density?: 'normal' | 'compact'`. **Slot**: Centered content.
-
-**Implementation**: Uses `KeynoteShell` with an unframed centered stage.
+For centered, two-column, or blockquote slides, use `default` with UnoCSS
+utilities (provided by `setup/unocss.ts`) instead of dedicated layouts — e.g.
+`<div class="grid grid-cols-2 gap-7">…</div>` for two columns, or a markdown `>`
+blockquote (styled by base CSS) for a quote.
 
 ### intro
 
@@ -159,60 +155,10 @@ sessionNumber: 18
 - Include `SessionInfo` component
 - Centered content area with slightly larger fonts
 
-### two-col
-
-Two-column comparison layout.
-
-**Props**:
-`density?: 'normal' | 'compact'` plus common title props.
-
-**Slot**: Content with `::left::` / `::right::` separators.
-
-**Usage**:
-```markdown
----
-layout: two-col
----
-
-# 有向网络 vs 无向网络
-
-::left::
-**有向网络 (Directed)**
-- 边有方向性
-- A→B ≠ B→A
-
-::right::
-**无向网络 (Undirected)**
-- 边无方向性
-- A—B = B—A
-```
-
-**Implementation notes**:
-- NEW layout. Uses Slidev's built-in `::left::` / `::right::` named slot syntax.
-- Renders a fixed two-column grid styled by `.keynote-two-col-grid`.
-
 ### figure
 
-Full-slide image with optional caption and footnote.
-
-**Props**:
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `figureUrl` | `string` | required | Image URL |
-| `figureCaption` | `string` | `undefined` | Caption text |
-| `figureFootnoteNumber` | `number` | `undefined` | Footnote reference number |
-| `density` | `'normal' \| 'compact'` | `'normal'` | Content density |
-| `slideTitle` | `string` | inferred from first H1 | Explicit chrome title |
-
-**Implementation**: Port directly from `slidev-theme-academic` `figure.vue`. Uses `FigureWithOptionalCaption` component.
-
-### figure-footnote
-
-Full-slide image with optional caption plus a reserved citation area.
-
-Use this layout when the slide needs both a large figure and a `<Footnotes>`
-block. The footnote block participates in the layout flow, so the figure area
-shrinks before citations can overlap the caption or global footer.
+Figure with optional caption. By default it is a full-bleed image; two optional
+props absorb the former `figure-side` and `figure-footnote` layouts.
 
 **Props**:
 | Prop | Type | Default | Description |
@@ -220,16 +166,34 @@ shrinks before citations can overlap the caption or global footer.
 | `figureUrl` | `string` | required | Image URL |
 | `figureCaption` | `string` | `undefined` | Caption text |
 | `figureFootnoteNumber` | `number` | `undefined` | Footnote reference number appended to the caption |
+| `figureX` | `'l' \| 'r'` | `undefined` | Side-by-side mode (image + slot text column); `undefined` = full-bleed. Formerly `figure-side`. |
+| `footnoteFlow` | `boolean` | `false` | Place an in-flow `<Footnotes>` block below the figure (footnotes participate in layout flow instead of absolute positioning). Formerly `figure-footnote`. |
 | `density` | `'normal' \| 'compact'` | `'normal'` | Content density |
 | `slideTitle` | `string` | inferred from first H1 | Explicit chrome title |
 
-**Usage**:
+**Usage** (side-by-side, formerly `figure-side`):
 ```markdown
 ---
-layout: figure-footnote
-figureUrl: /campus-end.jpeg
-figureCaption: '全页图片布局示例'
+layout: figure
+figureUrl: /string-db.png
+figureCaption: 'STRING 数据库界面'
+figureX: r
+---
+
+# 数据库特点
+
+- 已知和预测的 PPI
+- 多种证据来源
+```
+
+**Usage** (figure + in-flow footnotes, formerly `figure-footnote`):
+```markdown
+---
+layout: figure
+figureUrl: /cytoscape.png
+figureCaption: 'Cytoscape 网络图'
 figureFootnoteNumber: 1
+footnoteFlow: true
 ---
 
 # 图片及脚注示例
@@ -239,25 +203,14 @@ figureFootnoteNumber: 1
 </Footnotes>
 ```
 
-**Implementation**: Reuses `KeynoteShell` and `FigureWithOptionalCaption`, with
-`.keynote-figure-footnote-stage` overriding `<Footnotes>` from absolute
-positioning to normal flex flow.
+**Implementation**: Uses `KeynoteShell` and `FigureWithOptionalCaption`. The
+`stageClass` switches between `keynote-figure-stage` (default),
+`keynote-figure-side-stage` (when `figureX` is set, slot wrapped in a `<div>`
+text column), and `keynote-figure-footnote-stage` (when `footnoteFlow` is true).
 
-### figure-side
-
-Content + figure side-by-side.
-
-**Props**:
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `figureUrl` | `string` | required | Image URL |
-| `figureCaption` | `string` | `undefined` | Caption text |
-| `figureFootnoteNumber` | `number` | `undefined` | Footnote reference number |
-| `figureX` | `'l' \| 'r'` | `'r'` | Figure position (left or right) |
-| `density` | `'normal' \| 'compact'` | `'normal'` | Content density |
-| `slideTitle` | `string` | inferred from first H1 | Explicit chrome title |
-
-**Implementation**: Port directly from `slidev-theme-academic` `figure-side.vue`.
+> `figureX` takes precedence if both `figureX` and `footnoteFlow` are set — they
+> are effectively mutually exclusive (a dev-mode `console.warn` is emitted when
+> both are supplied).
 
 ### table-of-contents
 
@@ -307,25 +260,6 @@ Closing slide — thank you message and/or Q&A.
 - NEW layout.
 - Large centered bilingual message
 - University logo placeholder at bottom
-
-### quote
-
-Key definition or principle in blockquote style.
-
-**Props**:
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `quoteSource` | `string` | `undefined` | Source attribution |
-| `quoteAuthor` | `string` | `undefined` | Author attribution |
-| `density` | `'normal' \| 'compact'` | `'normal'` | Content density |
-
-**Slot**: Quote content (markdown supported).
-
-**Implementation notes**:
-- NEW layout.
-- Left border accent in `--hebmu-primary`
-- Italic attribution text
-- Larger font for the quote body
 
 ## Components
 

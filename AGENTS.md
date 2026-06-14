@@ -4,7 +4,7 @@
 
 This repository is a Slidev theme package named `slidev-theme-hebmu`; Slidev resolves it as `theme: hebmu`. Core files live at the repository root because Slidev auto-discovers them:
 
-- `layouts/*.vue`: slide layouts, named to match `layout:` frontmatter such as `figure-side.vue`.
+- `layouts/*.vue`: slide layouts, named to match `layout:` frontmatter such as `figure.vue`.
 - `components/*.vue`: auto-registered Vue components, named in PascalCase for template use.
 - `styles/index.ts` and `styles/*.css`: global entry point, layout styling, code styling, and Chinese typography.
 - `setup/*.ts`: Slidev setup hooks for Mermaid and Shiki.
@@ -26,7 +26,7 @@ Use Bun for dependency management and scripts.
 
 ## Coding Style & Naming Conventions
 
-Vue files use `<script setup lang="ts">`, two-space indentation, double quotes in TypeScript imports, and semicolons. Keep layout files in kebab-case and component files in PascalCase. CSS custom properties must use the `--hebmu-*` prefix and belong in `styles/layout.css` unless specific to code or Chinese typography. Prefer existing UnoCSS utilities and local components over new abstractions.
+Vue files use `<script setup lang="ts">`, two-space indentation, double quotes in TypeScript imports, and semicolons. Keep layout files in kebab-case and component files in PascalCase. CSS custom properties must use the `--hebmu-*` prefix and belong in `styles/layout.css` unless specific to code or Chinese typography. Theme styles are hand-written plain CSS; a `setup/unocss.ts` escape hatch (default-export function) auto-provides utility classes to consumer decks for one-off custom slides. Do not use `@apply` or utility classes inside theme CSS.
 
 ## Testing Guidelines
 
@@ -40,4 +40,4 @@ Pull requests should include a short summary, commands run, and screenshots or e
 
 ## Agent-Specific Instructions
 
-Do not bundle fonts; keep Chinese-first typography based on system font fallbacks. Preserve Slidev auto-registration conventions for `layouts/`, `components/`, `styles/index.ts`, `global-top.vue`, and `global-bottom.vue`.
+Do not bundle fonts; keep Chinese-first typography based on system font fallbacks. The theme is light-only — `.dark` overrides are not implemented. Preserve Slidev auto-registration conventions for `layouts/`, `components/`, `styles/index.ts`, `global-top.vue`, and `global-bottom.vue`.

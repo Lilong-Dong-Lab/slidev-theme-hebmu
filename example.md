@@ -103,20 +103,28 @@ layout: default
 > 无标度网络 (Scale-free Network) 是许多生物分子网络的典型特征。
 
 ---
-layout: center
+layout: default
+hideFrame: true
+hideTitle: true
 ---
+
+<div class="h-full flex flex-col items-center justify-center text-center">
 
 # 核心观点
 
 **从“单个基因/蛋白”转向“相互作用网络”，可以更接近细胞系统层面的功能解释。**
 
+</div>
+
 ---
-layout: two-col
+layout: default
 ---
 
 # PPI 网络中的两类关系
 
-::left::
+<div class="grid grid-cols-2 gap-7 mt-4">
+
+<div>
 
 **物理相互作用**
 
@@ -124,7 +132,9 @@ layout: two-col
 - 直接结合证据
 - 适合解释分子机制
 
-::right::
+</div>
+
+<div>
 
 **功能关联**
 
@@ -132,13 +142,17 @@ layout: two-col
 - 文献和数据库证据
 - 适合发现功能模块
 
+</div>
+
+</div>
+
 ---
-layout: quote
-quoteAuthor: 'Barabási & Albert'
-quoteSource: 'Science, 1999'
+layout: default
 ---
 
 > **无标度网络 (Scale-free Network)**: 网络中节点的度分布服从幂律分布 P(k) ~ k^(-γ)，少数枢纽节点 (hub) 拥有大量连接。
+
+<p class="mt-5 text-base" style="color: var(--hebmu-text-muted)">— Barabási &amp; Albert, Science, 1999</p>
 
 ---
 layout: section
@@ -162,7 +176,7 @@ density: compact
 | Reactome | 信号通路 | 多物种 | https://reactome.org |
 
 ---
-layout: figure-side
+layout: figure
 title: STRING 数据库
 slideTitle: STRING 数据库
 figureUrl: /hebmu-logo.png
@@ -299,10 +313,11 @@ layout: default
 </Footnotes>
 
 ---
-layout: figure-footnote
+layout: figure
 figureUrl: /campus-end.jpeg
 figureCaption: '全页图片布局示例：可替换为 Cytoscape 网络图'
 figureFootnoteNumber: 1
+footnoteFlow: true
 ---
 
 # 图片及脚注示例

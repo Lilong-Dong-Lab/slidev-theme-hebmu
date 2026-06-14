@@ -219,7 +219,7 @@
 .slidev-layout
   .keynote-stage-title-auto
   > h1:first-child
-  + :is(p, ul, ol, table, pre, blockquote, figure, .keynote-two-col-grid),
+  + :is(p, ul, ol, table, pre, blockquote, figure),
 .slidev-layout
   .keynote-stage-title-auto
   > div:first-child
@@ -265,7 +265,6 @@
 .slidev-layout .keynote-stage td,
 .slidev-layout .keynote-stage th {
   color: var(--hebmu-text);
-  font-size: 0.75rem;
 }
 
 .slidev-layout .keynote-stage p,
@@ -298,6 +297,7 @@
   width: 100%;
   border-collapse: collapse;
   table-layout: auto;
+  font-size: 0.875em;
 }
 
 .slidev-layout .keynote-stage th {
@@ -431,20 +431,6 @@
   line-height: 1.45;
 }
 
-.slidev-layout.keynote-center .keynote-stage {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.slidev-layout .keynote-center-content {
-  color: var(--hebmu-primary);
-  font-size: 32px;
-  font-weight: 700;
-  line-height: 1.32;
-}
-
 .slidev-layout.keynote-section {
   display: grid;
   place-items: center;
@@ -493,17 +479,6 @@
   color: var(--hebmu-text-muted);
   font-size: 22px;
   font-weight: 700;
-}
-
-.slidev-layout .keynote-two-col-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 28px;
-  height: 100%;
-}
-
-.slidev-layout .keynote-two-col-grid > * {
-  min-width: 0;
 }
 
 .slidev-layout .keynote-figure-stage {
@@ -569,22 +544,6 @@
 
 .slidev-layout .keynote-toc .slidev-toc {
   color: var(--hebmu-primary-light);
-}
-
-.slidev-layout.keynote-quote blockquote {
-  margin: 80px 56px 0;
-  color: var(--hebmu-primary);
-  font-size: 28px;
-  font-style: normal;
-  font-weight: 700;
-  line-height: 1.45;
-}
-
-.slidev-layout .quote-attribution {
-  margin: 20px 56px 0;
-  color: var(--hebmu-text-muted);
-  font-size: 18px;
-  font-weight: 700;
 }
 
 .slidev-layout figure img {
@@ -656,11 +615,6 @@
 .slidev-layout.keynote-density-compact .keynote-stage p,
 .slidev-layout.keynote-density-compact .keynote-stage li {
   font-size: 20px;
-}
-
-.slidev-layout.keynote-density-compact .keynote-stage td,
-.slidev-layout.keynote-density-compact .keynote-stage th {
-  font-size: 0.65rem;
 }
 
 .slidev-layout.keynote-density-compact .keynote-stage p,

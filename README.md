@@ -10,7 +10,8 @@ A [Slidev](https://sli.dev) presentation theme for **河北医科大学 (Hebei M
 - Light-first classroom presentation design
 - Bioinformatics-optimized: Mermaid diagram theming, code highlighting
 - Compact density option for table/code-heavy teaching slides
-- 13 layouts, 8 components
+- UnoCSS utility escape hatch (`setup/unocss.ts`) for custom one-off slides — grids, flex, etc.
+- 8 layouts, 10 components
 
 ## Quick Start
 
@@ -45,17 +46,18 @@ htmlAttrs:
 |---|---|---|
 | `cover` | Title slide with university branding | `coverAuthor`, `coverDate`, `courseName`, `sessionNumber` |
 | `section` | Section divider (第X节) | `sectionNumber`, `sectionTitle`, `sectionTitleEn` |
-| `default` | Standard content slide | — |
-| `center` | Vertically centered emphasis | — |
+| `default` | Standard content slide (also covers centered / two-column / quote via UnoCSS utilities) | — |
 | `intro` | Course/session overview | `courseTitle`, `sessionNumber` |
-| `two-col` | Two-column comparison | — |
-| `figure` | Full-slide figure with caption | `figureUrl`, `figureCaption` |
-| `figure-footnote` | Full-slide figure with reserved citation area | `figureUrl`, `figureCaption`, `figureFootnoteNumber` |
-| `figure-side` | Content + figure side-by-side | `figureUrl`, `figureX` |
+| `figure` | Figure with caption; side-by-side text or in-flow footnotes via props | `figureUrl`, `figureCaption`, `figureX`, `footnoteFlow` |
 | `table-of-contents` | Keynote-style agenda/content slide | `contentItems`, `active`, `contentImageUrl` |
 | `break` | Break divider (10 min) | `breakMinutes` |
 | `end` | Thank you / Q&A | `endMessage`, `endMessageEn` |
-| `quote` | Key definition blockquote | `quoteSource`, `quoteAuthor` |
+
+`default` plus a few utility classes replaces the former `center` / `two-col` /
+`quote` layouts — e.g. a two-column slide is now `layout: default` with
+`<div class="grid grid-cols-2 gap-7">…</div>`. The former `figure-side` and
+`figure-footnote` layouts are now `figure` with the `figureX` / `footnoteFlow`
+props.
 
 ## Components
 
@@ -94,9 +96,9 @@ density: compact
 ---
 ```
 
-Standard framed layouts (`default`, `intro`, `two-col`, `figure`,
-`figure-side`, and `figure-footnote`) use a shared `SlideTitle`. Existing
-slides can keep `# Slide Title`; the first H1 is promoted into the chrome title.
+Standard framed layouts (`default`, `intro`, and `figure`) use a shared
+`SlideTitle`. Existing slides can keep `# Slide Title`; the first H1 is promoted
+into the chrome title.
 For new slides that need in-frame section headings, use `slideTitle` in
 frontmatter and keep H1 for smaller content headers:
 
@@ -112,16 +114,17 @@ slideTitle: PPI 分析流程
 - 候选基因列表
 ```
 
-Use `figure-footnote` when a full-slide figure also needs a citation block.
-The layout reserves vertical space for `<Footnotes>` so citations do not overlap
-the image caption or footer:
+Use the `figure` layout with `footnoteFlow: true` when a full-slide figure also
+needs a citation block. It reserves vertical space for `<Footnotes>` so
+citations do not overlap the image caption or footer:
 
 ```markdown
 ---
-layout: figure-footnote
+layout: figure
 figureUrl: /campus-end.jpeg
 figureCaption: '全页图片布局示例'
 figureFootnoteNumber: 1
+footnoteFlow: true
 ---
 
 # 图片及脚注示例
@@ -158,6 +161,22 @@ contentItems:
   - CADD实战：从靶点到候选药物
 ---
 ```
+
+## Migration from 0.1.x → 0.2.0
+
+0.2.0 is a **breaking change**. Five layouts were removed in favor of `default` + UnoCSS utilities (from the theme's `setup/unocss.ts` escape hatch) and a unified `figure` layout. Update any deck using the old names:
+
+| Removed | Use instead |
+|---|---|
+| `center` | `default` + `hideFrame: true` + a flex-centered wrapper div |
+| `two-col` | `default` + a `grid grid-cols-2 gap-7` wrapper (replaces `::left::` / `::right::`) |
+| `quote` | `default` + a markdown `>` blockquote (base CSS styles it) + an attribution `<p>` |
+| `figure-side` | `figure` + `figureX: 'l' \| 'r'` |
+| `figure-footnote` | `figure` + `footnoteFlow: true` |
+
+The `grid` / `flex` classes are generated automatically by the theme — no consumer-side UnoCSS config is required.
+
+> In the `figure` layout, `figureX` takes precedence if both `figureX` and `footnoteFlow` are set (mutually exclusive; a dev-mode warning is emitted).
 
 ## Development
 
