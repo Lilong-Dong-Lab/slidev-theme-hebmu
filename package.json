@@ -65,5 +65,11 @@
   "devDependencies": {
     "@slidev/cli": "^52.0.0",
     "playwright-chromium": "^1.52.0"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "playwright-chromium": true,
+    "workerd": true,
+    "fsevents": true
   }
 }
