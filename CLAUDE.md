@@ -8,17 +8,17 @@ Slidev presentation theme for Hebei Medical University (河北医科大学) acad
 
 - **Package**: `slidev-theme-hebmu` (Slidev resolves `theme: hebmu`)
 - **Slidev**: >=0.48.0, `colorSchema: "light"`, 4:3 aspect ratio, 1024px canvas width
-- **Package manager**: bun
+- **Package manager**: npm (lockfile: package-lock.json; bun removed 2026-09-20)
 - **No tests**: Visual testing via `example.md` only
 
 ## Commands
 
 ```bash
-bun install          # Install deps
-bun run dev          # Preview with example.md (hot-reload, theme: ./)
-bun run build        # Build
-bun run export       # Export to PDF
-bun run screenshot   # Export to PNG
+npm install          # Install deps
+npm run dev          # Preview with example.md (hot-reload, theme: ./)
+npm run build        # Build
+npm run export       # Export to PDF
+npm run screenshot   # Export to PNG
 ```
 
 ## Design System
@@ -92,7 +92,7 @@ See @docs/specs.md for detailed prop tables, usage examples, and implementation 
 
 **Status**: Implemented — 8 layouts, 10 components, styles and setup files complete. Code highlighting in `setup/shiki.ts`, Mermaid in `setup/mermaid.ts`, UnoCSS escape hatch in `setup/unocss.ts`. See @docs/specs.md for layout/component specs.
 
-All layouts, components, and styles have been ported or built. Run `bun run dev` to preview.
+All layouts, components, and styles have been ported or built. Run `npm run dev` to preview.
 
 ## Slidev Theme Authoring Gotchas
 
@@ -103,7 +103,7 @@ All layouts, components, and styles have been ported or built. Run `bun run dev`
 5. **`themeConfig`**: Arbitrary frontmatter keys → `$slidev.themeConfigs` in Vue.
 6. **Props in markdown**: Passed via frontmatter, defined in layout's `defineProps<T>()`.
 7. **Default merging**: `package.json` `slidev.defaults` merges with user frontmatter. User values win.
-8. **Local path deps**: Consuming projects may need `bun install` after theme changes. HMR works during dev without reinstall.
+8. **Local path deps**: Consuming projects may need `npm install` after theme changes. HMR works during dev without reinstall.
 9. **Chinese fonts**: System fonts only. Do NOT bundle font files.
 10. **No `prebuild.js`**: Not published to npm, no distribution build needed.
 11. **CSS approach**: The theme's look is hand-written plain CSS in `styles/layout.css`/`code.css`. A `setup/unocss.ts` escape hatch (default-export **function**) auto-provides utility classes (grid/flex/gap) to consumer decks for one-off custom slides — there is no `uno.config.ts` at theme root. Don't use `@apply` inside the theme.

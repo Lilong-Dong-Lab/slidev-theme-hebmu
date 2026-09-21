@@ -18,11 +18,11 @@ Generated output such as `dist/` and screenshots should not drive source changes
 
 Use Bun for dependency management and scripts.
 
-- `bun install`: install dependencies from `bun.lock`.
-- `bun run dev`: run Slidev against `example.md` with hot reload and browser preview.
-- `bun run build`: build the static Slidev output for `example.md`.
-- `bun run export`: export the example deck to PDF.
-- `bun run screenshot`: export the example deck as PNG slides for visual checks.
+- `npm install`: install dependencies from `bun.lock`.
+- `npm run dev`: run Slidev against `example.md` with hot reload and browser preview.
+- `npm run build`: build the static Slidev output for `example.md`.
+- `npm run export`: export the example deck to PDF.
+- `npm run screenshot`: export the example deck as PNG slides for visual checks.
 
 ## Coding Style & Naming Conventions
 
@@ -30,7 +30,7 @@ Vue files use `<script setup lang="ts">`, two-space indentation, double quotes i
 
 ## Testing Guidelines
 
-There is no automated unit test suite. Treat `example.md` as the primary integration fixture. Before handing off layout, component, or style changes, run `bun run build`; for visual changes, also run `bun run screenshot` and inspect representative cover, section, two-column, figure, code, and end slides.
+There is no automated unit test suite. Treat `example.md` as the primary integration fixture. Before handing off layout, component, or style changes, run `npm run build`; for visual changes, also run `npm run screenshot` and inspect representative cover, section, two-column, figure, code, and end slides.
 
 ## Commit & Pull Request Guidelines
 
