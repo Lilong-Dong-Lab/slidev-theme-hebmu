@@ -116,10 +116,21 @@ Standard content slide (~31% of slides in production).
 
 **Implementation**: Uses `KeynoteShell` with `layoutClass="keynote-default"`.
 
-For centered, two-column, or blockquote slides, use `default` with UnoCSS
-utilities (provided by `setup/unocss.ts`) instead of dedicated layouts — e.g.
-`<div class="grid grid-cols-2 gap-7">…</div>` for two columns, or a markdown `>`
-blockquote (styled by base CSS) for a quote.
+For a one-off layout, use `default` with UnoCSS utilities (provided by `setup/unocss.ts`). A three-column slide is a one-off. A markdown `>` blockquote remains the accent bar for a quotation.
+
+Repeated patterns use these stage classes. Do not recolor them with Tailwind backgrounds.
+
+| Class | Treatment |
+|---|---|
+| `hebmu-card` | Neutral card. One peer among parallel items. One muted surface. |
+| `hebmu-columns` | Two equal columns, one gap. Add `is-centered` when a figure should sit on the vertical center. |
+| `hebmu-callout hebmu-callout-warning` | Warning. Gold. |
+| `hebmu-callout hebmu-callout-key` | Key point, including a criteria list, a one-line summary, and an 直觉 line. Purple. |
+| `hebmu-callout hebmu-callout-check` | Check. Blue. |
+| `hebmu-callout hebmu-callout-procedure` | Procedure. Actions in performance order. Orange. |
+| `hebmu-source` | Source line. Where a number, figure, or statement came from. |
+
+A table whose only wrapper paints a background stays a plain markdown table. A crowded slide uses `density: compact`.
 
 ### intro
 

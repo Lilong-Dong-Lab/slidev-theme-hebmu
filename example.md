@@ -327,6 +327,60 @@ footnoteFlow: true
 </Footnotes>
 
 ---
+layout: default
+---
+
+# 中性卡片、标注与来源行
+
+<div class="hebmu-columns">
+
+<div class="hebmu-card">
+
+**物理相互作用**
+
+- 蛋白质复合物
+- 直接结合证据
+
+</div>
+
+<div class="hebmu-card">
+
+**功能关联**
+
+- 共表达或共同通路
+- 文献和数据库证据
+
+</div>
+
+</div>
+
+<div class="hebmu-callout hebmu-callout-warning">
+
+**注意**：STRING 的边不都是物理相互作用。
+
+</div>
+
+<div class="hebmu-callout hebmu-callout-key">
+
+**关键**：无标度网络里，少数枢纽节点拥有大量连接。
+
+</div>
+
+<div class="hebmu-callout hebmu-callout-check">
+
+**思考**：一个度很高、聚类系数很低的节点说明什么？
+
+</div>
+
+<div class="hebmu-callout hebmu-callout-procedure">
+
+STRING 查询 → 导出 TSV → Cytoscape 导入 → 按 Degree 着色
+
+</div>
+
+<div class="hebmu-source">数据为示例，不对应某一版数据库。</div>
+
+---
 layout: end
 endMessage: '谢谢！'
 endMessageEn: 'Thank You!'
