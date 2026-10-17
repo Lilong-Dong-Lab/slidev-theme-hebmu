@@ -181,11 +181,11 @@ The `grid` / `flex` classes are generated automatically by the theme — no cons
 ## Development
 
 ```bash
-bun install
-bun run dev      # Preview with example.md
-bun run build    # Build static site
-bun run export   # Export to PDF
-bun run screenshot  # Export PNG slides for visual checks
+npm install
+npm run dev      # Preview with example.md
+npm run build    # Build static site
+npm run export   # Export to PDF
+npm run screenshot  # Export PNG slides for visual checks
 ```
 
 ## License

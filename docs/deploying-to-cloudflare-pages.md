@@ -40,7 +40,7 @@ This is the Cloudflare Pages equivalent of Netlify's `[[redirects]]` or Vercel's
 1. Push the Slidev project to GitHub or GitLab.
 2. Cloudflare Dashboard → Pages → Create a project → Connect the repo.
 3. Configure:
-   - **Build command**: `bun run build` (or `npm run build`)
+   - **Build command**: `npm run build`
    - **Build output directory**: `dist`
    - **Environment variable**: `NODE_VERSION=20` (or `22`)
 4. Deploy. Cloudflare redeploys on every push to the configured branch.
@@ -48,7 +48,7 @@ This is the Cloudflare Pages equivalent of Netlify's `[[redirects]]` or Vercel's
 ### Option B: Direct upload (CI-free)
 
 ```bash
-bun run build
+npm run build
 npx wrangler pages deploy dist --project-name=my-slides
 ```
 
@@ -72,12 +72,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
 
-      - uses: oven-sh/setup-bun@v2
+      - run: npm ci
 
-      - run: bun install
-
-      - run: bun run build
+      - run: npm run build
 
       - uses: cloudflare/wrangler-action@v3
         with:
@@ -140,7 +139,7 @@ For private packages, set `NPM_TOKEN` as a Cloudflare Pages environment variable
 Build locally where the `file:` path works, then deploy only the `dist/` folder:
 
 ```bash
-bun run build
+npm run build
 npx wrangler pages deploy dist --project-name=my-slides
 ```
 
