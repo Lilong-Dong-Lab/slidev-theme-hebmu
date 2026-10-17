@@ -31,33 +31,12 @@ export default defineMermaidSetup(() => ({
     strokeWidth: "2.4",
   },
   flowchart: {
-    diagramPadding: 10,
     htmlLabels: true,
-    nodeSpacing: 48,
-    rankSpacing: 58,
-    curve: "step",
     useMaxWidth: true,
-    wrappingWidth: 180,
   },
   themeCSS: `
     svg {
       overflow: visible;
-    }
-
-    .node rect,
-    .node circle,
-    .node ellipse,
-    .node polygon,
-    .node path {
-      fill: #4e136c;
-      stroke: #4e136c;
-      stroke-width: 0;
-      filter: drop-shadow(1px 2px 2px rgba(0, 0, 0, 0.18));
-    }
-
-    .node rect {
-      rx: 10px;
-      ry: 10px;
     }
 
     .node .label,

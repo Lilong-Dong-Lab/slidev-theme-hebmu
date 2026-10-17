@@ -22,10 +22,21 @@ Most standard content layouts accept `density: 'normal' | 'compact'`. Use `compa
 ## Mermaid
 
 Mermaid is configured in `setup/mermaid.ts` for Slidev 51 / Mermaid 11. The
-theme uses `theme: 'base'`, `htmlLabels: true`, `securityLevel: 'loose'`, and
-`flowchart.useMaxWidth: true` so Chinese labels, `<br/>` line breaks, and PNG/PDF
-export stay stable. Dense diagrams should use Slidev's per-block scale option,
-for example a Mermaid code fence with `{scale: 0.88}`.
+theme keeps the diagram look: purple boxes, white labels, PingFang SC at 18px
+and weight 700, and gray arrows. It uses `theme: 'base'`, `htmlLabels: true`,
+`securityLevel: 'loose'`, and `flowchart.useMaxWidth: true` so Chinese labels,
+`<br/>` line breaks, and PNG/PDF export stay stable. Diagram layout uses
+Mermaid's own defaults, including the `basis` curve. A chart that wants square
+corners opts in inside that fence:
+
+```mermaid
+%%{init: {"flowchart": {"curve": "step"}}}%%
+flowchart LR
+    A --> B
+```
+
+Dense diagrams should use Slidev's per-block scale option, for example a
+Mermaid code fence with `{scale: 0.88}`.
 
 Standard framed layouts (`default`, `intro`, `figure`) render their title through the shared
 `SlideTitle` component. If `slideTitle` is provided, it is used directly and H1
