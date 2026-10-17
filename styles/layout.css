@@ -1082,27 +1082,27 @@
 
 .slidev-layout .keynote-stage .hebmu-callout {
   border-left: 6px solid var(--hebmu-primary);
-  background: color-mix(in srgb, var(--hebmu-primary) 8%, white);
+  background: color-mix(in srgb, var(--hebmu-primary) 8%, var(--hebmu-bg));
 }
 
 .slidev-layout .keynote-stage .hebmu-callout-warning {
   border-left-color: var(--hebmu-warning);
-  background: color-mix(in srgb, var(--hebmu-warning) 22%, white);
+  background: color-mix(in srgb, var(--hebmu-warning) 22%, var(--hebmu-bg));
 }
 
 .slidev-layout .keynote-stage .hebmu-callout-key {
   border-left-color: var(--hebmu-primary);
-  background: color-mix(in srgb, var(--hebmu-primary) 8%, white);
+  background: color-mix(in srgb, var(--hebmu-primary) 8%, var(--hebmu-bg));
 }
 
 .slidev-layout .keynote-stage .hebmu-callout-check {
   border-left-color: var(--hebmu-info);
-  background: color-mix(in srgb, var(--hebmu-info) 10%, white);
+  background: color-mix(in srgb, var(--hebmu-info) 10%, var(--hebmu-bg));
 }
 
 .slidev-layout .keynote-stage .hebmu-callout-procedure {
   border-left-color: var(--hebmu-accent);
-  background: color-mix(in srgb, var(--hebmu-accent) 16%, white);
+  background: color-mix(in srgb, var(--hebmu-accent) 16%, var(--hebmu-bg));
 }
 
 .slidev-layout .keynote-stage .hebmu-columns .hebmu-card,
