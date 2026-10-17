@@ -26,8 +26,8 @@ theme keeps the diagram look: purple boxes, white labels, PingFang SC at 18px
 and weight 700, and gray arrows. It uses `theme: 'base'`, `htmlLabels: true`,
 `securityLevel: 'loose'`, and `flowchart.useMaxWidth: true` so Chinese labels,
 `<br/>` line breaks, and PNG/PDF export stay stable. Diagram layout uses
-Mermaid's own defaults, including the `basis` curve. A chart that wants square
-corners opts in inside that fence:
+Mermaid's own defaults, including the `basis` curve. A chart that wants a square
+line path opts in inside that fence:
 
 ```mermaid
 %%{init: {"flowchart": {"curve": "step"}}}%%

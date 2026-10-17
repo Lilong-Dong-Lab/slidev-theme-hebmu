@@ -39,6 +39,11 @@ export default defineMermaidSetup(() => ({
       overflow: visible;
     }
 
+    .node rect {
+      rx: 10px;
+      ry: 10px;
+    }
+
     .node .label,
     .nodeLabel,
     .node .label span,
