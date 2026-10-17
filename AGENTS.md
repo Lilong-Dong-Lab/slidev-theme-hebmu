@@ -16,9 +16,9 @@ Generated output such as `dist/` and screenshots should not drive source changes
 
 ## Build, Test, and Development Commands
 
-Use Bun for dependency management and scripts.
+Use npm for dependency management and scripts.
 
-- `npm install`: install dependencies from `bun.lock`.
+- `npm install`: install dependencies from `package-lock.json`.
 - `npm run dev`: run Slidev against `example.md` with hot reload and browser preview.
 - `npm run build`: build the static Slidev output for `example.md`.
 - `npm run export`: export the example deck to PDF.
