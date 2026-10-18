@@ -890,7 +890,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 4;
+  z-index: 8;
   clip-path: ellipse(320px 575px at 50px 385px);
   pointer-events: none;
 }
@@ -922,7 +922,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 3;
+  z-index: 7;
   clip-path: ellipse(320px 575px at 50px 385px);
   overflow: hidden;
 }
@@ -932,7 +932,7 @@
   top: 29%;
   left: 0;
   display: block;
-  width: 97.5%;
+  width: 100%;
   height: 45.5%;
   object-fit: cover;
 }
