@@ -1,5 +1,8 @@
 <template>
-  <div class="slidev-layout table-of-contents keynote-content">
+  <div
+    ref="layoutRef"
+    class="slidev-layout table-of-contents keynote-content"
+  >
     <div class="keynote-content-left" aria-hidden="true">
       <div class="keynote-content-disc"></div>
       <div class="keynote-content-photo">
@@ -35,7 +38,7 @@
       />
       <h1 class="keynote-content-title">{{ contentTitle }}</h1>
 
-      <ol class="keynote-content-list">
+      <ol ref="listRef" class="keynote-content-list">
         <li
           v-for="(item, index) in normalizedItems"
           :key="`${index}-${item.title}`"
@@ -63,8 +66,50 @@
 
 <script setup lang="ts">
 import { useSlideContext } from "@slidev/client";
-import { computed } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import { type ThemeConfigs, resolveAssetUrl } from "../layout-helper";
+
+const CURVE_CX = 50;
+const CURVE_RX = 320;
+const CURVE_CY = 385;
+const CURVE_RY = 575;
+const CURVE_GAP = 72;
+
+const layoutRef = ref<HTMLElement | null>(null);
+const listRef = ref<HTMLElement | null>(null);
+let listObserver: ResizeObserver | null = null;
+
+function alignItems() {
+  const layout = layoutRef.value;
+  const list = listRef.value;
+  if (!layout || !list) return;
+
+  const layoutRect = layout.getBoundingClientRect();
+  const scale = layoutRect.height / layout.offsetHeight;
+  if (!Number.isFinite(scale) || scale === 0) return;
+
+  const listLeft =
+    (list.getBoundingClientRect().left - layoutRect.left) / scale;
+
+  for (const node of list.querySelectorAll<HTMLElement>(
+    ".keynote-content-item",
+  )) {
+    const rect = node.getBoundingClientRect();
+    const centerY = (rect.top + rect.height / 2 - layoutRect.top) / scale;
+    const dy = (centerY - CURVE_CY) / CURVE_RY;
+    const inside = 1 - dy * dy;
+    const curveX =
+      inside > 0 ? CURVE_CX + CURVE_RX * Math.sqrt(inside) : CURVE_CX;
+    node.style.transform = `translateX(${curveX + CURVE_GAP - listLeft}px)`;
+  }
+}
 
 type ContentItemInput =
   | string
@@ -195,4 +240,18 @@ const contentLogo = computed(
     (themeConfigs.value.logoUrl as string | undefined) ||
     "/hebmu-logo.png",
 );
+
+onMounted(() => {
+  alignItems();
+  if (!listRef.value) return;
+  listObserver = new ResizeObserver(() => alignItems());
+  listObserver.observe(listRef.value);
+});
+
+watch(normalizedItems, async () => {
+  await nextTick();
+  alignItems();
+});
+
+onBeforeUnmount(() => listObserver?.disconnect());
 </script>
