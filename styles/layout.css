@@ -1081,8 +1081,14 @@
 }
 
 .slidev-layout .keynote-stage .hebmu-callout {
+  display: flex;
+  align-items: center;
   border-left: 6px solid var(--hebmu-primary);
   background: color-mix(in srgb, var(--hebmu-primary) 8%, var(--hebmu-bg));
+}
+
+.slidev-layout .keynote-stage .hebmu-callout p {
+  margin: 0;
 }
 
 .slidev-layout .keynote-stage .hebmu-callout-warning {
