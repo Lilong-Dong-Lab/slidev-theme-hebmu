@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Slidev presentation theme for Hebei Medical University (河北医科大学) academic teaching. Chinese-first with bilingual (中/EN) support. Consumed by course projects via local path dependency in `package.json`.
+Slidev presentation theme for Hebei Medical University (河北医科大学) academic teaching. Chinese-first with bilingual (中/EN) support. Course decks install this package from git. Local preview symlinks `node_modules/slidev-theme-hebmu` to a checkout of this repo. A `file:` dependency is not how CI installs it.
 
 - **Package**: `slidev-theme-hebmu` (Slidev resolves `theme: hebmu`)
 - **Slidev**: >=0.48.0, `colorSchema: "light"`, 4:3 aspect ratio, 1024px canvas width
@@ -74,7 +74,7 @@ The theme's look is a "Keynote"-style chrome rendered inside each layout — **n
 - **`SlideTitle`** — hoists the slide's first `<h1>` text into the chrome title and hides that H1 from the stage. An explicit `slideTitle` prop overrides; `autoSlideTitle: false` disables.
 - **`layout-helper.ts`** — two asset resolvers: `resolveAssetUrl()` adds a `/theme/` prefix (for the theme's own `public/` assets — Slidev-52 static-copy fix); `resolveUrl()` does not (for user-supplied figures). Pick the right one.
 
-Shiki theme: `one-dark-pro` (dark) / `vitesse-light` (light). Mermaid is deeply themed in `setup/mermaid.ts` (purple nodes, `themeCSS` with `.hebmuRoot`/`.hebmuPill`/`.hebmuNote` class hooks). `setup/unocss.ts` is the theme-side UnoCSS escape hatch — its default-export **function** returns a config (presetWind3 + attributify + icons) that Slidev auto-merges, so consumer decks get utility classes for one-off custom slides.
+Shiki theme: `one-dark-pro` (dark) / `vitesse-light` (light). Mermaid look (box color, type, gray arrows) is in `setup/mermaid.ts`, including the `.hebmuRoot` / `.hebmuPill` / `.hebmuNote` hooks. Mermaid layout questions — curve, spacing, or where an arrow meets a node — go to @docs/specs.md (Mermaid). `setup/unocss.ts` is the theme-side UnoCSS escape hatch — its default-export **function** returns a config (presetWind3 + attributify + icons) that Slidev auto-merges, so consumer decks get utility classes for one-off custom slides.
 
 ## Layout & Component Specs
 

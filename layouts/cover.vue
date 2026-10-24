@@ -55,6 +55,16 @@
       <p v-if="coverDate">课程时间： {{ coverDate }}</p>
     </div>
 
+    <Pagination
+      v-if="
+        !$slidev.themeConfigs?.paginationPagesDisabled?.includes(
+          $slidev.nav.currentPage,
+        )
+      "
+      :x="$slidev.themeConfigs?.paginationX || 'r'"
+      :y="$slidev.themeConfigs?.paginationY || 'b'"
+    />
+
     <div v-if="coverBackgroundSource" class="cover-attribution">
       <a
         v-if="coverBackgroundSourceUrl"

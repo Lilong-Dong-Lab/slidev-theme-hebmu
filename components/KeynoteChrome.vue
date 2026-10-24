@@ -10,7 +10,7 @@
     >
       <defs>
         <linearGradient
-          id="keynote-header-gradient"
+          :id="`${waveId}-header`"
           x1="0"
           y1="0"
           x2="1024"
@@ -22,7 +22,7 @@
           <stop offset="1" stop-color="#eeeeee" />
         </linearGradient>
         <linearGradient
-          id="keynote-purple-fade"
+          :id="`${waveId}-fade`"
           x1="0"
           y1="0"
           x2="380"
@@ -34,7 +34,7 @@
           <stop offset="1" stop-color="#8f55ad" stop-opacity="0" />
         </linearGradient>
         <linearGradient
-          id="keynote-purple-fade-reverse"
+          :id="`${waveId}-fade-reverse`"
           x1="644"
           y1="0"
           x2="1024"
@@ -49,22 +49,22 @@
       <path
         class="keynote-wave-muted"
         d="M0 0 H1024 V96 C840 73 612 68 392 82 C226 94 88 102 0 116 Z"
-        style="fill: url(#keynote-header-gradient)"
+        :style="{ fill: `url(#${waveId}-header)` }"
       />
       <path
         class="keynote-wave-accent"
         d="M0 116 C88 102 226 94 392 82 C236 98 98 116 0 136 Z"
-        style="fill: url(#keynote-purple-fade)"
+        :style="{ fill: `url(#${waveId}-fade)` }"
       />
       <path
         class="keynote-wave-muted"
         d="M0 728 C238 742 468 746 646 736 C804 727 930 716 1024 704 V768 H0 Z"
-        style="fill: url(#keynote-header-gradient)"
+        :style="{ fill: `url(#${waveId}-header)` }"
       />
       <path
         class="keynote-wave-accent"
         d="M646 736 C804 727 930 716 1024 704 V720 C922 729 786 740 646 736 Z"
-        style="fill: url(#keynote-purple-fade-reverse)"
+        :style="{ fill: `url(#${waveId}-fade-reverse)` }"
       />
     </svg>
     <img
@@ -93,7 +93,7 @@
 
 <script setup lang="ts">
 import { useSlideContext } from "@slidev/client";
-import { computed } from "vue";
+import { computed, useId } from "vue";
 import {
   type FooterMode,
   type ThemeConfigs,
@@ -116,6 +116,7 @@ const props = withDefaults(
 );
 
 const { $slidev } = useSlideContext();
+const waveId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
 
 const themeConfigs = computed(
   () => ($slidev.themeConfigs || {}) as ThemeConfigs,
