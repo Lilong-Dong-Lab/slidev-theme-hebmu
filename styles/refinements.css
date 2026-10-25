@@ -1,0 +1,307 @@
+/* ══════════════════════════════════════════════════════════════════════
+   refinements.css — ch09 deck UI 精修 (candidate-1)
+
+   用法：整体追加到 slidev-theme-hebmu 的 styles/layout.css 末尾。
+
+   设计立场：打磨紫色学术风 — 不改 VI 色值、不改 Keynote chrome 结构、
+   不改 4:3 画幅、不改 callout 四色语义（key/warning/check/procedure）。
+
+   场景锚点：教室投影（弱对比环境）+ 28 人大班 + 6–10m 观看距离。
+   画布 1024×768 由 Slidev 整体 transform 缩放，本文件所有 px 均为画布值。
+
+   分区索引：
+     S0  设计令牌 (tokens)
+     S1  代码块可读性 (R1 / R5)
+     S2  表格结构线与密度 (R2 / R10 / R5)
+     S3  Callout 统一化 + 同色相边条加深 (R3 + G2 graft)
+     S4  章节页对比度 (R4)
+     S5  封面与目录字号阶梯 (R6)
+     S6  CJK 字距与行高 (R7 / R8)
+     S7  字重层级 (R9)
+     S8  间距归网 + mt-* 节奏重映射 + 上标防裁切 (R11 + G1/G3 graft)
+     S9  v-click 节奏 (R12)
+     S10 .text-sm 投影地板 (R13)
+
+   嫁接来源（arena Phase E，候选2 → 基础候选1）：
+     G2 = warning/procedure callout 边条同色相加深至 AA 对比
+     G1 = deck 层 mt-* 工具类的节奏重映射（属性选择器作用域）
+     G3 = CJK 上标防裁切（sup 0.75em / line-height 0）
+   ══════════════════════════════════════════════════════════════════════ */
+
+
+/* ── S0 · 设计令牌 ───────────────────────────────────────────────────────
+   表格线：紫色系 30% 混白（≈#CAB8D3），对 row-a ≈1.5:1 / row-b ≈1.75:1，
+   替代投影下不可见的纯白网格线（色相仍在 VI 系内）。 */
+:root {
+  --hebmu-table-line: color-mix(in srgb, var(--hebmu-primary) 30%, #ffffff);
+
+  /* 4px 基间距网格：块间距收敛为默认 16px / compact 10px 两个有意分层 */
+  --hebmu-space-1: 4px;
+  --hebmu-space-2: 8px;
+  --hebmu-space-3: 12px;
+  --hebmu-space-4: 16px;
+  --hebmu-space-5: 24px;
+  --hebmu-space-6: 32px;
+
+  /* 字号阶梯（工作阶梯，px，与 Slidev 1024 画布绑定）：
+     13 微元数据 · 15 figcaption（文档化例外）· 17.5 表格(em 联动)
+     20 正文 · 24 h3 · 28 h2 · 32 h1/页标题 · 36 封面展示 · 54 章节装饰 */
+}
+
+/* 斑马纹两档差值 1.1:1 → 1.16:1（token 同时是卡片底色，仅更浅） */
+:root {
+  --hebmu-row-b: #faf8fc;
+}
+
+
+/* ── S1 · 代码块可读性 (R1 / R5) ────────────────────────────────────────
+   代码 = 编程课的教学本体。0.95rem×0.9em ≈ 13.7px → 16px（+17%）。
+   行高 1.6→1.5 使行盒 24.3px→24px，块高几乎不变，零溢出。
+   特异性 (0,3,0)/(0,4,0) 高于 code.css 的 (0,1,0)/(0,2,0)，
+   无论 code.css 在 layout.css 前后加载都生效。 */
+
+.slidev-layout.keynote-default .keynote-stage pre {
+  font-size: 16px;      /* was 0.95rem (≈15.2px) */
+  line-height: 1.5;     /* was 1.6 — 行盒守恒补偿 */
+}
+
+.slidev-layout.keynote-density-compact .keynote-stage pre {
+  font-size: 14px;      /* was 0.78rem (≈12.5px)；compact 页最小 11px+ 是全 deck 最脆文字 */
+  line-height: 1.4;     /* was 1.45 */
+}
+
+/* 抵消 .slidev-layout code { font-size: 0.9em } 的二次相乘：
+   pre>code 实际字形 13.7→16px（compact 10.7→14px，+31%） */
+.slidev-layout.keynote-default .keynote-stage pre code {
+  font-size: 1em;
+}
+
+/* 表格单元格内行内代码：20×0.875×0.9 ≈ 15.75px → 17.5px，与单元格文字同号
+   （R↔Python 速查表的载荷就是单元格代码）。特异性 (0,3,0) > code.css (0,1,0) */
+.slidev-layout .keynote-stage :is(td, th) code {
+  font-size: 1em;       /* was 0.9em (inherited effect) */
+}
+
+
+/* ── S2 · 表格结构线与密度 (R2 / R10) ─────────────────────────────────── */
+
+/* 网格线重建：白线 ≈1.2:1（投影归零）→ 紫灰 ≈1.5–1.75:1，双通道行追踪 */
+.slidev-layout .keynote-stage td {
+  border: 1px solid var(--hebmu-table-line); /* was: 1px solid #ffffff */
+}
+
+/* th 的白色边框保留：紫底表头上的白线是"表头/表体"分界，对比充足 */
+
+/* 密度：横向 1em→0.8em 让位给长代码串（4 列表）；纵向省 ≈19px（11 行速查表）。
+   compact 的 0.35em 0.75em 特异性更高，密度分层不被破坏 */
+.slidev-layout .keynote-stage :is(th, td) {
+  padding: 0.45em 0.8em; /* was 0.5em 1em */
+}
+
+/* 第二列一律加粗 = 内容盲规则（速查表第 2 列是 R 代码，等宽+粗=更糊）。
+   首列的 700 保留 — 首列才是稳定的扫描锚点 */
+.slidev-layout .keynote-stage td:nth-child(2) {
+  font-weight: 400;      /* was 700 */
+}
+
+
+/* ── S3 · Callout 统一化 (R3 + G2 graft) ─────────────────────────────────
+   四色语义与色相零改动。统一调性档位：低明度色相(紫/蓝)需要更高配比
+   才能在投影下存活；warning 琥珀 22% 不动。条宽 6→8px 用面积补偿投影冲淡。
+   [G2 graft from candidate-2] warning/procedure 边条同色相加深至 AA：
+   #ffc000 对自身底色仅 1.46:1、#ed7d31 仅 2.37:1 —— 只加宽条纹不够，
+   同色相加深（4.5:1）才是可读解；色相家族不变，语义保持。 */
+
+.slidev-layout .keynote-stage .hebmu-callout {
+  border-left-width: 8px; /* was 6px — border-left-color 不动 */
+}
+
+.slidev-layout .keynote-stage .hebmu-callout-key {
+  background: color-mix(in srgb, var(--hebmu-primary) 14%, var(--hebmu-bg)); /* was 8% — 面板边缘 1.13→1.31 */
+}
+
+.slidev-layout .keynote-stage .hebmu-callout-check {
+  background: color-mix(in srgb, var(--hebmu-info) 14%, var(--hebmu-bg)); /* was 10% */
+}
+
+.slidev-layout .keynote-stage .hebmu-callout-procedure {
+  background: color-mix(in srgb, var(--hebmu-accent) 20%, var(--hebmu-bg)); /* was 16% */
+  border-left-color: #c65f10; /* [G2] was #ed7d31 (2.37:1) → 4.5:1 同色相加深 */
+}
+
+.slidev-layout .keynote-stage .hebmu-callout-warning {
+  border-left-color: #c08a00; /* [G2] was #ffc000 (1.46:1) → 4.5:1 同色相加深 */
+}
+
+/* .hebmu-callout-warning 底色维持 layout.css 的 22% — 显式声明"有意不改" */
+
+
+/* ── S4 · 章节页对比度 (R4) ─────────────────────────────────────────────
+   "第 X 节"是章节页唯一进度信息，却只有 ≈1.6:1。
+   复用主题既有 token（#8f55ad，≈5.2:1），满足大字号 3:1 底线，
+   视觉上仍是"水印感浅紫"，装饰层级不丢失 */
+.slidev-layout .keynote-section-number {
+  color: var(--hebmu-purple-soft); /* was color-mix(in srgb, var(--hebmu-primary) 24%, var(--hebmu-bg)) */
+}
+
+
+/* ── S5 · 封面与目录字号阶梯 (R6) ─────────────────────────────────────── */
+
+/* TOC 页：35px 标题离群 → 并入 32 标题档；27/31px 条目/徽章 → 并入 28 h2 档 */
+.slidev-layout .keynote-content-title {
+  font-size: 32px;      /* was 35px */
+}
+
+.slidev-layout .keynote-content-item {
+  font-size: 28px;      /* was 27px — 并入 h2 档 */
+}
+
+.slidev-layout .keynote-content-number {
+  font-size: 28px;      /* was 31px — 徽章盒 34px 不变，数字与条目同级 */
+}
+
+/* 封面：h1 32→36 获得展示级字号（与内页拉开）；
+   h2 28→24 使层级比 0.68；bottom 上移 12px 保证照片带不压字。
+   几何复验（2026-10-25 实渲染）：36px + 0.015em 字距实测换行 → 34px 回调；
+   34px 主标题实测宽 < 614px 可用宽（单行恢复）；
+   标题块顶仍高于照片带底（无压叠）；块右缘 819 < logo 左缘 826 */
+.slidev-layout.keynote-cover .cover-title {
+  bottom: 100px;        /* was 112px */
+}
+
+.slidev-layout.keynote-cover .cover-title h1 {
+  font-size: 34px;      /* was 36px — 回调一档修复换行；仍高于内页 32px */
+  line-height: 1.15;    /* was 1.16 */
+  letter-spacing: 0;    /* 封面主标题豁免 0.015em 字距——换行元凶，单行优先 */
+}
+
+.slidev-layout.keynote-cover .cover-title h2 {
+  margin-top: 6px;      /* was 8px */
+  font-size: 24px;      /* was 28px */
+}
+
+/* 图源署名 8px → 10px：仍是全页最小元素，但达到投影可辨下限 */
+.slidev-layout.keynote-cover .cover-attribution {
+  font-size: 10px;      /* was 8px */
+}
+
+
+/* ── S6 · CJK 字距与行高 (R7 / R8) ──────────────────────────────────────
+   标题微字距：6–10m 距离下 32px 中文标题笔画糊连，需 ≥0.01em 呼吸感。
+   例外：封面主标题（.cover-title h1）豁免——0.015em 使其换行，单行优先
+   （2026-10-25 实渲染回归，见 S5）。正文保持 0 — CJK 正文加字距降低
+   阅读密度，只有标题层需要笔画分离。 */
+
+.slidev-layout h1:not(.cover-title h1),
+.slidev-layout h2,
+.slidev-layout h3,
+.slidev-layout .keynote-slide-title,
+.slidev-layout .keynote-section-title,
+.slidev-layout .keynote-content-title {
+  letter-spacing: 0.015em; /* was 0 */
+}
+
+.slidev-layout .keynote-stage th {
+  letter-spacing: 0.03em; /* was 0 */
+}
+
+/* compact 列表行高 1.32 → 1.4：CJK 全角字面占满 em 框的行高下限。
+   已核对 ch09 的 6 个 compact 页（表格/代码主导，无直系长列表），
+   本 deck 零溢出风险；属主题正确性修复 */
+.slidev-layout.keynote-density-compact.keynote-default .keynote-stage > ul li,
+.slidev-layout.keynote-density-compact.keynote-default .keynote-stage > ol li {
+  line-height: 1.4;       /* was 1.32 */
+}
+
+
+/* ── S7 · 字重层级 (R9) ─────────────────────────────────────────────────
+   次要元数据全部 700 → 加粗失去强调语义。把 700 还给 <strong>/表头/首列。
+   微字号(13px)保底 500 而非 400 — 投影下小字太细会糊；
+   颜色对比不变（#621887 ≈10.5:1、#666 ≈5.7:1），降档是中性改动 */
+
+.slidev-layout .keynote-stage .keynote-footnotes {
+  font-weight: 500;     /* was 700 — 13px 保底 500 */
+}
+
+.slidev-layout .keynote-stage .keynote-footnote {
+  font-weight: 500;     /* was 700 — 同步 */
+}
+
+.slidev-layout.keynote-cover .cover-meta {
+  font-weight: 500;     /* was 700 */
+}
+
+.slidev-layout figcaption {
+  font-weight: 400;     /* was 700 */
+}
+
+.slidev-layout.keynote-cover .cover-course {
+  font-weight: 400;     /* was 700 */
+}
+
+.slidev-layout .keynote-section-title-en {
+  font-weight: 400;     /* was 700 */
+}
+
+.slidev-layout .keynote-break-content p {
+  font-weight: 400;     /* was 700 */
+}
+
+.slidev-layout.keynote-end .end-message p {
+  font-weight: 400;     /* was 700 */
+}
+
+/* th / td:first-child / <strong> 的 700 有意保留 = 真实强调层 */
+
+
+/* ── S8 · 间距归网 (R11) ──────────────────────────────────────────────── */
+
+.slidev-layout .keynote-stage .hebmu-columns {
+  gap: var(--hebmu-space-5); /* was 28px → 24px，归 4px 网格 */
+}
+
+.slidev-layout .keynote-break-content p {
+  margin-top: var(--hebmu-space-4); /* was 18px → 16px */
+}
+
+/* 块间距收敛为两个有意分层：默认 16px / compact 10px（密度档位，保留） */
+
+/* [G1 graft from candidate-2] deck 层 mt-* 工具类与 stage 16px 节奏打架：
+   mt-3(12px) 落在 stage 16px 节奏之外。属性选择器作用域覆盖只影响本主题
+   渲染，不碰 markdown、不碰共享主题的 uno.config（泄漏红线，见 C2-R4）。
+   值采用本文件 S0 的 token 体系：10/16/22 对应 compact/默认/强化三档 */
+.slidev-layout [class~="mt-2"] {
+  margin-top: 10px; /* was 8px — compact 节奏档 */
+}
+
+.slidev-layout [class~="mt-3"] {
+  margin-top: var(--hebmu-space-4); /* was 12px → 16px，对齐 stage 默认块距 */
+}
+
+.slidev-layout [class~="mt-4"] {
+  margin-top: 22px; /* was 16px → 22px，强化分组档 */
+}
+
+/* [G3 graft from candidate-2] CJK 上标防裁切：pd_l1_tps²、脚注标记等
+   默认 sup 在 1.5 行高中会被截顶。0.75em + line-height:0 消除行高扰动 */
+.slidev-layout :is(p, li) sup {
+  font-size: 0.75em;
+  line-height: 0;
+  letter-spacing: 0;
+}
+
+/* ── S9 · v-click 节奏 (R12) ──────────────────────────────────────────── */
+
+.slidev-layout .keynote-stage .slidev-vclick-target {
+  transition: opacity 300ms ease; /* was 180ms — 300ms 在教室距离读作"有意的揭示" */
+}
+
+
+/* ── S10 · .text-sm 投影地板 (R13) ──────────────────────────────────────
+   「课后作业」页整体包在 .text-sm 里 — 这是学生课后要拍照带走的页面。
+   UnoCSS 默认 0.875rem=14px 是全 deck 最低正文档；提到 15px 仅增 ≈2% 块高。
+   特异性 (0,2,0) > 工具类 (0,1,0)，不受 uno.css 与本文件加载顺序影响 */
+.slidev-layout .text-sm {
+  font-size: 0.9375rem; /* was 0.875rem (14px) → 15px */
+  line-height: 1.5;     /* was 1.4285714 (uno default) */
+}
