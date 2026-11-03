@@ -34,6 +34,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { keynoteShellDefaults } from "../layout-helper";
 
 type ClassValue =
   | string
@@ -55,14 +56,7 @@ const props = withDefaults(
     stageClass?: ClassValue;
   }>(),
   {
-    autoSlideTitle: true,
-    density: "normal",
-    hideFooter: false,
-    hideFrame: false,
-    hideLogo: false,
-    hidePage: false,
-    hideTitle: true,
-    hideWave: false,
+    ...keynoteShellDefaults,
     layoutClass: "",
     stageClass: "",
   },
