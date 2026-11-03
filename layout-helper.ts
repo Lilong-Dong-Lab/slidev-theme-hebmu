@@ -1,8 +1,23 @@
+import hebmuLogoUrl from "./public/hebmu-logo.png?url";
+import campusCoverUrl from "./public/campus-cover.jpeg?url";
+import campusEndUrl from "./public/campus-end.jpeg?url";
+
+const bundledThemeAssets: Record<string, string> = {
+  "/hebmu-logo.png": hebmuLogoUrl,
+  "/campus-cover.jpeg": campusCoverUrl,
+  "/campus-end.jpeg": campusEndUrl,
+};
+
+/** Resolve theme-owned public assets for img/background URLs. */
 export function resolveAssetUrl(url: string) {
   if (!url.startsWith("/")) return url;
+  const bundled = bundledThemeAssets[url];
+  if (bundled) return bundled;
+  // Fallback for extra theme public files under Slidev static-copy (`dest: theme`).
+  // file: symlink installs may nest this path; prefer adding known files to bundledThemeAssets.
   const baseUrl = import.meta.env.BASE_URL;
   const prefix = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  return `${prefix}theme${url}`;
+  return `${prefix}theme/public${url}`;
 }
 
 export function resolveUrl(url: string) {
