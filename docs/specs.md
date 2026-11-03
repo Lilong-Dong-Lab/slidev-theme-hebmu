@@ -236,21 +236,32 @@ text column), and `keynote-figure-footnote-stage` (when `footnoteFlow` is true).
 
 ### table-of-contents
 
-Keynote-style agenda/content slide matching the original `目录 | CONTENT` visual pattern.
+Keynote-style agenda/content slide matching the Keynote-style `目录 | Contents` visual pattern.
 
 **Props**:
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `active` | `number` | inferred | Highlighted item number |
+| `active` | `number` | unset (all equal) | Highlighted item number; omit on overview TOC |
 | `contentItems` | `(string \| object)[]` | section titles / TOC fallback | Agenda labels |
 | `items` | `(string \| object)[]` | `undefined` | Alias for `contentItems` |
-| `contentTitle` | `string` | `"目录 \| CONTENT"` | Main heading |
+| `contentTitle` | `string` | `"目录 \| Contents"` | Main heading |
 | `contentImageUrl` | `string` | `themeConfig.contentImageUrl`, then cover image | Left-side campus image |
 | `contentImagePosition` | `string` | `"center"` | CSS `object-position` for the left image |
 | `logoUrl` | `string` | `themeConfig.logoUrl` | Top logo override |
 | `hidePage` | `boolean` | `false` | Hide pagination |
 
-**Implementation**: Dedicated layout, not Slidev's built-in `<Toc />`. Uses a purple left crescent/photo panel, centered university logo, and a numbered agenda list with grey inactive items and purple active item.
+**Implementation**: Dedicated layout, not Slidev's built-in `<Toc />`. Uses a purple left crescent/photo panel, centered university logo, and a numbered agenda list. Overview (no `active`): all items purple. Progress (`active: N`): grey inactive items and one purple active item.
+
+**Layout defaults** (current):
+| Token | Value | Notes |
+|------|-------|-------|
+| Title top | `176px` | `目录 \| Contents` under logo |
+| List top | `268px` | Extra air between title and first item |
+| Item gap | `38px` | `flex-start` column (not `space-between`) |
+| Item font | `26px` | Number badge matches |
+| Number box | `34×34px` | |
+| Crescent gap | `CURVE_GAP = 48` | Items hug left ellipse; bow amplified ×2 for packed lists |
+| Align | `scheduleAlign()` | Clears stale `translateX`, remeasures after flex layout |
 
 ### break
 
@@ -363,6 +374,6 @@ Display current 学时 (session) number. Format: 1 session = 2×40min + 10min br
 
 Reusable figure rendering with optional caption and footnote number.
 
-**Props**: `figureUrl: string` (resolved via `resolveAssetUrl`), `figureCaption?: string`, `figureFootnoteNumber?: number`.
+**Props**: `figureUrl: string` (resolved via `resolveUrl`), `figureCaption?: string`, `figureFootnoteNumber?: number`.
 
-**Source**: Port from `slidev-theme-academic` `FigureWithOptionalCaption.vue`.
+**Source**: Theme figure helper used by the `figure` layout.

@@ -542,10 +542,6 @@
   order: -1;
 }
 
-.slidev-layout .keynote-toc .slidev-toc {
-  color: var(--hebmu-primary-light);
-}
-
 .slidev-layout figure img {
   display: block;
   max-width: 100%;
@@ -991,7 +987,7 @@
 
 .slidev-layout .keynote-content-title {
   position: absolute;
-  top: 226px;
+  top: 176px;
   left: 0;
   right: 0;
   color: var(--hebmu-primary-light);
@@ -1006,14 +1002,14 @@
 
 .slidev-layout .keynote-content-list {
   position: absolute;
-  top: 300px;
+  top: 268px;
   bottom: 56px;
   left: 66px;
   right: 16px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 20px;
+  justify-content: flex-start;
+  gap: 38px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1024,15 +1020,25 @@
   grid-template-columns: 34px minmax(0, 1fr);
   gap: 20px;
   align-items: center;
-  min-height: 38px;
+  min-height: 36px;
+  margin: 0; /* override global `.slidev-layout li { margin: 0.5em 0 }` */
   color: var(--hebmu-text-muted);
-  font-size: 27px;
+  font-size: 26px;
   font-weight: 700;
   line-height: 1.12;
 }
 
 .slidev-layout .keynote-content-item.is-active {
   color: var(--hebmu-primary-light);
+}
+
+/* Overview TOC (no `active` prop): all items use the primary color. */
+.slidev-layout .keynote-content-item.is-equal {
+  color: var(--hebmu-primary-light);
+}
+
+.slidev-layout .keynote-content-item.is-equal .keynote-content-number {
+  background: var(--hebmu-primary-light);
 }
 
 .slidev-layout .keynote-content-number {
@@ -1043,7 +1049,7 @@
   height: 34px;
   background: var(--hebmu-text-muted);
   color: #ffffff;
-  font-size: 31px;
+  font-size: 26px;
   font-weight: 700;
   line-height: 1;
 }

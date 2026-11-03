@@ -153,11 +153,11 @@
 }
 
 .slidev-layout .keynote-content-item {
-  font-size: 28px;      /* was 27px — 并入 h2 档 */
+  font-size: 26px;      /* was 28px */
 }
 
 .slidev-layout .keynote-content-number {
-  font-size: 28px;      /* was 31px — 徽章盒 34px 不变，数字与条目同级 */
+  font-size: 26px;      /* was 28px — 与条目同级 */
 }
 
 /* 封面：h1 32→36 获得展示级字号（与内页拉开）；
