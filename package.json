@@ -1,6 +1,6 @@
 {
   "name": "slidev-theme-hebmu",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Slidev theme for Hebei Medical University (河北医科大学) academic teaching — Chinese-first typography, bilingual layouts, and session-based structure",
   "author": {
     "name": "Hugo Dong"
@@ -44,13 +44,16 @@
         "footerDepartment": "河北医科大学 基础医学院 医药信息学教研室",
         "footerAuthor": "董立龙",
         "footerEmail": "lilong.dong@hebmu.edu.cn",
-        "footerWechat": "donglilonghugo"
+        "footerWechat": "donglilonghugo",
+        "paginationPagesDisabled": [
+          1
+        ]
       }
     }
   },
   "engines": {
     "node": ">=20.12.0",
-    "slidev": ">=0.48.0"
+    "slidev": ">=52.0.0 <53.0.0"
   },
   "scripts": {
     "dev": "slidev example.md --open",
@@ -71,5 +74,8 @@
     "playwright-chromium": true,
     "workerd": true,
     "fsevents": true
+  },
+  "peerDependencies": {
+    "@slidev/cli": ">=52.0.0 <53.0.0"
   }
 }

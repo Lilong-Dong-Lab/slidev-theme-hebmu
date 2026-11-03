@@ -236,7 +236,7 @@ text column), and `keynote-figure-footnote-stage` (when `footnoteFlow` is true).
 
 ### table-of-contents
 
-Keynote-style agenda/content slide matching the original `目录 | CONTENT` visual pattern.
+Keynote-style agenda/content slide matching the Keynote-style `目录 | Contents` visual pattern.
 
 **Props**:
 | Prop | Type | Default | Description |
@@ -244,7 +244,7 @@ Keynote-style agenda/content slide matching the original `目录 | CONTENT` visu
 | `active` | `number` | unset (all equal) | Highlighted item number; omit on overview TOC |
 | `contentItems` | `(string \| object)[]` | section titles / TOC fallback | Agenda labels |
 | `items` | `(string \| object)[]` | `undefined` | Alias for `contentItems` |
-| `contentTitle` | `string` | `"目录 \| CONTENT"` | Main heading |
+| `contentTitle` | `string` | `"目录 \| Contents"` | Main heading |
 | `contentImageUrl` | `string` | `themeConfig.contentImageUrl`, then cover image | Left-side campus image |
 | `contentImagePosition` | `string` | `"center"` | CSS `object-position` for the left image |
 | `logoUrl` | `string` | `themeConfig.logoUrl` | Top logo override |
@@ -374,6 +374,6 @@ Display current 学时 (session) number. Format: 1 session = 2×40min + 10min br
 
 Reusable figure rendering with optional caption and footnote number.
 
-**Props**: `figureUrl: string` (resolved via `resolveAssetUrl`), `figureCaption?: string`, `figureFootnoteNumber?: number`.
+**Props**: `figureUrl: string` (resolved via `resolveUrl`), `figureCaption?: string`, `figureFootnoteNumber?: number`.
 
-**Source**: Port from `slidev-theme-academic` `FigureWithOptionalCaption.vue`.
+**Source**: Theme figure helper used by the `figure` layout.

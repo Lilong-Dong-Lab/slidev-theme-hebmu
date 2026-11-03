@@ -161,7 +161,7 @@ const props = withDefaults(
     contentImagePosition: "center",
     contentImageUrl: undefined,
     contentItems: undefined,
-    contentTitle: "目录 | CONTENT",
+    contentTitle: "目录 | Contents",
     hidePage: false,
     imageUrl: undefined,
     items: undefined,

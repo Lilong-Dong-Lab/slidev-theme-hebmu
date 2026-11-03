@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Slidev presentation theme for Hebei Medical University (河北医科大学) academic teaching. Chinese-first with bilingual (中/EN) support. Course decks install this package from git. Local preview symlinks `node_modules/slidev-theme-hebmu` to a checkout of this repo. A `file:` dependency is not how CI installs it.
+Slidev presentation theme for Hebei Medical University (河北医科大学) academic teaching. Chinese-first with bilingual (中/EN) support. Local course repos install it with a `file:` path dependency (see Consumer Usage). Theme authors preview with `theme: ./` or a symlink under `node_modules/slidev-theme-hebmu`. CI may instead install from git.
 
 - **Package**: `slidev-theme-hebmu` (Slidev resolves `theme: hebmu`)
-- **Slidev**: >=0.48.0, `colorSchema: "light"`, 4:3 aspect ratio, 1024px canvas width
+- **Slidev**: >=52.0.0 <53.0.0 (`peerDependencies.@slidev/cli`), `colorSchema: "light"`, 4:3 aspect ratio, 1024px canvas width
 - **Package manager**: npm (lockfile: package-lock.json; bun removed 2026-09-20)
 - **No tests**: Visual testing via `example.md` only
 

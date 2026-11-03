@@ -542,10 +542,6 @@
   order: -1;
 }
 
-.slidev-layout .keynote-toc .slidev-toc {
-  color: var(--hebmu-primary-light);
-}
-
 .slidev-layout figure img {
   display: block;
   max-width: 100%;
