@@ -116,7 +116,7 @@ sectionTitleEn: Protein-Protein Interactions
 **Implementation notes**:
 - NEW layout — no academic equivalent.
 - Large centered section number, bilingual title below
-- `BilingualTitle` remains available as a public component for custom slide content
+- Section titles are inline in `section.vue` (Chinese + English props). There is no separate bilingual title component.
 - Thin horizontal accent line between number and title
 
 ### default
@@ -340,20 +340,6 @@ Individual footnote item. Child of `Footnotes`.
 
 **Source**: Port from `slidev-theme-academic` `Footnote.vue`.
 
-### BilingualTitle
-
-Chinese title + English subtitle pair for custom slide content.
-
-**Props**: `titleZh: string` (rendered as `<h2>`), `titleEn: string` (rendered as `<h3 class="opacity-60">`).
-
-```vue
-<template>
-  <div class="bilingual-title">
-    <h2>{{ titleZh }}</h2>
-    <h3 v-if="titleEn" class="opacity-60 text-sm mt-1">{{ titleEn }}</h3>
-  </div>
-</template>
-```
 
 ### SessionInfo
 

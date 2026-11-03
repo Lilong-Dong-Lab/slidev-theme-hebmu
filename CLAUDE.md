@@ -78,19 +78,19 @@ Shiki theme: `one-dark-pro` (dark) / `vitesse-light` (light). Mermaid look (box 
 
 ## Layout & Component Specs
 
-See @docs/specs.md for detailed prop tables, usage examples, and implementation notes for all 8 layouts and 10 components.
+See @docs/specs.md for detailed prop tables, usage examples, and implementation notes for all 8 layouts and 9 components.
 
 ## Naming Conventions
 
 - Layout files: kebab-case, matching layout name exactly (`figure.vue` → `layout: figure`)
-- Component files: PascalCase (`BilingualTitle.vue` → `<BilingualTitle />`)
+- Component files: PascalCase (`SessionInfo.vue` → `<SessionInfo />`)
 - CSS files: kebab-case (`layout.css`, `code.css`)
 - CSS custom properties: `--hebmu-{name}` prefix
 - Layout CSS classes: `.slidev-layout.{name}`
 
 ## Implementation Plan
 
-**Status**: Implemented — 8 layouts, 10 components, styles and setup files complete. Code highlighting in `setup/shiki.ts`, Mermaid in `setup/mermaid.ts`, UnoCSS escape hatch in `setup/unocss.ts`. See @docs/specs.md for layout/component specs.
+**Status**: Implemented — 8 layouts, 9 components, styles and setup files complete. Code highlighting in `setup/shiki.ts`, Mermaid in `setup/mermaid.ts`, UnoCSS escape hatch in `setup/unocss.ts`. See @docs/specs.md for layout/component specs.
 
 All layouts, components, and styles have been ported or built. Run `npm run dev` to preview.
 
