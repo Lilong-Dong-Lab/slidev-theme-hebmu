@@ -1,34 +1,10 @@
-/* ══════════════════════════════════════════════════════════════════════
-   refinements.css — ch09 deck UI 精修 (candidate-1)
+/* refinements.css — theme projection polish (classroom / weak contrast)
 
-   用法：整体追加到 slidev-theme-hebmu 的 styles/layout.css 末尾。
+   Loaded after layout.css via styles/index.ts. Theme-global policy for every
+   hebmu deck (PROG and BIO), not a course-local override.
 
-   设计立场：打磨紫色学术风 — 不改 VI 色值、不改 Keynote chrome 结构、
-   不改 4:3 画幅、不改 callout 四色语义（key/warning/check/procedure）。
-
-   场景锚点：教室投影（弱对比环境）+ 28 人大班 + 6–10m 观看距离。
-   画布 1024×768 由 Slidev 整体 transform 缩放，本文件所有 px 均为画布值。
-
-   分区索引：
-     S0  设计令牌 (tokens)
-     S1  代码块可读性 (R1 / R5)
-     S2  表格结构线与密度 (R2 / R10 / R5)
-     S3  Callout 统一化 + 同色相边条加深 (R3 + G2 graft)
-     S4  章节页对比度 (R4)
-     S5  封面与目录字号阶梯 (R6)
-     S6  CJK 字距与行高 (R7 / R8)
-     S7  字重层级 (R9)
-     S8  间距归网 + mt-* 节奏重映射 + 上标防裁切 (R11 + G1/G3 graft)
-     S9  v-click 节奏 (R12)
-     S10 .text-sm 投影地板 (R13)
-
-   嫁接来源（arena Phase E，候选2 → 基础候选1）：
-     G2 = warning/procedure callout 边条同色相加深至 AA 对比
-     G1 = deck 层 mt-* 工具类的节奏重映射（属性选择器作用域）
-     G3 = CJK 上标防裁切（sup 0.75em / line-height 0）
-   ══════════════════════════════════════════════════════════════════════ */
-
-
+   Keeps VI colors and Keynote chrome. Tuned for 1024×768 canvas on a projector.
+*/
 /* ── S0 · 设计令牌 ───────────────────────────────────────────────────────
    表格线：紫色系 30% 混白（≈#CAB8D3），对 row-a ≈1.5:1 / row-b ≈1.75:1，
    替代投影下不可见的纯白网格线（色相仍在 VI 系内）。 */
