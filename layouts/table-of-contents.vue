@@ -38,12 +38,15 @@
       />
       <h1 class="keynote-content-title">{{ contentTitle }}</h1>
 
-      <ol ref="listRef" class="keynote-content-list">
+      <ol ref="listRef" class="keynote-content-list" :class="{ 'has-active': activeIndex != null }">
         <li
           v-for="(item, index) in normalizedItems"
           :key="`${index}-${item.title}`"
           class="keynote-content-item"
-          :class="{ 'is-active': index + 1 === activeIndex }"
+          :class="{
+            'is-active': activeIndex != null && index + 1 === activeIndex,
+            'is-equal': activeIndex == null,
+          }"
         >
           <span class="keynote-content-number">{{ index + 1 }}</span>
           <span class="keynote-content-text">{{ item.title }}</span>
@@ -80,7 +83,7 @@ const CURVE_CX = 50;
 const CURVE_RX = 320;
 const CURVE_CY = 385;
 const CURVE_RY = 575;
-const CURVE_GAP = 72;
+const CURVE_GAP = 48;
 
 const layoutRef = ref<HTMLElement | null>(null);
 const listRef = ref<HTMLElement | null>(null);
@@ -91,6 +94,12 @@ function alignItems() {
   const list = listRef.value;
   if (!layout || !list) return;
 
+  const nodes = [
+    ...list.querySelectorAll<HTMLElement>(".keynote-content-item"),
+  ];
+  // Clear prior translates so Y is measured from the flex layout, not a stale curve.
+  for (const node of nodes) node.style.transform = "";
+
   const layoutRect = layout.getBoundingClientRect();
   const scale = layoutRect.height / layout.offsetHeight;
   if (!Number.isFinite(scale) || scale === 0) return;
@@ -98,17 +107,29 @@ function alignItems() {
   const listLeft =
     (list.getBoundingClientRect().left - layoutRect.left) / scale;
 
-  for (const node of list.querySelectorAll<HTMLElement>(
-    ".keynote-content-item",
-  )) {
+  const peakOffset = CURVE_CX + CURVE_RX + CURVE_GAP - listLeft;
+  for (const node of nodes) {
     const rect = node.getBoundingClientRect();
     const centerY = (rect.top + rect.height / 2 - layoutRect.top) / scale;
     const dy = (centerY - CURVE_CY) / CURVE_RY;
     const inside = 1 - dy * dy;
     const curveX =
       inside > 0 ? CURVE_CX + CURVE_RX * Math.sqrt(inside) : CURVE_CX;
-    node.style.transform = `translateX(${curveX + CURVE_GAP - listLeft}px)`;
+    const rawOffset = curveX + CURVE_GAP - listLeft;
+    // Packed TOC sits on a flat arc band; amplify deviation so the crescent still reads.
+    const offsetX = peakOffset + (rawOffset - peakOffset) * 2;
+    node.style.transform = `translateX(${offsetX}px)`;
   }
+}
+
+function scheduleAlign() {
+  nextTick(() => {
+    alignItems();
+    requestAnimationFrame(() => {
+      alignItems();
+      requestAnimationFrame(alignItems);
+    });
+  });
 }
 
 type ContentItemInput =
@@ -205,25 +226,11 @@ const normalizedItems = computed(() => {
   return normalizeItems(items);
 });
 
-const activeIndex = computed(() => {
-  if (props.active) return props.active;
-
-  const currentPage = $slidev.nav.currentPage;
-  const sections = $slidev.nav.slides.filter(
-    (route) => route.meta?.slide?.frontmatter?.layout === "section",
-  );
-  const nextSectionIndex = sections.findIndex(
-    (route) => route.no > currentPage,
-  );
-  if (nextSectionIndex >= 0) return nextSectionIndex + 1;
-
-  const previousSectionIndex = [...sections]
-    .reverse()
-    .findIndex((route) => route.no <= currentPage);
-
-  if (previousSectionIndex < 0) return 1;
-  return sections.length - previousSectionIndex;
-});
+// Overview TOC: leave `active` unset so every item shares one color.
+// Progress TOC: set `active: N` to mute others and highlight item N.
+const activeIndex = computed(() =>
+  props.active == null ? null : props.active,
+);
 
 const contentImage = computed(
   () =>
@@ -242,15 +249,15 @@ const contentLogo = computed(
 );
 
 onMounted(() => {
-  alignItems();
-  if (!listRef.value) return;
-  listObserver = new ResizeObserver(() => alignItems());
-  listObserver.observe(listRef.value);
+  scheduleAlign();
+  if (!layoutRef.value) return;
+  listObserver = new ResizeObserver(() => scheduleAlign());
+  listObserver.observe(layoutRef.value);
+  if (listRef.value) listObserver.observe(listRef.value);
 });
 
-watch(normalizedItems, async () => {
-  await nextTick();
-  alignItems();
+watch(normalizedItems, () => {
+  scheduleAlign();
 });
 
 onBeforeUnmount(() => listObserver?.disconnect());
