@@ -28,18 +28,8 @@ const themeConfigs = computed(
   () => ($slidev.themeConfigs || {}) as ThemeConfigs,
 );
 
-const x = computed(
-  () =>
-    props.x ??
-    (themeConfigs.value.paginationX as "l" | "r" | undefined) ??
-    "r",
-);
-const y = computed(
-  () =>
-    props.y ??
-    (themeConfigs.value.paginationY as "b" | "t" | undefined) ??
-    "b",
-);
+const x = computed(() => props.x ?? themeConfigs.value.paginationX ?? "r");
+const y = computed(() => props.y ?? themeConfigs.value.paginationY ?? "b");
 
 const disabled = computed(() =>
   (themeConfigs.value.paginationPagesDisabled || []).includes(
