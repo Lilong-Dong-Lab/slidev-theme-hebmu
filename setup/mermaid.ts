@@ -8,6 +8,8 @@ import { defineMermaidSetup } from "@slidev/types";
  *   hebmuPill  — soft purple (#8f55ad), white text
  *   hebmuNote  — very light purple (#ebe7ef), primary text
  *   hebmuMuted — chrome grey (#f2f2f2), muted text
+ *
+ *   unclassed  — plain outline node: white fill, primary-light border, primary text
  */
 const fontFamily =
   '"PingFang SC", "Noto Sans SC", "Microsoft YaHei", "Hiragino Sans GB", Arial, system-ui, sans-serif';
@@ -29,18 +31,18 @@ export default defineMermaidSetup(() => ({
   fontFamily,
   themeVariables: {
     background: pageBg,
-    primaryColor: purpleSoft,
-    primaryTextColor: "#ffffff",
-    primaryBorderColor: purpleSoft,
+    primaryColor: pageBg,
+    primaryTextColor: primary,
+    primaryBorderColor: primaryLight,
     secondaryColor: purpleWash,
     tertiaryColor: chromeGrey,
     lineColor: purpleSoft,
     textColor: primary,
     fontFamily,
     fontSize: "17px",
-    nodeBorder: purpleSoft,
-    nodeTextColor: "#ffffff",
-    mainBkg: purpleSoft,
+    nodeBorder: primaryLight,
+    nodeTextColor: primary,
+    mainBkg: pageBg,
     clusterBkg: "#f8f5fb",
     clusterBorder: primaryLight,
     titleColor: primary,
@@ -60,14 +62,15 @@ export default defineMermaidSetup(() => ({
     .node polygon {
       rx: 12px;
       ry: 12px;
+      stroke-width: 2px;
     }
 
     .node .label,
     .nodeLabel,
     .node .label span,
     .label text {
-      color: #ffffff;
-      fill: #ffffff;
+      color: ${primary};
+      fill: ${primary};
       font-size: 17px;
       font-weight: 600;
       line-height: 1.2;
