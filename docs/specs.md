@@ -192,6 +192,7 @@ Keynote-style agenda/content slide matching the Keynote-style `目录 | Contents
 | `items` | `(string \| object)[]` | `undefined` | Alias for `contentItems` |
 | `contentTitle` | `string` | `"目录 \| Contents"` | Main heading |
 | `contentImageUrl` | `string` | `themeConfig.contentImageUrl`, then cover image | Left-side campus image |
+| `imageUrl` | `string` | `undefined` | Legacy alias for `contentImageUrl` |
 | `contentImagePosition` | `string` | `"center"` | CSS `object-position` for the left image |
 | `logoUrl` | `string` | `themeConfig.logoUrl` | Top logo override |
 | `hidePage` | `boolean` | `false` | Hide pagination |
@@ -233,6 +234,7 @@ Closing slide — thank you message and/or Q&A.
 |------|------|---------|-------------|
 | `endMessage` | `string` | `"谢谢！"` | Closing message in Chinese |
 | `endMessageEn` | `string` | `"Thank You!"` | Closing message in English |
+| `endBackgroundUrl` | `string` | `themeConfig.endBackgroundUrl`, then `/campus-end.jpeg` | Closing-slide background image |
 
 **Slot**: Additional content (contact info, QR code, etc.).
 
@@ -248,6 +250,14 @@ Auto-registered by filename. `Pagination.vue` → `<Pagination />`.
 ### KeynoteShell
 
 Internal shared frame for standard layouts. It renders the theme chrome, framed content stage, hide props, and density class. It is auto-registered but intended for layout implementation rather than slide-author use.
+
+**Props**: `hideFooter`, `hideLogo`, `hidePage`, `hideWave`, `hideFrame`, `hideTitle`, `density`, `slideTitle`, `autoSlideTitle`, `layoutClass`, `stageClass` — layout→chrome wiring, documented for theme maintainers rather than slide authors.
+
+### SlideTitle
+
+Renders the chrome title; consumed by `KeynoteShell` layouts to hoist the slide's first H1 into the chrome. Internal — not intended for direct slide-author use.
+
+**Props**: `title?: string` — explicit title text; `autoTitle?: boolean` — infer the title when `title` is absent.
 
 ### Pagination
 

@@ -56,6 +56,9 @@
     "dev": "slidev example.md --open",
     "build": "slidev build example.md",
     "check:dist": "node scripts/check-dist.mjs",
+    "check:release": "node scripts/check-release.mjs",
+    "check:specs": "node scripts/check-specs.mjs",
+    "check:surface": "node scripts/check-surface.mjs",
     "export": "slidev export example.md",
     "screenshot": "slidev export example.md --format png"
   },

@@ -44,7 +44,7 @@ Prefix: `--hebmu-{name}`. All defined in `:root` in `styles/layout.css`. **Light
 | `--hebmu-text-muted` | `#666666` | Secondary/caption text |
 | `--hebmu-border` | `#621887` | Framed-stage border (purple, 2px) |
 
-Colors extracted from Keynote lecture slides (PPTX theme XML). `accent1` = `#621887` purple primary.
+Colors extracted from the Keynote lecture slides' PPTX theme XML; the source file is gone, so treat the palette as complete as of 0.4.0 — new tokens must match the Office-family accents (`#ed7d31` orange, `#ffc000` gold, `#70ad47` green, `#0563c1` blue, `#c00000` red). `accent1` = `#621887` purple primary.
 
 ### Fonts
 
@@ -79,7 +79,7 @@ Shiki theme: `one-dark-pro` (dark) / `vitesse-light` (light). Mermaid look (box 
 
 ## Layout & Component Specs
 
-See @docs/specs.md for detailed prop tables, usage examples, and implementation notes for all 7 layouts and 6 components.
+See @docs/specs.md for detailed prop tables, usage examples, and implementation notes for every layout and component.
 
 ## Naming Conventions
 
@@ -89,11 +89,9 @@ See @docs/specs.md for detailed prop tables, usage examples, and implementation 
 - CSS custom properties: `--hebmu-{name}` prefix
 - Layout CSS classes: `.slidev-layout.{name}`
 
-## Implementation Plan
+## Status
 
-**Status**: Implemented — 7 layouts, 6 components, styles and setup files complete. Code highlighting in `setup/shiki.ts`, Mermaid in `setup/mermaid.ts`, UnoCSS escape hatch in `setup/unocss.ts`. See @docs/specs.md for layout/component specs.
-
-All layouts, components, and styles have been ported or built. Run `npm run dev` to preview.
+Implemented. Run `npm run dev` to preview `example.md`. Code highlighting lives in `setup/shiki.ts`, Mermaid in `setup/mermaid.ts`, the UnoCSS escape hatch in `setup/unocss.ts`. `docs/specs.md` is the spec-of-record for layout/component props and stage classes.
 
 ## Slidev Theme Authoring Gotchas
 

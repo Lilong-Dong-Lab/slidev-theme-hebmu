@@ -11,7 +11,6 @@ A [Slidev](https://sli.dev) presentation theme for **河北医科大学 (Hebei M
 - Bioinformatics-optimized: Mermaid diagram theming, code highlighting
 - Compact density option for table/code-heavy teaching slides
 - UnoCSS utility escape hatch (`setup/unocss.ts`) for custom one-off slides — grids, flex, etc.
-- 7 layouts, 6 components
 
 ## Quick Start
 

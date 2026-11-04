@@ -60,6 +60,21 @@ npm run check:dist
 theme image under `dist/assets/`, no root-level copies). A red check is a
 finding; fix the bundling, not the check.
 
+## Surface sweep
+
+Run when removing or renaming anything user-facing — at **scope time** (the
+hits are the sync checklist: every file you must touch) and again **before
+review** (every remaining hit must be intentional):
+
+```bash
+npm run check:surface -- <term> [term...]
+```
+
+Report-only by design: CHANGELOG entries and ADRs mention removed terms on
+purpose, so the reviewer judges the hits. Catches what the 0.4.0 audit
+missed — `end.vue` reading the footer keys, `README.md`, and
+`styles/refinements.css` were each found only by a late ad-hoc grep.
+
 ## Known-benign console noise
 
 `Failed to patch FloatingVue` comes from the shiki twoslash plugin inside
