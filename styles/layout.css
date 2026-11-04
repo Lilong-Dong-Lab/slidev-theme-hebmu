@@ -552,7 +552,10 @@
 .slidev-layout.keynote-density-compact .keynote-stage ul,
 .slidev-layout.keynote-density-compact .keynote-stage ol,
 .slidev-layout.keynote-density-compact .keynote-stage table,
-.slidev-layout.keynote-density-compact .keynote-stage pre,
+.slidev-layout.keynote-density-compact .keynote-stage pre {
+  margin-top: 16px; /* match default stage rhythm above code panes */
+}
+
 .slidev-layout.keynote-density-compact .keynote-stage blockquote {
   margin-top: 10px;
 }
