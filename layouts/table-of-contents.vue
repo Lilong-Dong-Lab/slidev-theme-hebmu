@@ -226,11 +226,23 @@ const normalizedItems = computed(() => {
   return normalizeItems(items);
 });
 
-// Overview TOC: leave `active` unset so every item shares one color.
-// Progress TOC: set `active: N` to mute others and highlight item N.
-const activeIndex = computed(() =>
-  props.active == null ? null : props.active,
-);
+// Overview TOC: leave `active` unset before the first section — every item
+// shares one color. Progress TOC: set `active: N` to pin item N, or leave it
+// unset on a later TOC and the layout infers the section that contains the
+// current page (the documented 0.2.0 behavior). No matching section → overview.
+const activeIndex = computed(() => {
+  if (props.active != null) return props.active;
+
+  const currentPage = $slidev.nav.currentPage;
+  let inferred: number | null = null;
+  let sectionCount = 0;
+  for (const route of $slidev.nav.slides) {
+    if (route.meta?.slide?.frontmatter?.layout !== "section") continue;
+    sectionCount += 1;
+    if (route.no <= currentPage) inferred = sectionCount;
+  }
+  return inferred;
+});
 
 const contentImage = computed(
   () =>
