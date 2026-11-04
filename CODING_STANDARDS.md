@@ -16,7 +16,10 @@ defect — the linked issue tells the story.
 - **Stale-reference sweep** (#13): a rename or move triggers a grep for the
   old term across CLAUDE.md, AGENTS.md, docs/, README, and package.json
   before review. AGENTS.md is CLAUDE.md's twin: editing one means checking
-  the other.
+  the other. Run it as `npm run check:surface -- <term>…` — the script
+  standardizes the breadth (see `docs/agents/verification.md`, "Surface
+  sweep"): at removal-scope time the hits are the sync checklist; before
+  review every remaining hit must be intentional.
 - **Spec-of-record rule** (#10, #14): a shipped change that contradicts
   `docs/specs.md` either updates the spec in the same PR or records the
   follow-up sentence in the PR body. Silent drift is the finding.

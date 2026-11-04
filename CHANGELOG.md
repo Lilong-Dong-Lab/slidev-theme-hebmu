@@ -10,6 +10,16 @@ is the version bump plus these notes.
 
 ## [Unreleased]
 
+### Added
+
+- Three repo checks born from the 0.4.0 retro (see `docs/agents/verification.md`):
+  `check:surface` (stale-reference sweep — run at removal-scope time and before
+  review), `check:release` (package version must equal the newest CHANGELOG
+  heading; wired into CI), and `check:specs` (specs↔props drift; wired into
+  CI). `check:specs`'s first run caught five undocumented props
+  (`endBackgroundUrl`, `imageUrl`, KeynoteShell's hide/`layoutClass` wiring,
+  SlideTitle's `title`/`autoTitle`), now documented in `docs/specs.md`.
+
 ## [0.4.0] - 2026-11-04
 
 ### Removed
