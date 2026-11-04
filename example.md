@@ -265,7 +265,9 @@ density: compact
 
 # 使用 NetworkX 计算拓扑指标
 
-```python
+点击逐步高亮（其余行变暗）：读边表 → 算指标 → 排序 hub/bridge → 打印 → 全显。
+
+```python {1,3|5-7|9-10|12-16|all}{lines:true}
 import networkx as nx
 
 G = nx.read_edgelist("ppi_edges.tsv", delimiter="\t")

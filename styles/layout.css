@@ -435,21 +435,45 @@
   font-weight: 700;
 }
 
+/* Break divider mirrors section: centered stack, hero + accent + subtitle */
+.slidev-layout.keynote-break {
+  display: grid;
+  place-items: center;
+}
+
 .slidev-layout .keynote-break-content {
-  margin-top: 230px;
+  position: relative;
+  z-index: 1;
+  width: min(760px, calc(100% - 112px));
+  margin: 0;
   color: var(--hebmu-primary);
   text-align: center;
 }
 
-.slidev-layout .keynote-break-content h1 {
-  font-size: 32px;
+.slidev-layout .keynote-break-title {
+  color: var(--hebmu-purple-soft);
+  font-size: 54px;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
-.slidev-layout .keynote-break-content p {
-  margin-top: 18px;
-  color: var(--hebmu-text-muted);
-  font-size: 20px;
+.slidev-layout .keynote-break-title::after {
+  display: block;
+  width: 68px;
+  height: 3px;
+  margin: 24px auto 0;
+  border-radius: 999px;
+  background: var(--hebmu-primary);
+  content: "";
+}
+
+.slidev-layout .keynote-break-subtitle {
+  margin-top: 24px;
+  color: var(--hebmu-primary);
+  font-size: 28px;
   font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: 0.015em;
 }
 
 #slidev-goto-dialog[class~="-top-20"] .autocomplete-list {
@@ -957,8 +981,8 @@
 
 .slidev-layout .keynote-stage .hebmu-card,
 .slidev-layout .keynote-stage .hebmu-callout {
-  margin-top: 16px;
-  padding: 12px 16px;
+  margin-top: 12px;
+  padding: 8px 12px;
   border-radius: 8px;
 }
 
@@ -975,6 +999,7 @@
 
 .slidev-layout .keynote-stage .hebmu-callout p {
   margin: 0;
+  font-size: 18px;
 }
 
 .slidev-layout .keynote-stage .hebmu-callout-warning {

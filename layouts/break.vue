@@ -7,10 +7,10 @@
       :hide-wave="hideWave"
     />
     <div class="keynote-break-content">
-      <h1>休息</h1>
-      <p>
+      <div class="keynote-break-title">休息</div>
+      <div class="keynote-break-subtitle">
         Break <span v-if="breakMinutes">/ {{ breakMinutes }} 分钟</span>
-      </p>
+      </div>
       <slot />
     </div>
   </div>
