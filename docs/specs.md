@@ -13,7 +13,7 @@ Each layout is a Vue SFC in `layouts/`. Auto-registered by filename (minus `.vue
 | `footerMode` | `'compact' \| 'full' \| 'none'` | `'compact'` | Global footer behavior. Compact shows department + page number; full also shows author, email, and WeChat. |
 | `paginationX` | `'l' \| 'r'` | `'r'` | Pagination horizontal position. |
 | `paginationY` | `'t' \| 'b'` | `'b'` | Pagination vertical position. |
-| `paginationPagesDisabled` | `number[]` | `undefined` | Slide numbers without pagination. |
+| `paginationPagesDisabled` | `number[]` | `[1]` | Slide numbers without pagination. Theme default hides pagination on the cover. A deck-level value replaces the theme default wholesale (no merging); pass `[]` to number every slide. |
 
 The theme is light-first. Dark mode is not implemented in this release.
 
