@@ -16,9 +16,10 @@ this section covers everything since 0.2.0. Decisions were recorded in issues
 
 ### Changed
 
-- **Breaking: Slidev 52 required.** `engines` and `peerDependencies` now
-  require `@slidev/cli` `>=52.0.0 <53.0.0` (was `slidev >=0.48.0` with no peer
-  range). The Node.js floor is unchanged (`>=20.12.0`).
+- **Breaking: Slidev 52 required.** `engines` (`slidev`) and
+  `peerDependencies` (`@slidev/cli`) now require `>=52.0.0 <53.0.0` (was
+  engines `slidev >=0.48.0` with no peer range). The Node.js floor is
+  unchanged (`>=20.12.0`).
   *Migration:* in each deck, upgrade `@slidev/cli` to `^52` and re-run
   `npm install`. Decks still on Slidev 48–51 are out of contract.
 - The `paginationPagesDisabled` default is `[1]`: the cover slide ships
