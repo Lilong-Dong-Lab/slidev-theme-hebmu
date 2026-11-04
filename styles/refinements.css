@@ -31,19 +31,29 @@
 
 
 /* ── S1 · 代码块可读性 (R1 / R5) ────────────────────────────────────────
-   代码 = 编程课的教学本体。0.95rem×0.9em ≈ 13.7px → 16px（+17%）。
-   行高 1.6→1.5 使行盒 24.3px→24px，块高几乎不变，零溢出。
-   特异性 (0,3,0)/(0,4,0) 高于 code.css 的 (0,1,0)/(0,2,0)，
-   无论 code.css 在 layout.css 前后加载都生效。 */
+   代码 = 编程课的教学本体。目标 16px（compact 14px）。
+   Slidev 核心用 `.slidev-code { font-size: var(--slidev-code-font-size) !important }`
+   （默认 12px），直接设 pre 字号会被盖掉——必须改 CSS 变量。
+   行高用 px 配套变量（16×1.5=24 / 14×1.4≈20），块高几乎不变。 */
+
+.slidev-layout.keynote-default .keynote-stage {
+  --slidev-code-font-size: 16px;
+  --slidev-code-line-height: 24px;
+}
+
+.slidev-layout.keynote-density-compact .keynote-stage {
+  --slidev-code-font-size: 14px;
+  --slidev-code-line-height: 20px;
+}
 
 .slidev-layout.keynote-default .keynote-stage pre {
-  font-size: 16px;      /* was 0.95rem (≈15.2px) */
-  line-height: 1.5;     /* was 1.6 — 行盒守恒补偿 */
+  font-size: 16px;      /* fallback for non-.slidev-code pre */
+  line-height: 1.5;
 }
 
 .slidev-layout.keynote-density-compact .keynote-stage pre {
-  font-size: 14px;      /* was 0.78rem (≈12.5px)；compact 页最小 11px+ 是全 deck 最脆文字 */
-  line-height: 1.4;     /* was 1.45 */
+  font-size: 14px;      /* fallback for non-.slidev-code pre */
+  line-height: 1.4;
 }
 
 /* 抵消 .slidev-layout code { font-size: 0.9em } 的二次相乘：
