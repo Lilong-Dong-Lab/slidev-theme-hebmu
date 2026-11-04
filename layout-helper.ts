@@ -5,9 +5,10 @@
  * `public/` — a public dir would make Slidev's static-copy emit every image
  * a second time next to the hashed copy (#13).
  */
-const ASSET_ROOT = "./assets";
-
-const bundledThemeAssets = import.meta.glob(`${ASSET_ROOT}/**/*`, {
+// Both literals below must change together (glob pattern must stay a literal
+// — Vite cannot statically analyze template strings — and the lookup key
+// mirrors it). Move = edit both lines.
+const bundledThemeAssets = import.meta.glob("./assets/**/*", {
   eager: true,
   import: "default",
   query: "?url",
@@ -15,7 +16,7 @@ const bundledThemeAssets = import.meta.glob(`${ASSET_ROOT}/**/*`, {
 
 /** `/logo.png` → bundled URL, or undefined when it is not a theme asset. */
 function bundledAssetUrl(url: string) {
-  return bundledThemeAssets[`${ASSET_ROOT}${url}`];
+  return bundledThemeAssets[`./assets${url}`];
 }
 
 /** Resolve theme-owned assets for img/background URLs. */
