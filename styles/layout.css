@@ -312,7 +312,6 @@
 }
 
 /* Beat `.keynote-stage p { color: --hebmu-text }` so banner text stays white */
-.slidev-layout .keynote-stage blockquote,
 .slidev-layout .keynote-stage blockquote :is(p, strong, a) {
   color: #ffffff;
 }

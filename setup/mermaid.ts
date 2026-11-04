@@ -89,18 +89,12 @@ export default defineMermaidSetup(() => ({
     }
 
     /* 1 · Root — darkest brand */
-    .node.hebmuRoot rect,
-    .node.hebmuRoot circle,
-    .node.hebmuRoot ellipse,
-    .node.hebmuRoot polygon,
-    .node.hebmuRoot path {
+    .node.hebmuRoot :is(rect, circle, ellipse, polygon, path) {
       fill: ${primary} !important;
       stroke: ${primary} !important;
     }
 
-    .node.hebmuRoot .label,
-    .node.hebmuRoot .nodeLabel,
-    .node.hebmuRoot .label span {
+    .node.hebmuRoot :is(.label, .nodeLabel, .label span) {
       color: #ffffff !important;
       fill: #ffffff !important;
       font-size: 20px;
@@ -108,18 +102,12 @@ export default defineMermaidSetup(() => ({
     }
 
     /* 2 · Pill — lighter purple */
-    .node.hebmuPill rect,
-    .node.hebmuPill circle,
-    .node.hebmuPill ellipse,
-    .node.hebmuPill polygon,
-    .node.hebmuPill path {
+    .node.hebmuPill :is(rect, circle, ellipse, polygon, path) {
       fill: ${purpleSoft} !important;
       stroke: ${purpleSoft} !important;
     }
 
-    .node.hebmuPill .label,
-    .node.hebmuPill .nodeLabel,
-    .node.hebmuPill .label span {
+    .node.hebmuPill :is(.label, .nodeLabel, .label span) {
       color: #ffffff !important;
       fill: #ffffff !important;
       font-size: 17px;
@@ -127,19 +115,13 @@ export default defineMermaidSetup(() => ({
     }
 
     /* 3 · Note — very light purple panel */
-    .node.hebmuNote rect,
-    .node.hebmuNote circle,
-    .node.hebmuNote ellipse,
-    .node.hebmuNote polygon,
-    .node.hebmuNote path {
+    .node.hebmuNote :is(rect, circle, ellipse, polygon, path) {
       fill: ${purpleWash} !important;
       stroke: ${primaryLight} !important;
       filter: none;
     }
 
-    .node.hebmuNote .label,
-    .node.hebmuNote .nodeLabel,
-    .node.hebmuNote .label span {
+    .node.hebmuNote :is(.label, .nodeLabel, .label span) {
       color: ${primary} !important;
       fill: ${primary} !important;
       font-size: 15px;
@@ -148,19 +130,13 @@ export default defineMermaidSetup(() => ({
     }
 
     /* 4 · Muted — chrome grey (header-bg) */
-    .node.hebmuMuted rect,
-    .node.hebmuMuted circle,
-    .node.hebmuMuted ellipse,
-    .node.hebmuMuted polygon,
-    .node.hebmuMuted path {
+    .node.hebmuMuted :is(rect, circle, ellipse, polygon, path) {
       fill: ${chromeGrey} !important;
       stroke: #d0d0d0 !important;
       filter: none;
     }
 
-    .node.hebmuMuted .label,
-    .node.hebmuMuted .nodeLabel,
-    .node.hebmuMuted .label span {
+    .node.hebmuMuted :is(.label, .nodeLabel, .label span) {
       color: ${textMuted} !important;
       fill: ${textMuted} !important;
       font-size: 14px;
