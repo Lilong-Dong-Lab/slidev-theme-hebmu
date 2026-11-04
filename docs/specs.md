@@ -241,7 +241,7 @@ Keynote-style agenda/content slide matching the Keynote-style `目录 | Contents
 **Props**:
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `active` | `number` | unset (all equal) | Highlighted item number; omit on overview TOC |
+| `active` | `number` | inferred | Highlighted item number. Omit to infer: the layout highlights the section containing the current page; before the first section it renders all-equal. |
 | `contentItems` | `(string \| object)[]` | section titles / TOC fallback | Agenda labels |
 | `items` | `(string \| object)[]` | `undefined` | Alias for `contentItems` |
 | `contentTitle` | `string` | `"目录 \| Contents"` | Main heading |
@@ -250,7 +250,7 @@ Keynote-style agenda/content slide matching the Keynote-style `目录 | Contents
 | `logoUrl` | `string` | `themeConfig.logoUrl` | Top logo override |
 | `hidePage` | `boolean` | `false` | Hide pagination |
 
-**Implementation**: Dedicated layout, not Slidev's built-in `<Toc />`. Uses a purple left crescent/photo panel, centered university logo, and a numbered agenda list. Overview (no `active`): all items purple. Progress (`active: N`): grey inactive items and one purple active item.
+**Implementation**: Dedicated layout, not Slidev's built-in `<Toc />`. Uses a purple left crescent/photo panel, centered university logo, and a numbered agenda list. Overview (no `active`, before the first section): all items purple. Progress (`active: N`, or no `active` once a section has started): grey inactive items and one purple active item. Inference counts the deck's `section` slides, so with custom `contentItems` the inferred index may not align with the displayed items.
 
 **Layout defaults** (current):
 | Token | Value | Notes |

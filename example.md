@@ -51,7 +51,6 @@ layout: intro
 
 ---
 layout: table-of-contents
-active: 1
 contentItems:
   - 蛋白质相互作用网络基础
   - PPI 数据库与数据准备

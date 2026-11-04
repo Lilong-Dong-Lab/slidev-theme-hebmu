@@ -183,16 +183,20 @@ const configuredItems = computed(
     (themeConfigs.value.tocItems as ContentItemInput[] | undefined),
 );
 
+// Slides that contribute a numbered entry to a section-derived TOC: a
+// section layout carrying a sectionTitle. The item list and index inference
+// both derive from this list so they stay in lockstep.
+const sectionRoutes = computed(() =>
+  $slidev.nav.slides.filter((route) => {
+    const frontmatter = route.meta?.slide?.frontmatter;
+    return frontmatter?.layout === "section" && frontmatter.sectionTitle;
+  }),
+);
+
 const sectionItems = computed<ContentItemInput[]>(() =>
-  $slidev.nav.slides
-    .map((route) => route.meta?.slide?.frontmatter)
-    .filter(
-      (frontmatter) =>
-        frontmatter?.layout === "section" && frontmatter.sectionTitle,
-    )
-    .map((frontmatter) => ({
-      title: frontmatter.sectionTitle,
-    })),
+  sectionRoutes.value.map((route) => ({
+    title: route.meta?.slide?.frontmatter?.sectionTitle,
+  })),
 );
 
 const tocItems = computed<ContentItemInput[]>(() =>
@@ -229,18 +233,15 @@ const normalizedItems = computed(() => {
 // Overview TOC: leave `active` unset before the first section — every item
 // shares one color. Progress TOC: set `active: N` to pin item N, or leave it
 // unset on a later TOC and the layout infers the section that contains the
-// current page (the documented 0.2.0 behavior). No matching section → overview.
+// current page. No matching section → overview.
 const activeIndex = computed(() => {
   if (props.active != null) return props.active;
 
   const currentPage = $slidev.nav.currentPage;
   let inferred: number | null = null;
-  let sectionCount = 0;
-  for (const route of $slidev.nav.slides) {
-    if (route.meta?.slide?.frontmatter?.layout !== "section") continue;
-    sectionCount += 1;
-    if (route.no <= currentPage) inferred = sectionCount;
-  }
+  sectionRoutes.value.forEach((route, index) => {
+    if (route.no <= currentPage) inferred = index + 1;
+  });
   return inferred;
 });
 
