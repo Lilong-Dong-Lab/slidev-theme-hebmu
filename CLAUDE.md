@@ -9,7 +9,7 @@ Slidev presentation theme for Hebei Medical University (河北医科大学) acad
 - **Package**: `slidev-theme-hebmu` (Slidev resolves `theme: hebmu`)
 - **Slidev**: >=52.0.0 <53.0.0 (`peerDependencies.@slidev/cli`), `colorSchema: "light"`, 4:3 aspect ratio, 1024px canvas width
 - **Package manager**: npm (lockfile: package-lock.json; bun removed 2026-09-20)
-- **No tests**: Visual testing via `example.md` only
+- **No tests**: Visual testing via `example.md` only — follow `docs/agents/verification.md` when verifying changes against a running deck or checking build artifacts
 
 ## Commands
 
