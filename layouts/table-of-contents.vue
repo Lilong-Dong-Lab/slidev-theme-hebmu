@@ -76,6 +76,7 @@ import {
   onMounted,
   ref,
   watch,
+  watchEffect,
 } from "vue";
 import { type ThemeConfigs, resolveAssetUrl } from "../layout-helper";
 
@@ -236,12 +237,23 @@ const normalizedItems = computed(() => {
   return normalizeItems(items);
 });
 
+// A usable `active`: a 1-indexed integer within the rendered items. The
+// render path and the dev warning share this predicate so they cannot drift.
+function isValidActive(value: number, count: number) {
+  return Number.isInteger(value) && value >= 1 && value <= count;
+}
+
 // Overview TOC: leave `active` unset before the first section — every item
 // shares one color. Progress TOC: set `active: N` to pin item N, or leave it
 // unset on a later TOC and the layout infers the section that contains the
-// current page. No matching section → overview.
+// current page. No matching section → overview. An invalid `active` is
+// ignored (a dev-mode warning fires once per value) and the layout behaves
+// as if unset.
 const activeIndex = computed(() => {
-  if (props.active != null) return props.active;
+  const active = props.active;
+  if (active != null && isValidActive(active, normalizedItems.value.length)) {
+    return active;
+  }
 
   const currentPage = $slidev.nav.currentPage;
   let inferred: number | null = null;
@@ -250,6 +262,22 @@ const activeIndex = computed(() => {
   });
   return inferred;
 });
+
+if (import.meta.env.DEV) {
+  const warnedActive = new Set<number>();
+  watchEffect(() => {
+    const active = props.active;
+    if (active == null) return;
+    const count = normalizedItems.value.length;
+    if (isValidActive(active, count)) return;
+    if (warnedActive.has(active)) return;
+    warnedActive.add(active);
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[slidev-theme-hebmu] table-of-contents: \`active\` is 1-indexed (valid range 1..${count}); received ${active}. Rendering as if unset.`,
+    );
+  });
+}
 
 const contentImage = computed(
   () =>

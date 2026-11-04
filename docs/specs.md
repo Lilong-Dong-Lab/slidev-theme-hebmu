@@ -241,7 +241,7 @@ Keynote-style agenda/content slide matching the Keynote-style `目录 | Contents
 **Props**:
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `active` | `number` | inferred | Highlighted item number. Omit to infer: the layout highlights the section containing the current page; before the first section it renders all-equal. |
+| `active` | `number` | inferred | Highlighted item number. Omit to infer: the layout highlights the section containing the current page; before the first section it renders all-equal. An out-of-range value (0, negative, non-integer, or past the last item) is ignored with a one-time dev-mode warning; the layout renders as if unset. |
 | `contentItems` | `(string \| object)[]` | section titles / TOC fallback | Agenda labels |
 | `items` | `(string \| object)[]` | `undefined` | Alias for `contentItems` |
 | `contentTitle` | `string` | `"目录 \| Contents"` | Main heading |

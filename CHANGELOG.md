@@ -8,6 +8,14 @@ Pre-1.0, breaking changes bump the minor version. This package is not published
 to npm — consumer decks install it via a `file:` path or git, so a release here
 is the version bump plus these notes.
 
+## [Unreleased]
+
+### Fixed
+
+- TOC: an out-of-range `active` (0, negative, non-integer, or past the last
+  item) now logs a one-time dev-mode warning and renders as if unset, instead
+  of a silent all-grey list with no highlight and no diagnostic (#10).
+
 ## [0.3.0] - 2026-11-04
 
 First documented release. 0.2.1 shipped breaking changes without release notes;
@@ -47,8 +55,8 @@ this section covers everything since 0.2.0. Decisions were recorded in issues
 - TOC section inference is restored. A bare `layout: table-of-contents` slide
   infers the active section again: it highlights the section containing the
   current page. Before the first section, or in a deck with no `section`
-  markers, it renders the all-equal overview. An explicit `active` prop always
-  wins over inference (#7).
+  markers, it renders the all-equal overview. An explicit in-range `active`
+  prop always wins over inference (#7).
   *Migration:* none — this restores the 0.2.0-documented behavior. Known
   edge: `active: 0` is still open (#10).
 - Theme-owned images resolve under `file:` installs. Theme `public/` assets
