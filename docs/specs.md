@@ -30,6 +30,11 @@ arrows and PingFang SC by default. Optional **four-step** class hooks (opt-in):
 | `:::hebmuPill` | `--hebmu-purple-soft` `#8f55ad` | white ~17px |
 | `:::hebmuNote` | `--hebmu-row-a` `#ebe7ef` (very light purple) | primary ~15px |
 | `:::hebmuMuted` | `--hebmu-header-bg` `#f2f2f2` (chrome grey) | muted ~14px |
+| no class | `--hebmu-bg` `#ffffff` (plain outline) | primary ~17px |
+
+Unclassed nodes render as plain outline nodes: white fill, `--hebmu-primary-light`
+border (2px), primary text. This keeps the four classed tiers distinct — `:::hebmuPill`
+is not the unclassed look. Edges and arrowheads use soft purple deck-wide.
 
 The theme does **not** lock flowchart spacing or curve; course decks override
 with `%%{init}%%`, `{scale: …}`, or their own classes. It uses `theme: 'base'`,
