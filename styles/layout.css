@@ -186,10 +186,14 @@
 
 .slidev-layout .keynote-slide-title {
   position: absolute;
-  top: 31px;
-  left: 100px;
+  /* Same band as .keynote-logo (top 20px / 72px) — vertically center with logo */
+  top: 20px;
+  left: 108px;
   right: 28px;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  height: 72px;
   margin: 0;
   color: var(--hebmu-primary);
   font-family:
