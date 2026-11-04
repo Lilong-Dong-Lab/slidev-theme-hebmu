@@ -1,7 +1,24 @@
 import { defineMermaidSetup } from "@slidev/types";
 
+/**
+ * Light HEBMU Mermaid defaults — 4-step purple→grey hierarchy via :::hebmu* classes.
+ * No flowchart spacing/curve locks; course decks override via %%{init}%% / scale / classes.
+ *
+ *   hebmuRoot  — dark primary (#4e136c), white text
+ *   hebmuPill  — soft purple (#8f55ad), white text
+ *   hebmuNote  — very light purple (#ebe7ef), primary text
+ *   hebmuMuted — chrome grey (#f2f2f2), muted text
+ */
 const fontFamily =
   '"PingFang SC", "Noto Sans SC", "Microsoft YaHei", "Hiragino Sans GB", Arial, system-ui, sans-serif';
+
+const primary = "#4e136c";
+const primaryLight = "#621887";
+const purpleSoft = "#8f55ad";
+const purpleWash = "#ebe7ef"; /* --hebmu-row-a */
+const chromeGrey = "#f2f2f2"; /* --hebmu-header-bg */
+const textMuted = "#666666";
+const bg = "#ffffff";
 
 export default defineMermaidSetup(() => ({
   startOnLoad: false,
@@ -11,24 +28,24 @@ export default defineMermaidSetup(() => ({
   htmlLabels: true,
   fontFamily,
   themeVariables: {
-    background: "#ffffff",
-    primaryColor: "#4e136c",
+    background: bg,
+    primaryColor: purpleSoft,
     primaryTextColor: "#ffffff",
-    primaryBorderColor: "#4e136c",
-    lineColor: "#5a5a5a",
-    textColor: "#4e136c",
+    primaryBorderColor: purpleSoft,
+    secondaryColor: purpleWash,
+    tertiaryColor: chromeGrey,
+    lineColor: purpleSoft,
+    textColor: primary,
     fontFamily,
-    fontSize: "18px",
-    fontWeight: "700",
-    nodeBorder: "#4e136c",
+    fontSize: "17px",
+    nodeBorder: purpleSoft,
     nodeTextColor: "#ffffff",
-    mainBkg: "#4e136c",
+    mainBkg: purpleSoft,
     clusterBkg: "#f8f5fb",
-    clusterBorder: "#621887",
-    titleColor: "#4e136c",
-    arrowheadColor: "#5a5a5a",
-    edgeLabelBackground: "#ffffff",
-    strokeWidth: "2.4",
+    clusterBorder: primaryLight,
+    titleColor: primary,
+    arrowheadColor: purpleSoft,
+    edgeLabelBackground: bg,
   },
   flowchart: {
     htmlLabels: true,
@@ -39,9 +56,10 @@ export default defineMermaidSetup(() => ({
       overflow: visible;
     }
 
-    .node rect {
-      rx: 10px;
-      ry: 10px;
+    .node rect,
+    .node polygon {
+      rx: 12px;
+      ry: 12px;
     }
 
     .node .label,
@@ -50,71 +68,107 @@ export default defineMermaidSetup(() => ({
     .label text {
       color: #ffffff;
       fill: #ffffff;
-      font-weight: 700;
-      line-height: 1.18;
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.2;
     }
 
     .flowchart-link,
     .edgePath .path {
-      stroke: #5a5a5a;
-      stroke-width: 2.4px;
+      stroke: ${purpleSoft};
+      stroke-width: 2px;
       fill: none;
     }
 
     .marker {
-      fill: #5a5a5a;
-      stroke: #5a5a5a;
+      fill: ${purpleSoft};
+      stroke: ${purpleSoft};
     }
 
+    /* 1 · Root — darkest brand */
     .node.hebmuRoot rect,
     .node.hebmuRoot circle,
     .node.hebmuRoot ellipse,
     .node.hebmuRoot polygon,
     .node.hebmuRoot path {
-      fill: #4e136c;
-      stroke: #4e136c;
+      fill: ${primary} !important;
+      stroke: ${primary} !important;
     }
 
     .node.hebmuRoot .label,
     .node.hebmuRoot .nodeLabel,
     .node.hebmuRoot .label span {
-      font-size: 21px;
+      color: #ffffff !important;
+      fill: #ffffff !important;
+      font-size: 20px;
       font-weight: 700;
     }
 
+    /* 2 · Pill — lighter purple */
     .node.hebmuPill rect,
     .node.hebmuPill circle,
     .node.hebmuPill ellipse,
     .node.hebmuPill polygon,
     .node.hebmuPill path {
-      fill: #4e136c;
-      stroke: #4e136c;
+      fill: ${purpleSoft} !important;
+      stroke: ${purpleSoft} !important;
     }
 
+    .node.hebmuPill .label,
+    .node.hebmuPill .nodeLabel,
+    .node.hebmuPill .label span {
+      color: #ffffff !important;
+      fill: #ffffff !important;
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    /* 3 · Note — very light purple panel */
     .node.hebmuNote rect,
     .node.hebmuNote circle,
     .node.hebmuNote ellipse,
     .node.hebmuNote polygon,
     .node.hebmuNote path {
-      fill: transparent;
-      stroke: transparent;
+      fill: ${purpleWash} !important;
+      stroke: ${primaryLight} !important;
       filter: none;
     }
 
     .node.hebmuNote .label,
     .node.hebmuNote .nodeLabel,
     .node.hebmuNote .label span {
-      color: #666666;
-      fill: #666666;
-      font-weight: 700;
+      color: ${primary} !important;
+      fill: ${primary} !important;
+      font-size: 15px;
+      font-weight: 500;
       text-align: left;
+    }
+
+    /* 4 · Muted — chrome grey (header-bg) */
+    .node.hebmuMuted rect,
+    .node.hebmuMuted circle,
+    .node.hebmuMuted ellipse,
+    .node.hebmuMuted polygon,
+    .node.hebmuMuted path {
+      fill: ${chromeGrey} !important;
+      stroke: #d0d0d0 !important;
+      filter: none;
+    }
+
+    .node.hebmuMuted .label,
+    .node.hebmuMuted .nodeLabel,
+    .node.hebmuMuted .label span {
+      color: ${textMuted} !important;
+      fill: ${textMuted} !important;
+      font-size: 14px;
+      font-weight: 400;
     }
 
     .edgeLabel,
     .edgeLabel p,
     .labelBkg {
-      color: #4e136c !important;
-      background-color: rgba(255, 255, 255, 0.85) !important;
+      color: ${primary} !important;
+      background-color: rgba(255, 255, 255, 0.9) !important;
     }
   `,
 }));

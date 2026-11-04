@@ -21,13 +21,24 @@ Most standard content layouts accept `density: 'normal' | 'compact'`. Use `compa
 
 ## Mermaid
 
-Mermaid is configured in `setup/mermaid.ts` for Slidev 51 / Mermaid 11. The
-theme keeps the diagram look: purple boxes, white labels, PingFang SC at 18px
-and weight 700, and gray arrows. It uses `theme: 'base'`, `htmlLabels: true`,
-`securityLevel: 'loose'`, and `flowchart.useMaxWidth: true` so Chinese labels,
-`<br/>` line breaks, and PNG/PDF export stay stable. Diagram layout uses
-Mermaid's own defaults, including the `basis` curve. `flowchart.curve` sets the path shape. It does not set where an edge meets a node. Two edges into one node keep separate attachment points. A chart that wants a square
-line path opts in inside that fence:
+Mermaid is configured in `setup/mermaid.ts` for Slidev 51 / Mermaid 11. Soft-purple
+arrows and PingFang SC by default. Optional **four-step** class hooks (opt-in):
+
+| Class | Fill | Text |
+|---|---|---|
+| `:::hebmuRoot` | `--hebmu-primary` `#4e136c` | white ~20px |
+| `:::hebmuPill` | `--hebmu-purple-soft` `#8f55ad` | white ~17px |
+| `:::hebmuNote` | `--hebmu-row-a` `#ebe7ef` (very light purple) | primary ~15px |
+| `:::hebmuMuted` | `--hebmu-header-bg` `#f2f2f2` (chrome grey) | muted ~14px |
+
+The theme does **not** lock flowchart spacing or curve; course decks override
+with `%%{init}%%`, `{scale: …}`, or their own classes. It uses `theme: 'base'`,
+`htmlLabels: true`, `securityLevel: 'loose'`, and `flowchart.useMaxWidth: true`
+so Chinese labels, `<br/>` line breaks, and PNG/PDF export stay stable. Diagram
+layout uses Mermaid's own defaults, including the `basis` curve.
+`flowchart.curve` sets the path shape. It does not set where an edge meets a
+node. Two edges into one node keep separate attachment points. A chart that
+wants a square line path opts in inside that fence:
 
 ```mermaid
 %%{init: {"flowchart": {"curve": "step"}}}%%
