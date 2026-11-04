@@ -237,20 +237,21 @@ const normalizedItems = computed(() => {
   return normalizeItems(items);
 });
 
+// A usable `active`: a 1-indexed integer within the rendered items. The
+// render path and the dev warning share this predicate so they cannot drift.
+function isValidActive(value: number, count: number) {
+  return Number.isInteger(value) && value >= 1 && value <= count;
+}
+
 // Overview TOC: leave `active` unset before the first section — every item
 // shares one color. Progress TOC: set `active: N` to pin item N, or leave it
 // unset on a later TOC and the layout infers the section that contains the
-// current page. No matching section → overview. An out-of-range or
-// non-integer `active` is ignored (a dev-mode warning fires once per value)
-// and the layout behaves as if unset.
+// current page. No matching section → overview. An invalid `active` is
+// ignored (a dev-mode warning fires once per value) and the layout behaves
+// as if unset.
 const activeIndex = computed(() => {
   const active = props.active;
-  if (
-    active != null &&
-    Number.isInteger(active) &&
-    active >= 1 &&
-    active <= normalizedItems.value.length
-  ) {
+  if (active != null && isValidActive(active, normalizedItems.value.length)) {
     return active;
   }
 
@@ -268,7 +269,7 @@ if (import.meta.env.DEV) {
     const active = props.active;
     if (active == null) return;
     const count = normalizedItems.value.length;
-    if (Number.isInteger(active) && active >= 1 && active <= count) return;
+    if (isValidActive(active, count)) return;
     if (warnedActive.has(active)) return;
     warnedActive.add(active);
     // eslint-disable-next-line no-console
