@@ -138,17 +138,9 @@
 
 /* ── S5 · 封面与目录字号阶梯 (R6) ─────────────────────────────────────── */
 
-/* TOC 页：35px 标题离群 → 并入 32 标题档；27/31px 条目/徽章 → 并入 28 h2 档 */
+/* TOC 页：35px 标题离群 → 并入 32 标题档（条目/徽章 26px 由 layout.css 定值，此处不再镜像） */
 .slidev-layout .keynote-content-title {
   font-size: 32px;      /* was 35px */
-}
-
-.slidev-layout .keynote-content-item {
-  font-size: 26px;      /* was 28px */
-}
-
-.slidev-layout .keynote-content-number {
-  font-size: 26px;      /* was 28px — 与条目同级 */
 }
 
 /* 封面：h1 32→36 获得展示级字号（与内页拉开）；
