@@ -89,15 +89,7 @@
     <div class="end-slot-layer">
       <slot />
     </div>
-    <Pagination
-      v-if="
-        !$slidev.themeConfigs?.paginationPagesDisabled?.includes(
-          $slidev.nav.currentPage,
-        )
-      "
-      :x="$slidev.themeConfigs?.paginationX || 'r'"
-      :y="$slidev.themeConfigs?.paginationY || 'b'"
-    />
+    <Pagination />
   </div>
 </template>
 

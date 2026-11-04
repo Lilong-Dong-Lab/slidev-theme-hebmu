@@ -54,16 +54,7 @@
       </ol>
     </main>
 
-    <Pagination
-      v-if="
-        !hidePage &&
-        !$slidev.themeConfigs?.paginationPagesDisabled?.includes(
-          $slidev.nav.currentPage,
-        )
-      "
-      :x="$slidev.themeConfigs?.paginationX || 'r'"
-      :y="$slidev.themeConfigs?.paginationY || 'b'"
-    />
+    <Pagination v-if="!hidePage" />
   </div>
 </template>
 
