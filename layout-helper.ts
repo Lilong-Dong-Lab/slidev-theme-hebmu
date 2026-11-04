@@ -1,9 +1,14 @@
 /**
- * Theme-owned public assets, self-registering: every file under public/ is
+ * Theme-owned image assets, self-registering: every file under assets/ is
  * bundled via Vite `?url` imports, so consumer decks resolve them as hashed
- * asset URLs regardless of install mode (no reliance on static-copy paths).
+ * asset URLs regardless of install mode. The dir is deliberately NOT
+ * `public/` — a public dir would make Slidev's static-copy emit every image
+ * a second time next to the hashed copy (#13).
  */
-const bundledThemeAssets = import.meta.glob("./public/**/*", {
+// Both literals below must change together (glob pattern must stay a literal
+// — Vite cannot statically analyze template strings — and the lookup key
+// mirrors it). Move = edit both lines.
+const bundledThemeAssets = import.meta.glob("./assets/**/*", {
   eager: true,
   import: "default",
   query: "?url",
@@ -11,10 +16,10 @@ const bundledThemeAssets = import.meta.glob("./public/**/*", {
 
 /** `/logo.png` → bundled URL, or undefined when it is not a theme asset. */
 function bundledAssetUrl(url: string) {
-  return bundledThemeAssets[`./public${url}`];
+  return bundledThemeAssets[`./assets${url}`];
 }
 
-/** Resolve theme-owned public assets for img/background URLs. */
+/** Resolve theme-owned assets for img/background URLs. */
 export function resolveAssetUrl(url: string) {
   if (!url.startsWith("/")) return url;
   return bundledAssetUrl(url) ?? resolveUrl(url);

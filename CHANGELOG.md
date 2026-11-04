@@ -15,6 +15,10 @@ is the version bump plus these notes.
 - TOC: an out-of-range `active` (0, negative, non-integer, or past the last
   item) now logs a one-time dev-mode warning and renders as if unset, instead
   of a silent all-grey list with no highlight and no diagnostic (#10).
+- Theme images ship once per consumer build: assets moved from `public/` to a
+  non-public `assets/` dir, so Slidev's static-copy no longer duplicates the
+  hashed bundled copies (was 2–4 copies per image, ~1.75 MB dead weight per
+  deck build). Asset URLs (`/name.ext`) are unchanged (#13).
 
 ## [0.3.0] - 2026-11-04
 

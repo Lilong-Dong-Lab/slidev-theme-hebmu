@@ -8,7 +8,7 @@ This repository is a Slidev theme package named `slidev-theme-hebmu`; Slidev res
 - `components/*.vue`: auto-registered Vue components, named in PascalCase for template use.
 - `styles/index.ts` and `styles/*.css`: global entry point, layout styling, code styling, and Chinese typography.
 - `setup/*.ts`: Slidev setup hooks for Mermaid and Shiki.
-- `public/`: static assets available to slides.
+- `assets/`: theme image assets, bundled as hashed URLs by `layout-helper.ts` (non-public on purpose — a `public/` dir would make Slidev's static-copy duplicate every image).
 - `example.md`: local preview and visual regression fixture.
 - `docs/`: implementation notes and layout/component specs.
 
