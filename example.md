@@ -236,7 +236,7 @@ layout: default
 
 # PPI 分析流程
 
-```mermaid {scale: 0.50}
+```mermaid {scale: 0.78}
 flowchart LR
     Root["PPI<br/>分析流程"]:::hebmuRoot
     Root --> Filter["候选基因筛选"]:::hebmuPill
@@ -245,7 +245,11 @@ flowchart LR
 
     Filter --- FilterNote["表达矩阵 + DESeq2"]:::hebmuNote
     Query --- QueryNote["STRING/BioGRID 查询并导出边表"]:::hebmuNote
-    Analyze --- AnalyzeNote["Cytoscape可视化；NetworkX 识别Hub基因和功能模块"]:::hebmuNote
+    Analyze --- AnalyzeNote["Cytoscape / NetworkX"]:::hebmuNote
+
+    FilterNote --- FilterOut["差异基因列表"]:::hebmuMuted
+    QueryNote --- QueryOut["边表 TSV"]:::hebmuMuted
+    AnalyzeNote --- AnalyzeOut["hub / 模块"]:::hebmuMuted
 ```
 
 ---
