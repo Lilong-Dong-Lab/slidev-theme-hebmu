@@ -144,7 +144,7 @@ contentItems:
 |---|---|
 | `center` | `default` + `hideFrame: true` + a flex-centered wrapper div |
 | `two-col` | `default` + a `grid grid-cols-2 gap-7` wrapper (replaces `::left::` / `::right::`) |
-| `quote` | `default` + a markdown `>` blockquote (base CSS styles it) + an attribution `<p>` |
+| `quote` | `default` + markdown `>` (pull quote / vignette) + optional `hebmu-cite` |
 | `figure-side` | `figure` + `figureX: 'l' \| 'r'` |
 | `figure-footnote` | Removed in 0.4.0 — build citations from `default` + raw markup |
 

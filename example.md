@@ -85,6 +85,8 @@ layout: default
 - PPI 网络把蛋白质表示为节点，把相互作用表示为边
 - 网络视角有助于发现 hub 蛋白、功能模块和潜在药物靶点
 
+Pull quote（投影强调句，Markdown `>`；文献用 `hebmu-cite`，不用 callout）：
+
 > 无标度网络 (Scale-free Network) 是许多生物分子网络的典型特征。
 
 ---
@@ -135,9 +137,21 @@ layout: default
 layout: default
 ---
 
-> **无标度网络 (Scale-free Network)**: 网络中节点的度分布服从幂律分布 P(k) ~ k^(-γ)，少数枢纽节点 (hub) 拥有大量连接。
+# 定义摘录与文献引用
 
-<p class="mt-5 text-base" style="color: var(--hebmu-text-muted)">— Barabási &amp; Albert, Science, 1999</p>
+> **无标度网络 (Scale-free Network)**：网络中节点的度分布服从幂律分布 P(k) ~ k^(-γ)，少数枢纽节点 (hub) 拥有大量连接。
+
+<div class="hebmu-cite">Barabási & Albert, Science, 1999</div>
+
+---
+layout: default
+---
+
+# 案例导入（vignette）
+
+> 一位研究生从 GEO 下载了乳腺癌表达矩阵，用 DESeq2 得到约 120 个差异基因后，不知道如何接到 PPI 网络分析。后面的 STRING → Cytoscape / NetworkX 流程，就是为解决这个问题。
+
+<div class="hebmu-source">课堂案例（示意，非真实队列）</div>
 
 ---
 layout: section

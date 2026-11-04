@@ -127,7 +127,7 @@ Standard content slide (~31% of slides in production).
 
 **Implementation**: Uses `KeynoteShell` with `layoutClass="keynote-default"`.
 
-For a one-off layout, use `default` with UnoCSS utilities (provided by `setup/unocss.ts`). A three-column slide is a one-off. A markdown `>` blockquote remains the accent bar for a quotation.
+For a one-off layout, use `default` with UnoCSS utilities (provided by `setup/unocss.ts`). A three-column slide is a one-off. A markdown `>` blockquote is a **pull quote** or short **vignette** (HEBMU primary→purple-soft banner with a right-edge arrow; white 18px text). It is not a typed callout and not a citation.
 
 Repeated patterns use these stage classes. Do not recolor them with Tailwind backgrounds.
 
@@ -141,7 +141,8 @@ Repeated patterns use these stage classes. Do not recolor them with Tailwind bac
 | `hebmu-callout hebmu-callout-procedure` | Procedure. Actions in performance order. Orange. |
 | `hebmu-callout hebmu-callout-success` | Success. Green (`--hebmu-success`). Added 0.4.0. |
 | `hebmu-callout hebmu-callout-danger` | Danger. Dark red (`--hebmu-danger`, `#c00000`). Added 0.4.0. |
-| `hebmu-source` | Source line. Where a number, figure, or statement came from. |
+| `hebmu-source` | Provenance / disclaimer line (data source, “示例不对应某版库”). |
+| `hebmu-cite` | Scholarly citation under a pull quote or vignette (author, venue, year). Same visual weight as `hebmu-source`. |
 
 A table whose only wrapper paints a background stays a plain markdown table. A crowded slide uses `density: compact`.
 
