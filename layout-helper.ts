@@ -5,7 +5,9 @@
  * `public/` — a public dir would make Slidev's static-copy emit every image
  * a second time next to the hashed copy (#13).
  */
-const bundledThemeAssets = import.meta.glob("./assets/**/*", {
+const ASSET_ROOT = "./assets";
+
+const bundledThemeAssets = import.meta.glob(`${ASSET_ROOT}/**/*`, {
   eager: true,
   import: "default",
   query: "?url",
@@ -13,10 +15,10 @@ const bundledThemeAssets = import.meta.glob("./assets/**/*", {
 
 /** `/logo.png` → bundled URL, or undefined when it is not a theme asset. */
 function bundledAssetUrl(url: string) {
-  return bundledThemeAssets[`./assets${url}`];
+  return bundledThemeAssets[`${ASSET_ROOT}${url}`];
 }
 
-/** Resolve theme-owned public assets for img/background URLs. */
+/** Resolve theme-owned assets for img/background URLs. */
 export function resolveAssetUrl(url: string) {
   if (!url.startsWith("/")) return url;
   return bundledAssetUrl(url) ?? resolveUrl(url);
