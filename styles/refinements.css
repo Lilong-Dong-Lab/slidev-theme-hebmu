@@ -199,16 +199,7 @@
 
 /* ── S7 · 字重层级 (R9) ─────────────────────────────────────────────────
    次要元数据全部 700 → 加粗失去强调语义。把 700 还给 <strong>/表头/首列。
-   微字号(13px)保底 500 而非 400 — 投影下小字太细会糊；
    颜色对比不变（#621887 ≈10.5:1、#666 ≈5.7:1），降档是中性改动 */
-
-.slidev-layout .keynote-stage .keynote-footnotes {
-  font-weight: 500;     /* was 700 — 13px 保底 500 */
-}
-
-.slidev-layout .keynote-stage .keynote-footnote {
-  font-weight: 500;     /* was 700 — 同步 */
-}
 
 .slidev-layout.keynote-cover .cover-meta {
   font-weight: 500;     /* was 700 */

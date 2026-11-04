@@ -10,6 +10,33 @@ is the version bump plus these notes.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-04
+
+### Removed
+
+- **Breaking: `intro` layout and `SessionInfo` component.** Zero uses across
+  all 8 production decks (323 slides); decks express sessions via the `cover`
+  layout's `sessionNumber` prop instead.
+  *Migration:* replace `layout: intro` with `layout: default`; drop any
+  `<SessionInfo />` usage.
+- **Breaking: `Footnotes` / `Footnote` components**, figure's
+  `footnoteFlow` and `figureFootnoteNumber` props, and their CSS. Zero deck
+  uses; example-only since the initial port from `slidev-theme-academic`.
+  *Migration:* build footnotes from `default` + raw markup if ever needed.
+- **Breaking: `footerMode: 'full'`** (author/email/WeChat contact row in the
+  chrome footer). All 8 decks and the example use `compact`; `none` remains
+  available. The `footerAuthor` / `footerEmail` / `footerWechat` / `footerTel`
+  themeConfig keys stay — the `end` layout's contact block reads them.
+  *Migration:* none needed for `compact` decks; `'full'` users get the compact
+  footer. See ADR-0001 for the removal criteria.
+
+### Added
+
+- `hebmu-callout-success` (green, `--hebmu-success`) and
+  `hebmu-callout-danger` (dark red, new token `--hebmu-danger: #c00000`)
+  callout variants, matching the Office-family palette. They replace the
+  hand-rolled `bg-green-50`/`bg-red-50` utility divs used in production decks.
+
 ### Fixed
 
 - TOC: an out-of-range `active` (0, negative, non-integer, or past the last

@@ -38,13 +38,15 @@ export function resolveUrl(url: string) {
   return `${prefix}${url.slice(1)}`;
 }
 
-export type FooterMode = "compact" | "full" | "none";
+export type FooterMode = "compact" | "none";
 
 export interface ThemeConfigs {
-  footerAuthor?: string;
+  /** Chrome footer (compact mode). */
   footerDepartment?: string;
-  footerEmail?: string;
   footerMode?: FooterMode;
+  /** `end` layout contact block. */
+  footerAuthor?: string;
+  footerEmail?: string;
   footerTel?: string;
   footerWechat?: string;
   logoUrl?: string;

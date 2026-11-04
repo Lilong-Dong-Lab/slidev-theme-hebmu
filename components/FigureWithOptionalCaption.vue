@@ -2,7 +2,7 @@
   <figure class="flex flex-col items-center justify-center">
     <img :alt="caption" class="max-h-full" :src="resolveUrl(url)" />
     <figcaption class="mt-3 text-center text-xs" v-if="caption">
-      {{ caption }}<sup v-if="footnoteNumber">{{ footnoteNumber }}</sup>
+      {{ caption }}
     </figcaption>
   </figure>
 </template>
@@ -10,5 +10,5 @@
 <script setup lang="ts">
 import { resolveUrl } from "../layout-helper";
 
-defineProps<{ caption?: string; footnoteNumber?: number; url: string }>();
+defineProps<{ caption?: string; url: string }>();
 </script>

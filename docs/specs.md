@@ -10,7 +10,7 @@ Each layout is a Vue SFC in `layouts/`. Auto-registered by filename (minus `.vue
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `footerMode` | `'compact' \| 'full' \| 'none'` | `'compact'` | Global footer behavior. Compact shows department + page number; full also shows author, email, and WeChat. |
+| `footerMode` | `'compact' \| 'none'` | `'compact'` | Global footer behavior. Compact shows department + page number; `none` hides the footer entirely. |
 | `paginationX` | `'l' \| 'r'` | `'r'` | Pagination horizontal position. |
 | `paginationY` | `'t' \| 'b'` | `'b'` | Pagination vertical position. |
 | `paginationPagesDisabled` | `number[]` | `[1]` | Slide numbers without pagination. Theme default hides pagination on the cover. A deck-level value replaces the theme default wholesale (no merging); pass `[]` to number every slide. |
@@ -38,7 +38,7 @@ flowchart LR
 Dense diagrams should use Slidev's per-block scale option, for example a
 Mermaid code fence with `{scale: 0.88}`.
 
-Standard framed layouts (`default`, `intro`, `figure`) render their title through the shared
+Standard framed layouts (`default`, `figure`) render their title through the shared
 `SlideTitle` component. If `slideTitle` is provided, it is used directly and H1
 headings remain in the frame as smaller section headers. If `slideTitle` is not
 provided, the first markdown H1 is inferred as the slide title and hidden from
@@ -139,57 +139,24 @@ Repeated patterns use these stage classes. Do not recolor them with Tailwind bac
 | `hebmu-callout hebmu-callout-key` | Key point, including a criteria list, a one-line summary, and an 直觉 line. Purple. |
 | `hebmu-callout hebmu-callout-check` | Check. Blue. |
 | `hebmu-callout hebmu-callout-procedure` | Procedure. Actions in performance order. Orange. |
+| `hebmu-callout hebmu-callout-success` | Success. Green (`--hebmu-success`). Added 0.4.0. |
+| `hebmu-callout hebmu-callout-danger` | Danger. Dark red (`--hebmu-danger`, `#c00000`). Added 0.4.0. |
 | `hebmu-source` | Source line. Where a number, figure, or statement came from. |
 
 A table whose only wrapper paints a background stays a plain markdown table. A crowded slide uses `density: compact`.
 
-### intro
-
-Course/session overview slide. Displays course title and session information.
-
-**Props**:
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `courseTitle` | `string` | `undefined` | Course title |
-| `density` | `'normal' \| 'compact'` | `'normal'` | Content density |
-| `sessionNumber` | `number` | `undefined` | Current session (学时) number |
-| `slideTitle` | `string` | inferred from first H1 | Explicit chrome title |
-
-**Slot**: Overview content (bullets, summary).
-
-**Usage**:
-```markdown
----
-layout: intro
-courseTitle: '生物信息学'
-sessionNumber: 18
----
-
-## 本节内容概览
-
-- 蛋白质相互作用网络
-- PPI 数据库
-- 网络拓扑分析
-```
-
-**Implementation notes**:
-- Port from academic `intro.vue`, adding `courseTitle` and `sessionNumber`
-- Include `SessionInfo` component
-- Centered content area with slightly larger fonts
-
 ### figure
 
-Figure with optional caption. By default it is a full-bleed image; two optional
-props absorb the former `figure-side` and `figure-footnote` layouts.
+Figure with optional caption. By default it is a full-bleed image; the optional
+`figureX` prop switches to side-by-side mode (absorbing the former
+`figure-side` layout).
 
 **Props**:
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `figureUrl` | `string` | required | Image URL |
 | `figureCaption` | `string` | `undefined` | Caption text |
-| `figureFootnoteNumber` | `number` | `undefined` | Footnote reference number appended to the caption |
 | `figureX` | `'l' \| 'r'` | `undefined` | Side-by-side mode (image + slot text column); `undefined` = full-bleed. Formerly `figure-side`. |
-| `footnoteFlow` | `boolean` | `false` | Place an in-flow `<Footnotes>` block below the figure (footnotes participate in layout flow instead of absolute positioning). Formerly `figure-footnote`. |
 | `density` | `'normal' \| 'compact'` | `'normal'` | Content density |
 | `slideTitle` | `string` | inferred from first H1 | Explicit chrome title |
 
@@ -208,31 +175,10 @@ figureX: r
 - 多种证据来源
 ```
 
-**Usage** (figure + in-flow footnotes, formerly `figure-footnote`):
-```markdown
----
-layout: figure
-figureUrl: /cytoscape.png
-figureCaption: 'Cytoscape 网络图'
-figureFootnoteNumber: 1
-footnoteFlow: true
----
-
-# 图片及脚注示例
-
-<Footnotes :separator="true" x="l" y="col">
-  <Footnote :number="1">Author A, et al. Journal. Year.</Footnote>
-</Footnotes>
-```
-
 **Implementation**: Uses `KeynoteShell` and `FigureWithOptionalCaption`. The
-`stageClass` switches between `keynote-figure-stage` (default),
+`stageClass` switches between `keynote-figure-stage` (default) and
 `keynote-figure-side-stage` (when `figureX` is set, slot wrapped in a `<div>`
-text column), and `keynote-figure-footnote-stage` (when `footnoteFlow` is true).
-
-> `figureX` takes precedence if both `figureX` and `footnoteFlow` are set — they
-> are effectively mutually exclusive (a dev-mode `console.warn` is emitted when
-> both are supplied).
+text column).
 
 ### table-of-contents
 
@@ -319,48 +265,10 @@ Current slide number on every slide.
 
 **Source**: Port from `slidev-theme-academic` `Pagination.vue`.
 
-### Footnotes
-
-Container for multiple `Footnote` children.
-
-**Props**:
-| Prop | Type | Values | Default | Description |
-|------|------|--------|---------|-------------|
-| `filled` | `boolean` | — | `false` | Background fill |
-| `separator` | `boolean` | — | `false` | Show separator line |
-| `x` | `string` | `'l'`, `'r'` | `'r'` | Horizontal position |
-| `y` | `string` | `'col'`, `'row'` | `'row'` | Layout direction |
-
-**Source**: Port from `slidev-theme-academic` `Footnotes.vue`.
-
-### Footnote
-
-Individual footnote item. Child of `Footnotes`.
-
-**Props**: `number: number` (superscript).
-
-**Source**: Port from `slidev-theme-academic` `Footnote.vue`.
-
-
-### SessionInfo
-
-Display current 学时 (session) number. Format: 1 session = 2×40min + 10min break = 2 学时.
-
-**Props**: `sessionNumber: number`, `totalSessions?: number` (optional, for progress bar).
-
-```vue
-<template>
-  <div class="session-info text-xs opacity-50">
-    <span>第 {{ sessionNumber }} 学时</span>
-    <span v-if="totalSessions"> / {{ totalSessions }}</span>
-  </div>
-</template>
-```
-
 ### FigureWithOptionalCaption
 
-Reusable figure rendering with optional caption and footnote number.
+Reusable figure rendering with optional caption.
 
-**Props**: `figureUrl: string` (resolved via `resolveUrl`), `figureCaption?: string`, `figureFootnoteNumber?: number`.
+**Props**: `url: string` (resolved via `resolveUrl`), `caption?: string`.
 
 **Source**: Theme figure helper used by the `figure` layout.
