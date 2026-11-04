@@ -1,27 +1,33 @@
-import hebmuLogoUrl from "./public/hebmu-logo.png?url";
-import campusCoverUrl from "./public/campus-cover.jpeg?url";
-import campusEndUrl from "./public/campus-end.jpeg?url";
+/**
+ * Theme-owned public assets, self-registering: every file under public/ is
+ * bundled via Vite `?url` imports, so consumer decks resolve them as hashed
+ * asset URLs regardless of install mode (no reliance on static-copy paths).
+ */
+const bundledThemeAssets = import.meta.glob("./public/**/*", {
+  eager: true,
+  import: "default",
+  query: "?url",
+}) as Record<string, string>;
 
-const bundledThemeAssets: Record<string, string> = {
-  "/hebmu-logo.png": hebmuLogoUrl,
-  "/campus-cover.jpeg": campusCoverUrl,
-  "/campus-end.jpeg": campusEndUrl,
-};
+/** `/logo.png` → bundled URL, or undefined when it is not a theme asset. */
+function bundledAssetUrl(url: string) {
+  return bundledThemeAssets[`./public${url}`];
+}
 
 /** Resolve theme-owned public assets for img/background URLs. */
 export function resolveAssetUrl(url: string) {
   if (!url.startsWith("/")) return url;
-  const bundled = bundledThemeAssets[url];
-  if (bundled) return bundled;
-  // Fallback for extra theme public files under Slidev static-copy (`dest: theme`).
-  // file: symlink installs may nest this path; prefer adding known files to bundledThemeAssets.
-  const baseUrl = import.meta.env.BASE_URL;
-  const prefix = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  return `${prefix}theme/public${url}`;
+  return bundledAssetUrl(url) ?? resolveUrl(url);
 }
 
+/**
+ * Resolve a user-supplied URL. Known theme asset names resolve to the bundled
+ * copy; anything else is served from the deck's public root (BASE_URL).
+ */
 export function resolveUrl(url: string) {
   if (!url.startsWith("/")) return url;
+  const bundled = bundledAssetUrl(url);
+  if (bundled) return bundled;
   const baseUrl = import.meta.env.BASE_URL;
   const prefix = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
   return `${prefix}${url.slice(1)}`;
