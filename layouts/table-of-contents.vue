@@ -121,7 +121,7 @@ function alignItems() {
     const rawOffset = curveX + CURVE_GAP - listLeft;
     // Packed TOC sits on a flat arc band; amplify deviation so the crescent still reads.
     const amplifiedOffset = peakOffset + (rawOffset - peakOffset) * 2;
-    // Clamp: the amplified bow never pushes an item closer than MIN_GAP to the disc.
+    // Clamp: the amplified bow never pushes an item closer than MIN_GAP to the crescent.
     const clearanceOffset = curveX + MIN_GAP - listLeft;
     const offsetX = Math.max(amplifiedOffset, clearanceOffset);
     node.style.transform = `translateX(${offsetX}px)`;
