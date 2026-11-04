@@ -84,6 +84,9 @@ const CURVE_RX = 320;
 const CURVE_CY = 385;
 const CURVE_RY = 575;
 const CURVE_GAP = 48;
+// The ×2 bow swings end items left of the constant-clearance line. MIN_GAP is
+// the floor: no item may sit closer than this to the crescent ellipse.
+const MIN_GAP = 24;
 
 const layoutRef = ref<HTMLElement | null>(null);
 const listRef = ref<HTMLElement | null>(null);
@@ -117,7 +120,10 @@ function alignItems() {
       inside > 0 ? CURVE_CX + CURVE_RX * Math.sqrt(inside) : CURVE_CX;
     const rawOffset = curveX + CURVE_GAP - listLeft;
     // Packed TOC sits on a flat arc band; amplify deviation so the crescent still reads.
-    const offsetX = peakOffset + (rawOffset - peakOffset) * 2;
+    const amplifiedOffset = peakOffset + (rawOffset - peakOffset) * 2;
+    // Clamp: the amplified bow never pushes an item closer than MIN_GAP to the disc.
+    const clearanceOffset = curveX + MIN_GAP - listLeft;
+    const offsetX = Math.max(amplifiedOffset, clearanceOffset);
     node.style.transform = `translateX(${offsetX}px)`;
   }
 }

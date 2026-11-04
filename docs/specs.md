@@ -261,6 +261,7 @@ Keynote-style agenda/content slide matching the Keynote-style `目录 | Contents
 | Item font | `26px` | Number badge matches |
 | Number box | `34×34px` | |
 | Crescent gap | `CURVE_GAP = 48` | Items hug left ellipse; bow amplified ×2 for packed lists |
+| Clearance floor | `MIN_GAP = 24` | Amplified bow never pushes an item closer than this to the ellipse (7+ item lists) |
 | Align | `scheduleAlign()` | Clears stale `translateX`, remeasures after flex layout |
 
 ### break
