@@ -61,7 +61,7 @@ Colors extracted from the Keynote lecture slides' PPTX theme XML; the source fil
 ### Spacing
 
 - Keynote stage padding: `178px 56px 100px` (compact density: `166px 50px 92px`)
-- Block vertical rhythm: `margin-top: 16px` (compact: `10px`)
+- Block vertical rhythm: `margin-top: 16px` for text/list/table/pre blocks; `.hebmu-card`/`.hebmu-callout` `12px` (compact: text/list/table/pre stay `16px`; blockquote/columns/cards/callouts `10px`)
 - Table cells: `0.5em 1em` (compact: `0.35em 0.75em`)
 - Theme CSS is hand-written (`styles/layout.css`), not UnoCSS utilities. Add styles here, not as utility classes in markdown.
 
