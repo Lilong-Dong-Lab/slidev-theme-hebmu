@@ -72,25 +72,25 @@ The theme's look is a "Keynote"-style chrome rendered inside each layout — **n
 - **`KeynoteChrome`** — persistent per-slide UI: inline SVG wave header, logo, footer (`compact`/`full`/`none`), `<Pagination />`. Reads everything from `$slidev.themeConfigs`.
 - **`.keynote-stage`** — content pane whose `::before` pseudo-element draws the 2px purple rounded frame; `.is-unframed` removes it.
 - **`SlideTitle`** — hoists the slide's first `<h1>` text into the chrome title and hides that H1 from the stage. An explicit `slideTitle` prop overrides; `autoSlideTitle: false` disables.
-- **`layout-helper.ts`** — two asset resolvers: `resolveAssetUrl()` serves known theme images via Vite `?url` imports (avoids broken `/theme/...` paths under `file:` symlinks); `resolveUrl()` is for user-supplied figures. Pick the right one.
+- **`layout-helper.ts`** — two asset resolvers backed by one self-registering `import.meta.glob` of `public/**/*` (`?url` bundles every theme image, so `file:` installs never hit `/theme/...` paths). `resolveAssetUrl()` is for theme-owned assets; `resolveUrl()` is for user-supplied figures. Either resolves both kinds (bundled map first, deck `public/` root second).
 
 Shiki theme: `one-dark-pro` (dark) / `vitesse-light` (light). Mermaid look (box color, type, gray arrows) is in `setup/mermaid.ts`, including the `.hebmuRoot` / `.hebmuPill` / `.hebmuNote` hooks. Mermaid layout questions — curve, spacing, or where an arrow meets a node — go to @docs/specs.md (Mermaid). `setup/unocss.ts` is the theme-side UnoCSS escape hatch — its default-export **function** returns a config (presetWind3 + attributify + icons) that Slidev auto-merges, so consumer decks get utility classes for one-off custom slides.
 
 ## Layout & Component Specs
 
-See @docs/specs.md for detailed prop tables, usage examples, and implementation notes for all 8 layouts and 10 components.
+See @docs/specs.md for detailed prop tables, usage examples, and implementation notes for all 8 layouts and 9 components.
 
 ## Naming Conventions
 
 - Layout files: kebab-case, matching layout name exactly (`figure.vue` → `layout: figure`)
-- Component files: PascalCase (`BilingualTitle.vue` → `<BilingualTitle />`)
+- Component files: PascalCase (`SessionInfo.vue` → `<SessionInfo />`)
 - CSS files: kebab-case (`layout.css`, `code.css`)
 - CSS custom properties: `--hebmu-{name}` prefix
 - Layout CSS classes: `.slidev-layout.{name}`
 
 ## Implementation Plan
 
-**Status**: Implemented — 8 layouts, 10 components, styles and setup files complete. Code highlighting in `setup/shiki.ts`, Mermaid in `setup/mermaid.ts`, UnoCSS escape hatch in `setup/unocss.ts`. See @docs/specs.md for layout/component specs.
+**Status**: Implemented — 8 layouts, 9 components, styles and setup files complete. Code highlighting in `setup/shiki.ts`, Mermaid in `setup/mermaid.ts`, UnoCSS escape hatch in `setup/unocss.ts`. See @docs/specs.md for layout/component specs.
 
 All layouts, components, and styles have been ported or built. Run `npm run dev` to preview.
 
