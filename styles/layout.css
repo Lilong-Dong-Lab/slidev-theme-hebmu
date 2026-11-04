@@ -275,14 +275,41 @@
   margin-top: 0;
 }
 
+/* Pull quote / vignette — Markdown `>`; HEBMU purple banner, not callout/cite */
 .slidev-layout .keynote-stage blockquote {
-  border-left: 6px solid var(--hebmu-accent);
-  padding-left: 24px;
-  color: var(--hebmu-primary);
-  font-size: 20px;
+  border: none;
+  border-radius: 0;
+  padding: 12px 40px 12px 20px;
+  /* Brand ramp: primary → primary-light → purple-soft (fits chrome / TOC) */
+  background: linear-gradient(
+    90deg,
+    var(--hebmu-primary) 0%,
+    var(--hebmu-primary-light) 52%,
+    var(--hebmu-purple-soft) 100%
+  );
+  color: #ffffff;
+  font-size: 18px;
   font-style: normal;
-  font-weight: 700;
-  line-height: 1.4;
+  font-weight: 600;
+  line-height: 1.45;
+  /* Right edge as arrow — ribbon / bookmark silhouette */
+  clip-path: polygon(
+    0 0,
+    calc(100% - 22px) 0,
+    100% 50%,
+    calc(100% - 22px) 100%,
+    0 100%
+  );
+}
+
+.slidev-layout .keynote-stage blockquote > p {
+  margin: 0;
+}
+
+/* Beat `.keynote-stage p { color: --hebmu-text }` so banner text stays white */
+.slidev-layout .keynote-stage blockquote,
+.slidev-layout .keynote-stage blockquote :is(p, strong, a) {
+  color: #ffffff;
 }
 
 .slidev-layout .keynote-stage table {
@@ -1037,7 +1064,8 @@
   margin-top: 0;
 }
 
-.slidev-layout .keynote-stage .hebmu-source {
+.slidev-layout .keynote-stage .hebmu-source,
+.slidev-layout .keynote-stage .hebmu-cite {
   margin-top: 8px;
   color: var(--hebmu-text-muted);
   font-size: 13px;
@@ -1045,9 +1073,15 @@
   line-height: 1.4;
 }
 
+/* Scholarly cite under a pull quote / vignette — align with quote text */
+.slidev-layout .keynote-stage blockquote + .hebmu-cite {
+  padding-left: 20px;
+}
+
 .slidev-layout .keynote-stage > .hebmu-card:first-child,
 .slidev-layout .keynote-stage > .hebmu-callout:first-child,
 .slidev-layout .keynote-stage > .hebmu-columns:first-child,
-.slidev-layout .keynote-stage > .hebmu-source:first-child {
+.slidev-layout .keynote-stage > .hebmu-source:first-child,
+.slidev-layout .keynote-stage > .hebmu-cite:first-child {
   margin-top: 0;
 }

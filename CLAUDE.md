@@ -32,7 +32,7 @@ Prefix: `--hebmu-{name}`. All defined in `:root` in `styles/layout.css`. **Light
 | `--hebmu-primary` | `#4e136c` | Dark purple — headings, chrome, table headers, frame |
 | `--hebmu-primary-light` | `#621887` | Table headers, footer text, TOC accents |
 | `--hebmu-purple-soft` | `#8f55ad` | SVG wave accent ribbons |
-| `--hebmu-accent` | `#ed7d31` | Orange — blockquote bar, highlights |
+| `--hebmu-accent` | `#ed7d31` | Orange — procedure callout, highlights |
 | `--hebmu-info` | `#0563c1` | Blue — links |
 | `--hebmu-success` | `#70ad47` | Green |
 | `--hebmu-warning` | `#ffc000` | Gold |
