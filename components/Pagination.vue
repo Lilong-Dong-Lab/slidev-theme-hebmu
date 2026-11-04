@@ -1,11 +1,13 @@
 <template>
-  <div class="absolute pagination-widget" :class="positionClasses">
+  <div v-if="!disabled" class="absolute pagination-widget" :class="positionClasses">
     <SlideCurrentNo />
   </div>
 </template>
 
 <script setup lang="ts">
+import { useSlideContext } from "@slidev/client";
 import { computed } from "vue";
+import { type ThemeConfigs } from "../layout-helper";
 
 const props = withDefaults(
   defineProps<{
@@ -13,16 +15,33 @@ const props = withDefaults(
     y?: "b" | "t";
   }>(),
   {
-    x: "r",
-    y: "b",
+    x: undefined,
+    y: undefined,
   },
 );
 
+// Single owner of pagination gating: the disabled-pages check and the
+// themeConfig x/y defaults live here, so layouts just render <Pagination />.
+const { $slidev } = useSlideContext();
+
+const themeConfigs = computed(
+  () => ($slidev.themeConfigs || {}) as ThemeConfigs,
+);
+
+const x = computed(() => props.x ?? themeConfigs.value.paginationX ?? "r");
+const y = computed(() => props.y ?? themeConfigs.value.paginationY ?? "b");
+
+const disabled = computed(() =>
+  (themeConfigs.value.paginationPagesDisabled || []).includes(
+    $slidev.nav.currentPage,
+  ),
+);
+
 const positionClasses = computed(() => [
-  props.x === "l" && "left-0",
-  props.x === "r" && "right-0",
-  props.y === "t" && "top-0",
-  props.y === "b" && "bottom-0",
+  x.value === "l" && "left-0",
+  x.value === "r" && "right-0",
+  y.value === "t" && "top-0",
+  y.value === "b" && "bottom-0",
 ]);
 </script>
 

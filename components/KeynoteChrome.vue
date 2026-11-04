@@ -83,11 +83,7 @@
         | Wechat {{ footerWechat }}
       </span>
     </footer>
-    <Pagination
-      v-if="!props.hidePage && !paginationDisabled"
-      :x="paginationX"
-      :y="paginationY"
-    />
+    <Pagination v-if="!props.hidePage" />
   </div>
 </template>
 
@@ -149,12 +145,5 @@ const footerEmail = computed(
 );
 const footerWechat = computed(
   () => themeConfigs.value.footerWechat || "donglilonghugo",
-);
-const paginationX = computed(() => themeConfigs.value.paginationX || "r");
-const paginationY = computed(() => themeConfigs.value.paginationY || "b");
-const paginationDisabled = computed(() =>
-  (themeConfigs.value.paginationPagesDisabled || []).includes(
-    $slidev.nav.currentPage,
-  ),
 );
 </script>
