@@ -588,6 +588,54 @@ flowchart LR
 <div class="hebmu-source">headmatter 已设 `drawings.persist: false`（演示不落盘）；导出需持久化时可改 `true`。</div>
 
 ---
+layout: default
+---
+
+# 弹簧弹跳（v-motion spring）
+
+`transition.type: 'spring'` — 比线性 easing 更有弹性；降低 `damping` 会更“弹”。
+
+<div
+  v-motion
+  :initial="{ y: 80, opacity: 0, scale: 0.85 }"
+  :enter="{
+    y: 0,
+    opacity: 1,
+    scale: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 280,
+      damping: 18,
+      mass: 0.6,
+    },
+  }"
+  :click-1="{
+    scale: 1.08,
+    transition: { type: 'spring', stiffness: 400, damping: 12 },
+  }"
+  class="hebmu-callout hebmu-callout-key mt-4"
+>
+  **Hub 蛋白**：进场自下弹入；再点一次弹簧放大。
+</div>
+
+<div
+  v-click
+  v-motion
+  :initial="{ y: 56, opacity: 0, scale: 0.9 }"
+  :enter="{
+    y: 0,
+    opacity: 1,
+    scale: 1,
+    transition: { type: 'spring', stiffness: 320, damping: 16, mass: 0.55 },
+  }"
+  class="hebmu-callout hebmu-callout-procedure mt-4"
+>
+  配合 `v-click`：点击后弹簧浮现 — STRING → Cytoscape → 记录 hub。
+</div>
+
+<div class="hebmu-source">`stiffness`↑ 更脆；`damping`↓ 更晃。非 Magic Move，不做代码字形变形。</div>
+
+---
 layout: end
 endMessage: '谢谢！'
 endMessageEn: 'Thank You!'
