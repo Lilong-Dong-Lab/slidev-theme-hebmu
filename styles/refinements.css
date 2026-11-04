@@ -217,10 +217,6 @@
   font-weight: 400;     /* was 700 */
 }
 
-.slidev-layout .keynote-break-content p {
-  font-weight: 400;     /* was 700 */
-}
-
 .slidev-layout.keynote-end .end-message p {
   font-weight: 400;     /* was 700 */
 }
@@ -232,10 +228,6 @@
 
 .slidev-layout .keynote-stage .hebmu-columns {
   gap: var(--hebmu-space-5); /* was 28px → 24px，归 4px 网格 */
-}
-
-.slidev-layout .keynote-break-content p {
-  margin-top: var(--hebmu-space-4); /* was 18px → 16px */
 }
 
 /* 块间距收敛为两个有意分层：默认 16px / compact 10px（密度档位，保留） */
