@@ -109,7 +109,11 @@ layout: default
 
 # PPI 网络中的两类关系
 
+分栏对比：先左栏，再右栏（`<v-clicks>` 包住两列）。
+
 <div class="grid grid-cols-2 gap-7 mt-4">
+
+<v-clicks>
 
 <div>
 
@@ -130,6 +134,8 @@ layout: default
 - 适合发现功能模块
 
 </div>
+
+</v-clicks>
 
 </div>
 
@@ -264,10 +270,16 @@ layout: default
 
 # Cytoscape 实操步骤
 
+逐步揭示（内置 `<v-clicks>`；空格 / → 下一项）：
+
+<v-clicks>
+
 1. 从 STRING 或 BioGRID 导出 interaction table
 2. 在 Cytoscape 中导入网络和节点属性表
 3. 使用 degree、betweenness 等指标映射节点大小和颜色
 4. 导出网络图，用于报告或后续解释
+
+</v-clicks>
 
 ---
 layout: section
@@ -377,6 +389,203 @@ layout: default
 </div>
 
 <div class="hebmu-source">绿色 success 与红色 danger 为 0.4.0 新增变体。</div>
+
+---
+layout: section
+sectionNumber: 5
+sectionTitle: 动画演示
+sectionTitleEn: Animation Preview
+transition: slide-up
+---
+
+---
+layout: default
+transition: fade
+---
+
+# 列表逐步出现（v-clicks）
+
+本页换页过渡为 `fade`（全书默认仍是 headmatter 里的 `slide-left`）。
+
+<v-clicks>
+
+- **Hub**：高度数节点，常是功能关键蛋白
+- **Bridge**：高介数中心性，连接不同模块
+- **模块**：内部连接密、对外连接疏的子网
+
+</v-clicks>
+
+---
+layout: default
+---
+
+# 点击揭示 + 划线标注（v-click / v-mark）
+
+<div v-click>
+
+<div class="hebmu-callout hebmu-callout-key">
+
+**关键**：先看度分布，再解释 hub。
+
+</div>
+
+</div>
+
+<p v-click>
+<span v-mark.underline.orange>无标度网络</span> 中，少数节点拥有大量连接。
+</p>
+
+<p v-click>
+<span v-mark.circle>聚类系数低且度数高</span> → 可能是桥接节点。
+</p>
+
+<div class="hebmu-source">另见 NetworkX 页的代码行高亮 `{1|2|…|all}`（点击逐步变暗其余行）。</div>
+
+---
+layout: default
+---
+
+# 先错后对（v-click.hide + v-after）
+
+开场即见误区；再点一次：误区淡出，正确说法同时出现。
+
+<div v-click.hide>
+
+<div class="hebmu-callout hebmu-callout-danger">
+
+**误区**：STRING 上的边都是直接物理结合。
+
+</div>
+
+</div>
+
+<div v-after>
+
+<div class="hebmu-callout hebmu-callout-success">
+
+**正确**：STRING 边含实验、文本挖掘与预测；课上要读证据通道。
+
+</div>
+
+</div>
+
+---
+layout: default
+---
+
+# 同屏对比（同一点击）
+
+一次点击同时亮出「注意」与「关键」，适合对照讲解。
+
+<div class="grid grid-cols-2 gap-7 mt-4">
+
+<div v-click="1">
+
+<div class="hebmu-callout hebmu-callout-warning">
+
+**注意**：padj 未校正会带来假阳性。
+
+</div>
+
+</div>
+
+<div v-click="1">
+
+<div class="hebmu-callout hebmu-callout-key">
+
+**关键**：报告差异基因时写明阈值与 |log2FC|。
+
+</div>
+
+</div>
+
+</div>
+
+<div v-click>
+
+<div class="hebmu-callout hebmu-callout-procedure">
+
+导出边表 → Cytoscape 着色 → 记录 hub 名单
+
+</div>
+
+</div>
+
+---
+layout: default
+density: compact
+---
+
+# 代码演变（magic-move）
+
+点击逐步变形：从读边表到算度中心性（Shiki Magic Move）。
+
+````md magic-move {lines: true}
+```python
+import networkx as nx
+
+G = nx.read_edgelist("ppi_edges.tsv", delimiter="\t")
+print(G.number_of_nodes(), G.number_of_edges())
+```
+
+```python
+import networkx as nx
+
+G = nx.read_edgelist("ppi_edges.tsv", delimiter="\t")
+degree = dict(G.degree())
+hubs = sorted(degree, key=degree.get, reverse=True)[:10]
+print("Top hubs:", hubs)
+```
+
+```python
+import networkx as nx
+
+G = nx.read_edgelist("ppi_edges.tsv", delimiter="\t")
+degree = dict(G.degree())
+betweenness = nx.betweenness_centrality(G)
+hubs = sorted(degree, key=degree.get, reverse=True)[:10]
+bridges = sorted(betweenness, key=betweenness.get, reverse=True)[:10]
+print("hubs:", hubs)
+print("bridges:", bridges)
+```
+````
+
+---
+layout: default
+---
+
+# Rough 划掉 / 高亮 / 框选（v-mark）
+
+黑板批注感：划掉误区、高亮术语、框住结论（Rough Notation）。
+
+<p>
+<span v-mark.strike-through.red>STRING 边都是物理结合</span>
+　← 点击后划掉
+</p>
+
+<p v-click>
+再强调：<span v-mark.highlight.orange>证据通道</span> 与
+<span v-mark.box="{ color: '#621887' }">hub 解释</span> 要一起写进报告。
+</p>
+
+<div class="hebmu-source">类型：`strike-through` / `highlight` / `box`（另有 underline、circle）。</div>
+
+---
+layout: default
+---
+
+# 手绘批注（drawings）
+
+内置画笔：授课时按 <kbd>C</kbd> 打开绘图，在图上圈 hub / 连线。
+
+本页可练习——用笔标出「先筛基因 → 再取边表」的顺序。
+
+```mermaid {scale: 0.72}
+flowchart LR
+    A["候选基因"]:::hebmuPill --> B["PPI 边表"]:::hebmuNote --> C["网络图"]:::hebmuMuted
+```
+
+<div class="hebmu-source">headmatter 已设 `drawings.persist: false`（演示不落盘）；导出需持久化时可改 `true`。</div>
 
 ---
 layout: end
