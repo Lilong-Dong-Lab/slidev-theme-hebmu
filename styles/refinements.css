@@ -34,6 +34,8 @@
    代码 = 编程课的教学本体。目标 16px（compact 14px）。
    Slidev 核心用 `.slidev-code { font-size: var(--slidev-code-font-size) !important }`
    （默认 12px），直接设 pre 字号会被盖掉——必须改 CSS 变量。
+   变量名沿用 Slidev 的 --slidev-* 命名空间（--hebmu- 前缀的刻意例外）：
+   核心只读自己定义的变量名。
    行高用 px 配套变量（16×1.5=24 / 14×1.4≈20），块高几乎不变。 */
 
 .slidev-layout.keynote-default .keynote-stage {
@@ -41,11 +43,14 @@
   --slidev-code-line-height: 24px;
 }
 
-.slidev-layout.keynote-density-compact .keynote-stage {
+/* 链式 compact 选择器：特异性 (0,4,0) 高于上方默认档 (0,3,0)，与 layout.css
+   同款配对写法一致，结果不依赖加载顺序 */
+.slidev-layout.keynote-density-compact.keynote-default .keynote-stage {
   --slidev-code-font-size: 14px;
   --slidev-code-line-height: 20px;
 }
 
+/* 下方 pre 回退规则与上方变量成对修改：16/24 与 14/20 必须同步 */
 .slidev-layout.keynote-default .keynote-stage pre {
   font-size: 16px;      /* fallback for non-.slidev-code pre */
   line-height: 1.5;
