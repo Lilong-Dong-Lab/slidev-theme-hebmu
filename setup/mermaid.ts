@@ -12,13 +12,13 @@ import { defineMermaidSetup } from "@slidev/types";
 const fontFamily =
   '"PingFang SC", "Noto Sans SC", "Microsoft YaHei", "Hiragino Sans GB", Arial, system-ui, sans-serif';
 
-const primary = "#4e136c";
-const primaryLight = "#621887";
-const purpleSoft = "#8f55ad";
+const primary = "#4e136c"; /* --hebmu-primary */
+const primaryLight = "#621887"; /* --hebmu-primary-light */
+const purpleSoft = "#8f55ad"; /* --hebmu-purple-soft */
 const purpleWash = "#ebe7ef"; /* --hebmu-row-a */
 const chromeGrey = "#f2f2f2"; /* --hebmu-header-bg */
-const textMuted = "#666666";
-const bg = "#ffffff";
+const textMuted = "#666666"; /* --hebmu-text-muted */
+const pageBg = "#ffffff"; /* --hebmu-bg */
 
 export default defineMermaidSetup(() => ({
   startOnLoad: false,
@@ -28,7 +28,7 @@ export default defineMermaidSetup(() => ({
   htmlLabels: true,
   fontFamily,
   themeVariables: {
-    background: bg,
+    background: pageBg,
     primaryColor: purpleSoft,
     primaryTextColor: "#ffffff",
     primaryBorderColor: purpleSoft,
@@ -45,7 +45,7 @@ export default defineMermaidSetup(() => ({
     clusterBorder: primaryLight,
     titleColor: primary,
     arrowheadColor: purpleSoft,
-    edgeLabelBackground: bg,
+    edgeLabelBackground: pageBg,
   },
   flowchart: {
     htmlLabels: true,
