@@ -15,12 +15,12 @@
     "hebmu"
   ],
   "files": [
+    "assets",
     "components",
     "global-bottom.vue",
     "global-top.vue",
     "layout-helper.ts",
     "layouts",
-    "public",
     "README.md",
     "setup",
     "styles"
@@ -58,6 +58,7 @@
   "scripts": {
     "dev": "slidev example.md --open",
     "build": "slidev build example.md",
+    "check:dist": "node scripts/check-dist.mjs",
     "export": "slidev export example.md",
     "screenshot": "slidev export example.md --format png"
   },
