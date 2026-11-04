@@ -11,7 +11,7 @@ A [Slidev](https://sli.dev) presentation theme for **河北医科大学 (Hebei M
 - Bioinformatics-optimized: Mermaid diagram theming, code highlighting
 - Compact density option for table/code-heavy teaching slides
 - UnoCSS utility escape hatch (`setup/unocss.ts`) for custom one-off slides — grids, flex, etc.
-- 8 layouts, 9 components
+- 7 layouts, 6 components
 
 ## Quick Start
 
@@ -47,25 +47,21 @@ htmlAttrs:
 | `cover` | Title slide with university branding | `coverAuthor`, `coverDate`, `courseName`, `sessionNumber` |
 | `section` | Section divider (第X节) | `sectionNumber`, `sectionTitle`, `sectionTitleEn` |
 | `default` | Standard content slide (also covers centered / two-column / quote via UnoCSS utilities) | — |
-| `intro` | Course/session overview | `courseTitle`, `sessionNumber` |
-| `figure` | Figure with caption; side-by-side text or in-flow footnotes via props | `figureUrl`, `figureCaption`, `figureX`, `footnoteFlow` |
+| `figure` | Figure with caption; side-by-side text via `figureX` | `figureUrl`, `figureCaption`, `figureX` |
 | `table-of-contents` | Keynote-style agenda/content slide | `contentItems`, `active`, `contentImageUrl` |
 | `break` | Break divider (10 min) | `breakMinutes` |
 | `end` | Thank you / Q&A | `endMessage`, `endMessageEn` |
 
 `default` plus a few utility classes replaces the former `center` / `two-col` /
 `quote` layouts — e.g. a two-column slide is now `layout: default` with
-`<div class="grid grid-cols-2 gap-7">…</div>`. The former `figure-side` and
-`figure-footnote` layouts are now `figure` with the `figureX` / `footnoteFlow`
-props.
+`<div class="grid grid-cols-2 gap-7">…</div>`. The former `figure-side` layout
+is now `figure` with the `figureX` prop.
 
 ## Components
 
 | Component | Description |
 |---|---|
 | `<Pagination>` | Current slide number |
-| `<Footnotes>` / `<Footnote>` | Reference footnotes |
-| `<SessionInfo>` | 学时 session progress |
 | `<FigureWithOptionalCaption>` | Reusable figure rendering |
 | `<SlideTitle>` | Internal shared slide title renderer |
 | `<KeynoteChrome>` / `<KeynoteShell>` | Internal theme chrome and layout shell |
@@ -79,7 +75,7 @@ themeConfig:
   paginationX: 'r'     # 'l' or 'r'
   paginationY: 'b'     # 't' or 'b'
   paginationPagesDisabled: [1]  # Pages without pagination
-  footerMode: 'compact'          # 'compact', 'full', or 'none'
+  footerMode: 'compact'          # 'compact' or 'none'
   contentItems:                 # optional default items for table-of-contents
     - 生物信息学及工具
     - 药物发现：从0到1的数字旅程
@@ -95,7 +91,7 @@ density: compact
 ---
 ```
 
-Standard framed layouts (`default`, `intro`, and `figure`) use a shared
+Standard framed layouts (`default` and `figure`) use a shared
 `SlideTitle`. Existing slides can keep `# Slide Title`; the first H1 is promoted
 into the chrome title.
 For new slides that need in-frame section headings, use `slideTitle` in
@@ -113,26 +109,6 @@ slideTitle: PPI 分析流程
 - 候选基因列表
 ```
 
-Use the `figure` layout with `footnoteFlow: true` when a full-slide figure also
-needs a citation block. It reserves vertical space for `<Footnotes>` so
-citations do not overlap the image caption or footer:
-
-```markdown
----
-layout: figure
-figureUrl: /campus-end.jpeg
-figureCaption: '全页图片布局示例'
-figureFootnoteNumber: 1
-footnoteFlow: true
----
-
-# 图片及脚注示例
-
-<Footnotes :separator="true" x="l" y="col">
-  <Footnote :number="1">Author A, et al. Journal. Year.</Footnote>
-</Footnotes>
-```
-
 Mermaid diagrams use the theme's `setup/mermaid.ts` defaults. For dense
 diagrams, prefer Slidev's built-in scale option on the code fence:
 
@@ -144,9 +120,9 @@ flowchart LR
 ````
 
 `footerMode: compact` shows department + page number on regular slides. Use
-`footerMode: full` to keep author, email, and WeChat on every slide, or
-`footerMode: none` to hide the global footer. Closing contact details remain
-available on the `end` layout.
+`footerMode: none` to hide the global footer. Contact details (author, email,
+WeChat) live on the `end` layout's closing slide, configurable via the
+`footerAuthor` / `footerEmail` / `footerWechat` / `footerTel` themeConfig keys.
 
 Use the Keynote-style content slide with per-slide frontmatter:
 
@@ -171,11 +147,13 @@ contentItems:
 | `two-col` | `default` + a `grid grid-cols-2 gap-7` wrapper (replaces `::left::` / `::right::`) |
 | `quote` | `default` + a markdown `>` blockquote (base CSS styles it) + an attribution `<p>` |
 | `figure-side` | `figure` + `figureX: 'l' \| 'r'` |
-| `figure-footnote` | `figure` + `footnoteFlow: true` |
+| `figure-footnote` | Removed in 0.4.0 — build citations from `default` + raw markup |
 
 The `grid` / `flex` classes are generated automatically by the theme — no consumer-side UnoCSS config is required.
 
-> In the `figure` layout, `figureX` takes precedence if both `figureX` and `footnoteFlow` are set (mutually exclusive; a dev-mode warning is emitted).
+> 0.4.0 also removed the `intro` layout, the `<Footnotes>` / `<Footnote>` /
+> `<SessionInfo>` components, and `footerMode: 'full'` — see the CHANGELOG and
+> ADR-0001.
 
 ## Development
 

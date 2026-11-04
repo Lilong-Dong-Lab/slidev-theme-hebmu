@@ -73,14 +73,9 @@
       :src="resolveAssetUrl(logoUrl)"
       alt=""
     />
-    <footer v-if="showFooter" class="keynote-footer" :class="footerModeClass">
+    <footer v-if="showFooter" class="keynote-footer keynote-footer-compact">
       <span class="keynote-footer-dept">
         {{ footerDepartment }}
-      </span>
-      <span v-if="footerMode === 'full'" class="keynote-footer-contact">
-        {{ footerAuthor }} | Email
-        <a :href="`mailto:${footerEmail}`">{{ footerEmail }}</a>
-        | Wechat {{ footerWechat }}
       </span>
     </footer>
     <Pagination v-if="!props.hidePage" />
@@ -118,13 +113,10 @@ const themeConfigs = computed(
   () => ($slidev.themeConfigs || {}) as ThemeConfigs,
 );
 
-const footerMode = computed<FooterMode>(() => {
-  const mode = themeConfigs.value.footerMode;
-  if (mode === "full" || mode === "none") return mode;
-  return "compact";
-});
+const footerMode = computed<FooterMode>(() =>
+  themeConfigs.value.footerMode === "none" ? "none" : "compact",
+);
 
-const footerModeClass = computed(() => `keynote-footer-${footerMode.value}`);
 const showFooter = computed(
   () => !props.hideFooter && footerMode.value !== "none",
 );
@@ -136,14 +128,5 @@ const footerDepartment = computed(
   () =>
     themeConfigs.value.footerDepartment ||
     "河北医科大学 基础医学院 医药信息学教研室",
-);
-const footerAuthor = computed(
-  () => themeConfigs.value.footerAuthor || "董立龙",
-);
-const footerEmail = computed(
-  () => themeConfigs.value.footerEmail || "lilong.dong@hebmu.edu.cn",
-);
-const footerWechat = computed(
-  () => themeConfigs.value.footerWechat || "donglilonghugo",
 );
 </script>

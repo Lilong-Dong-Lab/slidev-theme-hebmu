@@ -36,6 +36,7 @@ Prefix: `--hebmu-{name}`. All defined in `:root` in `styles/layout.css`. **Light
 | `--hebmu-info` | `#0563c1` | Blue — links |
 | `--hebmu-success` | `#70ad47` | Green |
 | `--hebmu-warning` | `#ffc000` | Gold |
+| `--hebmu-danger` | `#c00000` | Dark red — danger callout variant (added 0.4.0) |
 | `--hebmu-bg` | `#ffffff` | Slide background |
 | `--hebmu-header-bg` | `#f2f2f2` | Header band / muted wave fill |
 | `--hebmu-row-a` / `--hebmu-row-b` | `#ebe7ef` / `#f5f3f7` | Table zebra rows |
@@ -69,7 +70,7 @@ Colors extracted from Keynote lecture slides (PPTX theme XML). `accent1` = `#621
 The theme's look is a "Keynote"-style chrome rendered inside each layout — **not** via global injection. `global-top.vue` / `global-bottom.vue` are empty.
 
 - **`KeynoteShell`** — internal wrapper every framed layout uses. Renders `.slidev-layout.keynote-layout` + `KeynoteChrome` + a framed `<main class="keynote-stage">` slot. Carries `density: 'normal'|'compact'` and the `hide*` props.
-- **`KeynoteChrome`** — persistent per-slide UI: inline SVG wave header, logo, footer (`compact`/`full`/`none`), `<Pagination />`. Reads everything from `$slidev.themeConfigs`.
+- **`KeynoteChrome`** — persistent per-slide UI: inline SVG wave header, logo, footer (`compact`/`none`), `<Pagination />`. Reads everything from `$slidev.themeConfigs`.
 - **`.keynote-stage`** — content pane whose `::before` pseudo-element draws the 2px purple rounded frame; `.is-unframed` removes it.
 - **`SlideTitle`** — hoists the slide's first `<h1>` text into the chrome title and hides that H1 from the stage. An explicit `slideTitle` prop overrides; `autoSlideTitle: false` disables.
 - **`layout-helper.ts`** — two asset resolvers backed by one self-registering `import.meta.glob` of `assets/**/*` (`?url` bundles every theme image, so `file:` installs never hit `/theme/...` paths; the dir is non-public on purpose — a `public/` dir makes Slidev's static-copy duplicate every image). `resolveAssetUrl()` is for theme-owned assets; `resolveUrl()` is for user-supplied figures. Either resolves both kinds (bundled map first, deck `public/` root second).
@@ -78,19 +79,19 @@ Shiki theme: `one-dark-pro` (dark) / `vitesse-light` (light). Mermaid look (box 
 
 ## Layout & Component Specs
 
-See @docs/specs.md for detailed prop tables, usage examples, and implementation notes for all 8 layouts and 9 components.
+See @docs/specs.md for detailed prop tables, usage examples, and implementation notes for all 7 layouts and 6 components.
 
 ## Naming Conventions
 
 - Layout files: kebab-case, matching layout name exactly (`figure.vue` → `layout: figure`)
-- Component files: PascalCase (`SessionInfo.vue` → `<SessionInfo />`)
+- Component files: PascalCase (`Pagination.vue` → `<Pagination />`)
 - CSS files: kebab-case (`layout.css`, `code.css`)
 - CSS custom properties: `--hebmu-{name}` prefix
 - Layout CSS classes: `.slidev-layout.{name}`
 
 ## Implementation Plan
 
-**Status**: Implemented — 8 layouts, 9 components, styles and setup files complete. Code highlighting in `setup/shiki.ts`, Mermaid in `setup/mermaid.ts`, UnoCSS escape hatch in `setup/unocss.ts`. See @docs/specs.md for layout/component specs.
+**Status**: Implemented — 7 layouts, 6 components, styles and setup files complete. Code highlighting in `setup/shiki.ts`, Mermaid in `setup/mermaid.ts`, UnoCSS escape hatch in `setup/unocss.ts`. See @docs/specs.md for layout/component specs.
 
 All layouts, components, and styles have been ported or built. Run `npm run dev` to preview.
 

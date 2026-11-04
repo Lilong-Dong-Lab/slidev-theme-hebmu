@@ -25,9 +25,6 @@ themeConfig:
   coverBackgroundUrl: '/campus-cover.jpeg'
   endBackgroundUrl: '/campus-end.jpeg'
   footerDepartment: '河北医科大学 基础医学院 医药信息学教研室'
-  footerAuthor: '董立龙'
-  footerEmail: 'lilong.dong@hebmu.edu.cn'
-  footerWechat: 'donglilonghugo'
 defaults:
   layout: default
 htmlAttrs:
@@ -37,17 +34,6 @@ exportFilename: slidev-theme-hebmu-demo
 
 # 生物信息学数据库： 入门教程
 ## 理解现代医学中的数字基建
-
----
-layout: intro
----
-
-# 本节内容概览
-
-1. 蛋白质相互作用网络基础
-2. PPI 数据库与数据准备
-3. 网络构建与可视化
-4. 网络拓扑分析与实操
 
 ---
 layout: table-of-contents
@@ -302,33 +288,6 @@ print("Top bridge genes:", bridge_genes)
 layout: default
 ---
 
-# 脚注示例 Footnotes (文本文字)
-
-蛋白质相互作用网络是理解细胞功能的重要工具。
-
-<Footnotes :separator="true">
-  <Footnote :number="1">Barabási AL, et al. Network biology: understanding the cell's functional organization. Nat Rev Genet. 2004.</Footnote>
-  <Footnote :number="2">Szklarczyk D, et al. STRING v11: protein-protein interaction networks. Nucleic Acids Res. 2019.</Footnote>
-</Footnotes>
-
----
-layout: figure
-figureUrl: /campus-end.jpeg
-figureCaption: '全页图片布局示例：可替换为 Cytoscape 网络图'
-figureFootnoteNumber: 1
-footnoteFlow: true
----
-
-# 图片及脚注示例
-
-<Footnotes :separator="true" x="l" y="col">
-  <Footnote :number="1">Barabási AL, et al. Network biology: understanding the cell's functional organization. Nat Rev Genet. 2004.</Footnote>
-</Footnotes>
-
----
-layout: default
----
-
 # 中性卡片、标注与来源行
 
 <div class="hebmu-columns">
@@ -378,6 +337,26 @@ STRING 查询 → 导出 TSV → Cytoscape 导入 → 按 Degree 着色
 </div>
 
 <div class="hebmu-source">数据为示例，不对应某一版数据库。</div>
+
+---
+layout: default
+---
+
+# 标注变体：成功与危险
+
+<div class="hebmu-callout hebmu-callout-success">
+
+**成功**：边表导出成功，共 1,024 条相互作用，已写入 ppi_edges.tsv。
+
+</div>
+
+<div class="hebmu-callout hebmu-callout-danger">
+
+**危险**：padj 未校正，p 值直接使用会带来大量假阳性。
+
+</div>
+
+<div class="hebmu-source">绿色 success 与红色 danger 为 0.4.0 新增变体。</div>
 
 ---
 layout: end
