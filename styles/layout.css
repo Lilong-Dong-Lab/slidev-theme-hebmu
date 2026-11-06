@@ -15,7 +15,6 @@
   --hebmu-border: #621887;
   --hebmu-footer-height: 32px;
 
-  /* Editorial type scale (1024×768 canvas) — journal rhythm, not Keynote shout */
   --hebmu-fs-meta: 12px;
   --hebmu-fs-caption: 14px;
   --hebmu-fs-body: 19px;
@@ -121,7 +120,6 @@
   right: 0;
   height: 74px;
   background: var(--hebmu-header-bg);
-  /* Quiet header edge without the crisp accent ribbon */
   border-bottom: 1px solid color-mix(in srgb, var(--hebmu-primary) 18%, #ffffff);
 }
 
@@ -182,7 +180,6 @@
   position: absolute;
   inset: 0;
   z-index: 1;
-  /* Framed geometry: more air under/above wave chrome, closer to left/right slide edges */
   padding: 216px 36px 134px;
 }
 
@@ -203,15 +200,11 @@
 }
 
 .slidev-layout .keynote-stage.is-unframed {
-  /* Default path (hideFrame: true): no rectangle. Side padding stays slightly
-     wider than framed (44 vs 36) so the text column still reads as a stage. */
   padding: 168px 44px 78px;
 }
 
 .slidev-layout .keynote-slide-title {
   position: absolute;
-  /* Same band as .keynote-logo (top 20px / min 68px) — vertically center with
-     logo; min-height lets a two-line title grow downward, not overflow */
   top: 20px;
   left: 104px;
   right: 28px;
@@ -304,7 +297,6 @@
   margin-top: 0;
 }
 
-/* Pull quote / vignette — Markdown `>`; editorial left rule, not ribbon banner */
 .slidev-layout .keynote-stage blockquote {
   border: none;
   border-left: 3px solid var(--hebmu-primary);

@@ -17,7 +17,7 @@ const fontFamily =
 const primary = "#4e136c"; /* --hebmu-primary */
 const primaryLight = "#621887"; /* --hebmu-primary-light */
 const purpleSoft = "#8f55ad"; /* --hebmu-purple-soft */
-const purpleWash = "#ebe7ef"; /* Mermaid hebmuNote fill (brand wash) */
+const hebmuNoteFill = "#ebe7ef";
 const chromeGrey = "#f4f4f4"; /* --hebmu-header-bg */
 const textMuted = "#666666"; /* --hebmu-text-muted */
 const pageBg = "#ffffff"; /* --hebmu-bg */
@@ -34,7 +34,7 @@ export default defineMermaidSetup(() => ({
     primaryColor: pageBg,
     primaryTextColor: primary,
     primaryBorderColor: primaryLight,
-    secondaryColor: purpleWash,
+    secondaryColor: hebmuNoteFill,
     tertiaryColor: chromeGrey,
     lineColor: purpleSoft,
     textColor: primary,
@@ -116,7 +116,7 @@ export default defineMermaidSetup(() => ({
 
     /* 3 · Note — very light purple panel */
     .node.hebmuNote :is(rect, circle, ellipse, polygon, path) {
-      fill: ${purpleWash} !important;
+      fill: ${hebmuNoteFill} !important;
       stroke: ${primaryLight} !important;
       filter: none;
     }
