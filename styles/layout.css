@@ -30,6 +30,20 @@
   --hebmu-frame-color: color-mix(in srgb, var(--hebmu-border) 55%, #ffffff);
   --hebmu-rule: color-mix(in srgb, var(--hebmu-primary) 28%, #ffffff);
   --hebmu-chrome-accent-opacity: 0.42;
+  --hebmu-chrome-band-top: 20px;
+  --hebmu-chrome-band-size: 68px;
+  --hebmu-chrome-logo-left: 24px;
+  --hebmu-chrome-title-left: 104px;
+  --hebmu-chrome-title-right: 28px;
+  --hebmu-stage-pad-top: 216px;
+  --hebmu-stage-pad-x: 36px;
+  --hebmu-stage-pad-bottom: 134px;
+  --hebmu-frame-inset-top: 184px;
+  --hebmu-frame-inset-x: 20px;
+  --hebmu-frame-inset-bottom: 108px;
+  --hebmu-stage-unframed-pad-top: 168px;
+  --hebmu-stage-unframed-pad-x: 44px;
+  --hebmu-stage-unframed-pad-bottom: 78px;
 }
 
 .slidev-layout {
@@ -142,10 +156,10 @@
 
 .slidev-layout .keynote-logo {
   position: absolute;
-  top: 20px;
-  left: 24px;
-  width: 68px;
-  height: 68px;
+  top: var(--hebmu-chrome-band-top);
+  left: var(--hebmu-chrome-logo-left);
+  width: var(--hebmu-chrome-band-size);
+  height: var(--hebmu-chrome-band-size);
   object-fit: contain;
   opacity: 0.92;
 }
@@ -180,15 +194,16 @@
   position: absolute;
   inset: 0;
   z-index: 1;
-  padding: 216px 36px 134px;
+  padding: var(--hebmu-stage-pad-top) var(--hebmu-stage-pad-x)
+    var(--hebmu-stage-pad-bottom);
 }
 
 .slidev-layout .keynote-stage::before {
   position: absolute;
-  top: 184px;
-  left: 20px;
-  right: 20px;
-  bottom: 108px;
+  top: var(--hebmu-frame-inset-top);
+  left: var(--hebmu-frame-inset-x);
+  right: var(--hebmu-frame-inset-x);
+  bottom: var(--hebmu-frame-inset-bottom);
   z-index: -1;
   border: var(--hebmu-frame-width) solid var(--hebmu-frame-color);
   border-radius: var(--hebmu-frame-radius);
@@ -200,18 +215,19 @@
 }
 
 .slidev-layout .keynote-stage.is-unframed {
-  padding: 168px 44px 78px;
+  padding: var(--hebmu-stage-unframed-pad-top)
+    var(--hebmu-stage-unframed-pad-x) var(--hebmu-stage-unframed-pad-bottom);
 }
 
 .slidev-layout .keynote-slide-title {
   position: absolute;
-  top: 20px;
-  left: 104px;
-  right: 28px;
+  top: var(--hebmu-chrome-band-top);
+  left: var(--hebmu-chrome-title-left);
+  right: var(--hebmu-chrome-title-right);
   z-index: 2;
   display: flex;
   align-items: center;
-  min-height: 68px;
+  min-height: var(--hebmu-chrome-band-size);
   margin: 0;
   color: var(--hebmu-primary);
   font-family:
@@ -531,19 +547,16 @@
   color: var(--hebmu-primary);
 }
 
-.slidev-layout.keynote-density-compact .keynote-stage {
-  padding: 188px 28px 110px;
-}
-
-.slidev-layout.keynote-density-compact .keynote-stage::before {
-  top: 160px;
-  left: 16px;
-  right: 16px;
-  bottom: 86px;
-}
-
-.slidev-layout.keynote-density-compact .keynote-stage.is-unframed {
-  padding: 148px 36px 64px;
+.slidev-layout.keynote-density-compact {
+  --hebmu-stage-pad-top: 188px;
+  --hebmu-stage-pad-x: 28px;
+  --hebmu-stage-pad-bottom: 110px;
+  --hebmu-frame-inset-top: 160px;
+  --hebmu-frame-inset-x: 16px;
+  --hebmu-frame-inset-bottom: 86px;
+  --hebmu-stage-unframed-pad-top: 148px;
+  --hebmu-stage-unframed-pad-x: 36px;
+  --hebmu-stage-unframed-pad-bottom: 64px;
 }
 
 .slidev-layout.keynote-density-compact .keynote-slide-title {
