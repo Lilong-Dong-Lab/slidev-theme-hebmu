@@ -28,8 +28,8 @@ arrows and PingFang SC by default. Optional **four-step** class hooks (opt-in):
 |---|---|---|
 | `:::hebmuRoot` | `--hebmu-primary` `#4e136c` | white ~20px |
 | `:::hebmuPill` | `--hebmu-purple-soft` `#8f55ad` | white ~17px |
-| `:::hebmuNote` | `--hebmu-row-a` `#ebe7ef` (very light purple) | primary ~15px |
-| `:::hebmuMuted` | `--hebmu-header-bg` `#f2f2f2` (chrome grey) | muted ~14px |
+| `:::hebmuNote` | `#ebe7ef` (very light purple wash) | primary ~15px |
+| `:::hebmuMuted` | `--hebmu-header-bg` `#f4f4f4` (chrome grey) | muted ~14px |
 | no class | `--hebmu-bg` `#ffffff` (plain outline) | primary ~17px |
 
 Unclassed nodes render as plain outline nodes: white fill, `--hebmu-primary-light`
@@ -266,9 +266,13 @@ Auto-registered by filename. `Pagination.vue` → `<Pagination />`.
 
 ### KeynoteShell
 
-Internal shared frame for standard layouts. It renders the theme chrome, framed content stage, hide props, and density class. It is auto-registered but intended for layout implementation rather than slide-author use.
+Internal shared shell for standard layouts. It renders the theme chrome, content stage, hide props, and density class. It is auto-registered but intended for layout implementation rather than slide-author use.
 
 **Props**: `hideFooter`, `hideLogo`, `hidePage`, `hideWave`, `hideFrame`, `hideTitle`, `density`, `slideTitle`, `autoSlideTitle`, `layoutClass`, `stageClass` — layout→chrome wiring, documented for theme maintainers rather than slide authors.
+
+| Prop | Type | Default | Notes |
+|------|------|---------|-------|
+| `hideFrame` | `boolean` | `true` | Soft-remove: purple stage rectangle is off by default (waves already mark the stage). Set `hideFrame: false` on a slide to restore the framed border. |
 
 ### SlideTitle
 

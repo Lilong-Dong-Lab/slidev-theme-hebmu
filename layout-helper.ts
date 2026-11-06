@@ -86,7 +86,8 @@ export const keynoteShellDefaults: Required<KeynoteShellProps> = {
   ...keynoteChromeDefaults,
   autoSlideTitle: true,
   density: "normal",
-  hideFrame: false,
+  // Soft-remove: waves already define the stage; set hideFrame: false to restore the purple rectangle
+  hideFrame: true,
   hideTitle: false,
   slideTitle: undefined as unknown as string,
 };

@@ -10,18 +10,6 @@
     >
       <defs>
         <linearGradient
-          :id="`${waveId}-header`"
-          x1="0"
-          y1="0"
-          x2="1024"
-          y2="0"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop offset="0" stop-color="#eeeeee" />
-          <stop offset="0.5" stop-color="#f7f7f7" />
-          <stop offset="1" stop-color="#eeeeee" />
-        </linearGradient>
-        <linearGradient
           :id="`${waveId}-fade`"
           x1="0"
           y1="0"
@@ -49,7 +37,6 @@
       <path
         class="keynote-wave-muted"
         d="M0 0 H1024 V96 C840 73 612 68 392 82 C226 94 88 102 0 116 Z"
-        :style="{ fill: `url(#${waveId}-header)` }"
       />
       <path
         class="keynote-wave-accent"
@@ -59,7 +46,6 @@
       <path
         class="keynote-wave-muted"
         d="M0 728 C238 742 468 746 646 736 C804 727 930 716 1024 704 V768 H0 Z"
-        :style="{ fill: `url(#${waveId}-header)` }"
       />
       <path
         class="keynote-wave-accent"

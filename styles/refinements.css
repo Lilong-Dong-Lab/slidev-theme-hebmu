@@ -6,7 +6,7 @@
    Keeps VI colors and Keynote chrome. Tuned for 1024×768 canvas on a projector.
 */
 /* ── S0 · 设计令牌 ───────────────────────────────────────────────────────
-   表格线：紫色系 30% 混白（≈#CAB8D3），对 row-a ≈1.5:1 / row-b ≈1.75:1，
+   表格线：紫色系 30% 混白（≈#CAB8D3），对浅紫洗/row-b 约 1.5:1–1.75:1，
    替代投影下不可见的纯白网格线（色相仍在 VI 系内）。 */
 :root {
   --hebmu-table-line: color-mix(in srgb, var(--hebmu-primary) 30%, #ffffff);
