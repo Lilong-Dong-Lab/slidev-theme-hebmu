@@ -61,7 +61,7 @@ Colors extracted from the Keynote lecture slides' PPTX theme XML; the source fil
 
 ### Spacing
 
-- Chrome logo/title band tokens (`:root`): `--hebmu-chrome-logo-top` / `--hebmu-chrome-logo-left` / `--hebmu-chrome-logo-size` / `--hebmu-chrome-title-left` / `--hebmu-chrome-title-right` (title shares logo top + size for vertical alignment)
+- Chrome band tokens (`:root`): `--hebmu-chrome-band-top` / `--hebmu-chrome-band-size` shared by logo and slide title; `--hebmu-chrome-logo-left` / `--hebmu-chrome-title-left` / `--hebmu-chrome-title-right` for horizontal placement
 - Keynote stage tokens (`:root`, remapped on `.keynote-density-compact`): `--hebmu-stage-pad-*` (framed), `--hebmu-frame-inset-*`, `--hebmu-stage-unframed-pad-*` (default `hideFrame: true`). Framed values: `216px 36px 134px` / insets `184/20/108` (compact: `188px 28px 110px` / `160/16/86`). Unframed: `168px 44px 78px` (compact: `148px 36px 64px`)
 - Block vertical rhythm: `margin-top: 16px` for text/list/table/pre blocks; `.hebmu-card`/`.hebmu-callout` `12px` (compact: text/list/table/pre stay `16px`; blockquote/columns/cards/callouts `10px`)
 - Table cells: `0.45em 0.9em` (compact: `0.35em 0.75em`)
