@@ -9,7 +9,6 @@
   --hebmu-danger: #c00000;
   --hebmu-bg: #ffffff;
   --hebmu-header-bg: #f4f4f4;
-  --hebmu-row-a: #ebe7ef;
   --hebmu-row-b: #f5f3f7;
   --hebmu-text: #202020;
   --hebmu-text-muted: #666666;
@@ -204,7 +203,8 @@
 }
 
 .slidev-layout .keynote-stage.is-unframed {
-  /* Default path (hideFrame: true): no rectangle; keep wave clearance, side padding matches framed content */
+  /* Default path (hideFrame: true): no rectangle. Side padding stays slightly
+     wider than framed (44 vs 36) so the text column still reads as a stage. */
   padding: 168px 44px 78px;
 }
 
@@ -588,7 +588,7 @@
 .slidev-layout.keynote-density-compact.keynote-default .keynote-stage > ol,
 .slidev-layout.keynote-density-compact.keynote-default .keynote-stage > ul li,
 .slidev-layout.keynote-density-compact.keynote-default .keynote-stage > ol li {
-  font-size: 20px;
+  font-size: var(--hebmu-fs-body);
   line-height: 1.32;
 }
 
