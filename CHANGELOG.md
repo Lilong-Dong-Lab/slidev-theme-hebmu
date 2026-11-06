@@ -20,6 +20,29 @@ is the version bump plus these notes.
   (`endBackgroundUrl`, `imageUrl`, KeynoteShell's hide/`layoutClass` wiring,
   SlideTitle's `title`/`autoTitle`), now documented in `docs/specs.md`.
 
+## [0.5.0] - 2026-11-06
+
+### Changed
+
+- **Breaking: `hideFrame` defaults to `true`.** The purple stage rectangle is
+  off unless a slide sets `hideFrame: false`. Waves still mark the stage.
+  *Migration:* add `hideFrame: false` on any slide that must keep the framed
+  border. Decks that already set `hideFrame: true` need no change.
+- Editorial Keynote chrome on the 1024×768 canvas: `--hebmu-fs-*` type scale,
+  quieter footer/wave accents, softer optional frame
+  (`--hebmu-frame-width` / `--hebmu-frame-color`), and framed insets that clear
+  the wave ribbons while sitting closer to the left and right edges.
+- Table zebra no longer uses `--hebmu-row-a`. Odd rows mix `--hebmu-row-b` with
+  `--hebmu-bg`; `--hebmu-row-a` is removed.
+
+### Fixed
+
+- Muted SVG waves honor `--hebmu-header-bg` (inline gradient fill no longer
+  overrides the CSS token).
+- Compact-density default lists use `var(--hebmu-fs-body)` instead of a hard-coded
+  `20px`.
+- `CLAUDE.md` token and stage-padding numbers match `styles/layout.css`.
+
 ## [0.4.0] - 2026-11-04
 
 ### Removed
