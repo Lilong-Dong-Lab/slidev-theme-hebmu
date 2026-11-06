@@ -38,11 +38,12 @@ Prefix: `--hebmu-{name}`. All defined in `:root` in `styles/layout.css`. **Light
 | `--hebmu-warning` | `#ffc000` | Gold |
 | `--hebmu-danger` | `#c00000` | Dark red — danger callout variant (added 0.4.0) |
 | `--hebmu-bg` | `#ffffff` | Slide background |
-| `--hebmu-header-bg` | `#f2f2f2` | Header band / muted wave fill |
-| `--hebmu-row-a` / `--hebmu-row-b` | `#ebe7ef` / `#f5f3f7` | Table zebra rows |
+| `--hebmu-header-bg` | `#f4f4f4` | Header band / muted wave fill |
+| `--hebmu-row-b` | `#f5f3f7` | Soft zebra wash (odd table rows, mixed with `--hebmu-bg`) |
 | `--hebmu-text` | `#202020` | Body text |
 | `--hebmu-text-muted` | `#666666` | Secondary/caption text |
-| `--hebmu-border` | `#621887` | Framed-stage border (purple, 2px) |
+| `--hebmu-border` | `#621887` | Brand purple; mix source for `--hebmu-frame-color` |
+| `--hebmu-frame-width` / `--hebmu-frame-color` | `1px` / soft mix of `--hebmu-border` | Optional stage rectangle when `hideFrame: false` |
 
 Colors extracted from the Keynote lecture slides' PPTX theme XML; the source file is gone, so treat the palette as complete as of 0.4.0 — new tokens must match the Office-family accents (`#ed7d31` orange, `#ffc000` gold, `#70ad47` green, `#0563c1` blue, `#c00000` red). `accent1` = `#621887` purple primary.
 
@@ -55,14 +56,15 @@ Colors extracted from the Keynote lecture slides' PPTX theme XML; the source fil
 
 ### Chinese Typography (`styles/layout.css`)
 
-- Base body `line-height: 1.5`, `letter-spacing: 0` (on `.slidev-layout`)
+- Base body `line-height: var(--hebmu-lh-body)` (`1.55`), `letter-spacing: 0` (on `.slidev-layout`)
 - Table `font-size: 0.875em`, `border-collapse: collapse`; all text uses `text-wrap: balance` + `overflow-wrap: anywhere` (CJK-safe)
 
 ### Spacing
 
-- Keynote stage padding: `178px 56px 100px` (compact density: `166px 50px 92px`)
+- Keynote stage padding (framed / `hideFrame: false`): `216px 36px 134px` (compact: `188px 28px 110px`)
+- Unframed default (`hideFrame: true`): `168px 44px 78px` (compact: `148px 36px 64px`)
 - Block vertical rhythm: `margin-top: 16px` for text/list/table/pre blocks; `.hebmu-card`/`.hebmu-callout` `12px` (compact: text/list/table/pre stay `16px`; blockquote/columns/cards/callouts `10px`)
-- Table cells: `0.5em 1em` (compact: `0.35em 0.75em`)
+- Table cells: `0.45em 0.9em` (compact: `0.35em 0.75em`)
 - Theme CSS is hand-written (`styles/layout.css`), not UnoCSS utilities. Add styles here, not as utility classes in markdown.
 
 ## Keynote Frame Architecture

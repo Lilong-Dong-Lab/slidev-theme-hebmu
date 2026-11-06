@@ -28,8 +28,8 @@ arrows and PingFang SC by default. Optional **four-step** class hooks (opt-in):
 |---|---|---|
 | `:::hebmuRoot` | `--hebmu-primary` `#4e136c` | white ~20px |
 | `:::hebmuPill` | `--hebmu-purple-soft` `#8f55ad` | white ~17px |
-| `:::hebmuNote` | `--hebmu-row-a` `#ebe7ef` (very light purple) | primary ~15px |
-| `:::hebmuMuted` | `--hebmu-header-bg` `#f2f2f2` (chrome grey) | muted ~14px |
+| `:::hebmuNote` | `#ebe7ef` (very light purple wash) | primary ~15px |
+| `:::hebmuMuted` | `--hebmu-header-bg` `#f4f4f4` (chrome grey) | muted ~14px |
 | no class | `--hebmu-bg` `#ffffff` (plain outline) | primary ~17px |
 
 Unclassed nodes render as plain outline nodes: white fill, `--hebmu-primary-light`
