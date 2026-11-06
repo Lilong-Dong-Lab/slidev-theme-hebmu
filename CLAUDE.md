@@ -69,9 +69,9 @@ Colors extracted from the Keynote lecture slides' PPTX theme XML; the source fil
 
 The theme's look is a "Keynote"-style chrome rendered inside each layout — **not** via global injection. `global-top.vue` / `global-bottom.vue` are empty.
 
-- **`KeynoteShell`** — internal wrapper every framed layout uses. Renders `.slidev-layout.keynote-layout` + `KeynoteChrome` + a framed `<main class="keynote-stage">` slot. Carries `density: 'normal'|'compact'` and the `hide*` props.
+- **`KeynoteShell`** — internal wrapper every standard content layout uses. Renders `.slidev-layout.keynote-layout` + `KeynoteChrome` + `<main class="keynote-stage">`. Carries `density: 'normal'|'compact'` and the `hide*` props. Purple stage rectangle defaults **off** (`hideFrame: true`); set `hideFrame: false` to restore it.
 - **`KeynoteChrome`** — persistent per-slide UI: inline SVG wave header, logo, footer (`compact`/`none`), `<Pagination />`. Reads everything from `$slidev.themeConfigs`.
-- **`.keynote-stage`** — content pane whose `::before` pseudo-element draws the 2px purple rounded frame; `.is-unframed` removes it.
+- **`.keynote-stage`** — content pane. Optional `::before` draws the purple rounded frame when not `.is-unframed` (default is unframed).
 - **`SlideTitle`** — hoists the slide's first `<h1>` text into the chrome title and hides that H1 from the stage. An explicit `slideTitle` prop overrides; `autoSlideTitle: false` disables.
 - **`layout-helper.ts`** — two asset resolvers backed by one self-registering `import.meta.glob` of `assets/**/*` (`?url` bundles every theme image, so `file:` installs never hit `/theme/...` paths; the dir is non-public on purpose — a `public/` dir makes Slidev's static-copy duplicate every image). `resolveAssetUrl()` is for theme-owned assets; `resolveUrl()` is for user-supplied figures. Either resolves both kinds (bundled map first, deck `public/` root second).
 

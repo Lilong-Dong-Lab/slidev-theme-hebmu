@@ -91,7 +91,6 @@ Pull quote（投影强调句，Markdown `>`；文献用 `hebmu-cite`，不用 ca
 
 ---
 layout: default
-hideFrame: true
 hideTitle: true
 ---
 
@@ -105,11 +104,12 @@ hideTitle: true
 
 ---
 layout: default
+hideFrame: false
 ---
 
 # PPI 网络中的两类关系
 
-分栏对比：先左栏，再右栏（`<v-clicks>` 包住两列）。
+分栏对比：先左栏，再右栏（`<v-clicks>` 包住两列）。演示 `hideFrame: false` 恢复紫色舞台框（默认关闭）。
 
 <div class="grid grid-cols-2 gap-7 mt-4">
 

@@ -266,9 +266,13 @@ Auto-registered by filename. `Pagination.vue` → `<Pagination />`.
 
 ### KeynoteShell
 
-Internal shared frame for standard layouts. It renders the theme chrome, framed content stage, hide props, and density class. It is auto-registered but intended for layout implementation rather than slide-author use.
+Internal shared shell for standard layouts. It renders the theme chrome, content stage, hide props, and density class. It is auto-registered but intended for layout implementation rather than slide-author use.
 
 **Props**: `hideFooter`, `hideLogo`, `hidePage`, `hideWave`, `hideFrame`, `hideTitle`, `density`, `slideTitle`, `autoSlideTitle`, `layoutClass`, `stageClass` — layout→chrome wiring, documented for theme maintainers rather than slide authors.
+
+| Prop | Type | Default | Notes |
+|------|------|---------|-------|
+| `hideFrame` | `boolean` | `true` | Soft-remove: purple stage rectangle is off by default (waves already mark the stage). Set `hideFrame: false` on a slide to restore the framed border. |
 
 ### SlideTitle
 
