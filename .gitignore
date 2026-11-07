@@ -21,5 +21,8 @@ slidev-theme-hebmu-demo/
 slidev-theme-hebmu-demo.pdf
 legacy/
 
+# verify-hebmu run state + proof (skill keeps proof locally; do not commit)
+.cursor/skills/verify-hebmu/artifacts/
+
 # Editor / tooling
 .prettierrc
