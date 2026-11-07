@@ -60,7 +60,8 @@
     "check:specs": "node scripts/check-specs.mjs",
     "check:surface": "node scripts/check-surface.mjs",
     "export": "slidev export example.md",
-    "screenshot": "slidev export example.md --format png"
+    "screenshot": "slidev export example.md --format png",
+    "watch-pr": "./scripts/watch-pr"
   },
   "dependencies": {
     "@slidev/types": "^52.0.0",

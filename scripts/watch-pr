@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Run pstack poteto-mode watch-pr without requiring a global Bun install.
+# Prefers `npx -y bun` so babysit gets READY/merge-ready when `bun` is absent.
+# Usage (from theme repo root):
+#   ./scripts/watch-pr --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --pretty
+#   npm run watch-pr -- --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --status-only --pretty
+set -euo pipefail
+
+resolve_watch_pr_dir() {
+  local candidates=(
+    "${HEBMU_WATCH_PR_DIR:-}"
+    "${HOME}/.cursor/skills/poteto-mode/scripts/watch-pr"
+  )
+  local cache_root="${HOME}/.cursor/plugins/cache/cursor-public/pstack"
+  if [[ -d "$cache_root" ]]; then
+    # newest install first
+    local d
+    while IFS= read -r d; do
+      candidates+=("$d")
+    done < <(find "$cache_root" -type f -path '*/skills/poteto-mode/scripts/watch-pr/watch-pr' 2>/dev/null \
+      | sed 's#/watch-pr$##' \
+      | sort -r)
+  fi
+
+  local c
+  for c in "${candidates[@]}"; do
+    [[ -z "$c" ]] && continue
+    if [[ -x "$c/watch-pr" || -f "$c/watch-pr" ]]; then
+      printf '%s\n' "$c"
+      return 0
+    fi
+  done
+  return 1
+}
+
+DIR="$(resolve_watch_pr_dir)" || {
+  echo "scripts/watch-pr: could not find poteto-mode watch-pr under ~/.cursor/skills or the pstack plugin cache." >&2
+  echo "Install the pstack plugin, or set HEBMU_WATCH_PR_DIR to the directory that contains watch-pr." >&2
+  exit 1
+}
+
+cd "$DIR"
+
+run_with_bun() {
+  if command -v bun >/dev/null 2>&1; then
+    exec bun ./watch-pr "$@"
+  fi
+  if ! command -v npx >/dev/null 2>&1; then
+    echo "scripts/watch-pr: need npx (Node) or bun on PATH." >&2
+    exit 1
+  fi
+  # Ephemeral Bun via npm; no global install required.
+  exec npx -y bun ./watch-pr "$@"
+}
+
+run_with_bun "$@"

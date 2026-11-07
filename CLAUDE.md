@@ -147,3 +147,9 @@ Default five-role vocabulary: needs-triage, needs-info, ready-for-agent, ready-f
 ### Domain docs
 
 Single-context: GLOSSARY.md at the repo root, ADRs in docs/adr/. See `docs/agents/domain.md`.
+
+### Babysit / watch-pr
+
+Do not require a global Bun install. Use `./scripts/watch-pr` or
+`npm run watch-pr -- …` (wraps pstack `watch-pr` via `npx -y bun` when needed).
+See `docs/agents/babysit.md`.
