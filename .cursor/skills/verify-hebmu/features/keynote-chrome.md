@@ -50,3 +50,6 @@ Preconditions:
   This recipe covers the theme default (unframed). Add a dedicated framed slide
   before claiming framed geometry.
 - Slide indices drift when `example.md` gains or loses slides before the target.
+- Prove chrome color/fill tokens by computed paint on the live element. Inline
+  SVG `fill`/`stroke` presentation attributes that bypass `var(--hebmu-*)`
+  override stylesheet fills — that is a dead-token finding, not live paint.

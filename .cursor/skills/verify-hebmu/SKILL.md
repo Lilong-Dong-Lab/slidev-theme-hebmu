@@ -2,9 +2,10 @@
 name: verify-hebmu
 description: >-
   Drive the slidev-theme-hebmu example deck in a browser (Playwright) and prove
-  Keynote chrome geometry, cover/TOC layouts, and build asset bundling. Use when
-  verifying theme layout/CSS/chrome changes, before declaring a visual refactor
-  done, or when a shipping verifier needs a scripted user-path proof.
+  Keynote chrome geometry, cover/TOC layouts, and build asset bundling. Use for
+  Shipping verification of this theme, visual chrome/layout/CSS refactors,
+  before declaring a visual change done, or whenever a verifier needs a
+  scripted user-path proof — not only when a human names this skill.
 ---
 
 # Verify HEBMU Slidev theme
@@ -132,9 +133,14 @@ Standards:
 - Exercise the real deck path (`example.md` via `npm run dev` or `npm run build`)
 - Capture action (which slide / which script) and resulting state (metrics or
   check output), not only a final screenshot
+- Prove a CSS token by computed paint on the live element. Inline SVG
+  `fill`/`stroke` that bypass `var(--token)` make the stylesheet token dead —
+  treat that as a finding, not as proof the token is live
 - Do not treat green CI alone as proof
 - Benign console noise: `Failed to patch FloatingVue` from shiki twoslash is
   known and not a finding
+- Exit 143 (SIGTERM) after intentional teardown of this run's recorded PID is
+  success, not a failed proof
 
 ## Cleanup
 
@@ -143,7 +149,8 @@ Standards:
 ```
 
 Removes the run's process and may remove `artifacts/runs/$RUN_ID/`. Leaves
-`artifacts/proof/` intact.
+`artifacts/proof/` intact. When cleanup SIGTERMs the recorded PID, exit 143 is
+expected success (see Evidence).
 
 ## Isolate
 
