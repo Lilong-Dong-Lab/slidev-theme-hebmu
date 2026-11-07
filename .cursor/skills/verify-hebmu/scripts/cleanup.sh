@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Stop the verify-hebmu instance recorded for RUN_ID. Keep proof artifacts.
+# Intentional SIGTERM of the recorded PID is success (process exit 143 = 128+15).
+# Agents must key off teardown_ok / this script's exit 0, not the child's status.
 set -euo pipefail
 
 ROOT="${HEBMU_VERIFY_ROOT:-$(pwd)}"
@@ -21,10 +23,17 @@ fi
 # shellcheck disable=SC1090
 source "$STATE"
 
+stopped=0
 if [[ -n "${HEBMU_VERIFY_PID:-}" ]] && kill -0 "$HEBMU_VERIFY_PID" 2>/dev/null; then
-  kill "$HEBMU_VERIFY_PID" 2>/dev/null || true
+  # SIGTERM → child status 143 when reaped; that is expected, not a failed proof.
+  kill -TERM "$HEBMU_VERIFY_PID" 2>/dev/null || true
   # child npm/node may outlive the shell wrapper briefly
-  sleep 0.5
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    if ! kill -0 "$HEBMU_VERIFY_PID" 2>/dev/null; then
+      break
+    fi
+    sleep 0.1
+  done
   if kill -0 "$HEBMU_VERIFY_PID" 2>/dev/null; then
     kill -9 "$HEBMU_VERIFY_PID" 2>/dev/null || true
   fi
@@ -34,14 +43,31 @@ if [[ -n "${HEBMU_VERIFY_PID:-}" ]] && kill -0 "$HEBMU_VERIFY_PID" 2>/dev/null; 
       pids="$(lsof -tiTCP:"$HEBMU_VERIFY_PORT" -sTCP:LISTEN 2>/dev/null || true)"
       if [[ -n "$pids" ]]; then
         # shellcheck disable=SC2086
-        kill $pids 2>/dev/null || true
+        kill -TERM $pids 2>/dev/null || true
+        sleep 0.2
+        pids="$(lsof -tiTCP:"$HEBMU_VERIFY_PORT" -sTCP:LISTEN 2>/dev/null || true)"
+        if [[ -n "$pids" ]]; then
+          # shellcheck disable=SC2086
+          kill -9 $pids 2>/dev/null || true
+        fi
       fi
     fi
   fi
   echo "cleanup.sh: stopped pid=$HEBMU_VERIFY_PID port=${HEBMU_VERIFY_PORT:-}"
+  stopped=1
 else
   echo "cleanup.sh: process already gone pid=${HEBMU_VERIFY_PID:-unset}"
+  stopped=1
 fi
 
 echo "cleanup.sh: proof kept at $SKILL_DIR/artifacts/proof/$RUN_ID/"
 echo "cleanup.sh: run meta at $SKILL_DIR/artifacts/runs/$RUN_ID/ (left for audit)"
+
+# Positive success token for agents. Do not treat child exit 143 as failure.
+if [[ "$stopped" -eq 1 ]]; then
+  echo "teardown_ok"
+  exit 0
+fi
+
+echo "cleanup.sh: teardown did not complete" >&2
+exit 1

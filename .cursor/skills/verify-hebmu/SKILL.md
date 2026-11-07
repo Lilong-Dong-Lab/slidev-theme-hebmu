@@ -149,8 +149,9 @@ Standards:
 ```
 
 Removes the run's process and may remove `artifacts/runs/$RUN_ID/`. Leaves
-`artifacts/proof/` intact. When cleanup SIGTERMs the recorded PID, exit 143 is
-expected success (see Evidence).
+`artifacts/proof/` intact. Success is `cleanup.sh` exit 0 and a `teardown_ok`
+line. The Slidev child's exit 143 after SIGTERM is expected; do not treat it as
+a failed proof (see Evidence).
 
 ## Isolate
 
