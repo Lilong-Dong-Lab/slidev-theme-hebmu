@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Run pstack poteto-mode watch-pr without requiring a global Bun install.
+# Run pstack poteto-mode watch-pr without requiring a global Bun install,
+# then enrich READY output with hebmu review/protection clearance (#31).
 # Prefers `npx -y bun` so babysit gets READY/merge-ready when `bun` is absent.
 # Usage (from theme repo root):
 #   ./scripts/watch-pr --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --pretty
@@ -39,18 +40,18 @@ DIR="$(resolve_watch_pr_dir)" || {
   exit 1
 }
 
-cd "$DIR"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLEARANCE="$SCRIPT_DIR/watch-pr-clearance.mjs"
 
-run_with_bun() {
-  if command -v bun >/dev/null 2>&1; then
-    exec bun ./watch-pr "$@"
-  fi
-  if ! command -v npx >/dev/null 2>&1; then
-    echo "scripts/watch-pr: need npx (Node) or bun on PATH." >&2
-    exit 1
-  fi
-  # Ephemeral Bun via npm; no global install required.
-  exec npx -y bun ./watch-pr "$@"
-}
+if [[ ! -f "$CLEARANCE" ]]; then
+  echo "scripts/watch-pr: missing enricher at $CLEARANCE" >&2
+  exit 1
+fi
 
-run_with_bun "$@"
+if ! command -v node >/dev/null 2>&1; then
+  echo "scripts/watch-pr: need node on PATH for clearance enrichment." >&2
+  exit 1
+fi
+
+# Enricher spawns upstream (bun / npx bun) and attaches clearance on READY.
+exec node "$CLEARANCE" --upstream-dir "$DIR" -- "$@"
