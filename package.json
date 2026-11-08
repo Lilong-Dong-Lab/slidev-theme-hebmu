@@ -63,7 +63,9 @@
     "screenshot": "slidev export example.md --format png",
     "watch-pr": "./scripts/watch-pr",
     "land-pr": "node scripts/land-pr.mjs",
-    "land-pr:self-test": "node scripts/land-pr.mjs --self-test"
+    "land-pr:self-test": "node scripts/land-pr.mjs --self-test",
+    "seal-shipping": "node scripts/seal-shipping.mjs",
+    "seal-shipping:self-test": "node scripts/seal-shipping.mjs --self-test"
   },
   "dependencies": {
     "@slidev/types": "^52.0.0",
