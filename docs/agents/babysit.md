@@ -64,18 +64,28 @@ exit stays upstream (READY → `0`) even when markers are absent. `land-pr`
 refuses **before** assert when that receipt is missing, lacked clearance
 markers, or the tip does not match — bare personal/plugin observe never
 writes a receipt, so land fails closed on that soft lure. Shipping land is
-seal-then-land: the verifier mints a tip-bound, HMAC-signed seal
-(`HEBMU_SEAL_HMAC_KEY`), then the fail-closed helper always injects
-`--assert-merge` and only then may call `gh pr merge`. Local JSON under
+seal-then-land: the verifier mints a tip-bound Ed25519 seal with
+`HEBMU_SEAL_MINT_KEY` (verifier-only). The lander / assert process exports
+**verify-only** `HEBMU_SEAL_VERIFY_KEY` — never the mint key. `land-pr` also
+scrubs `HEBMU_SEAL_MINT_KEY` from the assert child env. Local JSON under
 `.git/hebmu/sealed-shipping/` is a receipt on disk — it is not merge proof
-unless the MAC verifies with the verifier key:
+unless the Ed25519 sig verifies under the verify key. Shared
+`HEBMU_SEAL_HMAC_KEY` is retired (#58); loaders reject it.
 
 ```bash
-export HEBMU_SEAL_HMAC_KEY='…verifier-only material…'
+# One-time (verifier workstation):
+# npm run seal-shipping -- --gen-keys
+
+# Verifier only — mint capability
+export HEBMU_SEAL_MINT_KEY='…ed25519 PKCS8 private (base64)…'
 
 npm run seal-shipping -- \
   --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> \
   --verdict PASS
+
+# Unset mint before land. Lander holds verify-only.
+unset HEBMU_SEAL_MINT_KEY
+export HEBMU_SEAL_VERIFY_KEY='…ed25519 SPKI public (base64)…'
 
 npm run land-pr -- \
   --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n>
@@ -84,8 +94,10 @@ npm run land-pr -- \
 Or:
 
 ```bash
-export HEBMU_SEAL_HMAC_KEY='…verifier-only material…'
+export HEBMU_SEAL_MINT_KEY='…'
 node scripts/seal-shipping.mjs --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --verdict PASS
+unset HEBMU_SEAL_MINT_KEY
+export HEBMU_SEAL_VERIFY_KEY='…'
 node scripts/land-pr.mjs --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n>
 ```
 
