@@ -15,12 +15,22 @@
  */
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import {
+  artifactToAttestation,
   evaluateMergeDisposition,
   formatDispositionPretty,
+  isShippingVerdictRemovedError,
   parseAttestationFromArgv,
 } from "./merge-policy.mjs";
+import {
+  createFsStore,
+  createMemoryStore,
+  defaultSealedShippingDir,
+} from "./attestation-store.mjs";
+
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = join(SCRIPT_DIR, "..");
 
 // ---------------------------------------------------------------------------
 // Pure domain
@@ -676,6 +686,72 @@ export async function resolveBaseRefName(gh, repo, pr, known) {
 }
 
 /**
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+function normalizeHeadRefOid(value) {
+  if (typeof value !== "string" || !value) return null;
+  return value;
+}
+
+/**
+ * Live tip OID for seal binding on --assert-merge.
+ *
+ * @param {{
+ *   prView: (
+ *     repo: { owner: string; repo: string },
+ *     pr: number,
+ *     fields: readonly string[],
+ *   ) => Record<string, unknown>
+ * }} gh
+ * @param {{ owner: string; repo: string }} repo
+ * @param {number} pr
+ * @returns {string | null}
+ */
+export function resolveHeadRefOid(gh, repo, pr) {
+  try {
+    const view = gh.prView(repo, pr, ["headRefOid"]);
+    return normalizeHeadRefOid(view.headRefOid);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Argv override wins when present; otherwise load sealed artifact from store.
+ * Bare --shipping-verdict is never a valid attestation (parse hard-throws).
+ *
+ * @param {{
+ *   argv: readonly string[];
+ *   store: import("./attestation-store.mjs").AttestationStore;
+ *   owner: string;
+ *   repo: string;
+ *   pr: number;
+ * }} args
+ * @returns {import("./merge-policy.mjs").MergeAttestation | null}
+ */
+export function resolveMergeAttestation(args) {
+  let argvAttestation = null;
+  try {
+    argvAttestation = parseAttestationFromArgv(args.argv);
+  } catch (err) {
+    if (isShippingVerdictRemovedError(err)) {
+      argvAttestation = null;
+    } else {
+      throw err;
+    }
+  }
+  if (argvAttestation) return argvAttestation;
+  return artifactToAttestation(
+    args.store.get({
+      owner: args.owner,
+      repo: args.repo,
+      pr: args.pr,
+    }),
+  );
+}
+
+/**
  * @param {{
  *   argv: readonly string[];
  *   upstreamDir: string;
@@ -688,6 +764,7 @@ export async function resolveBaseRefName(gh, repo, pr, known) {
  *       fields: readonly string[],
  *     ) => Record<string, unknown>;
  *   };
+ *   store?: import("./attestation-store.mjs").AttestationStore;
  *   io?: { stdout: (s: string) => void; stderr: (s: string) => void };
  * }} args
  * @returns {Promise<number>}
@@ -695,6 +772,8 @@ export async function resolveBaseRefName(gh, repo, pr, known) {
 export async function runEnrichedWatchPr(args) {
   const runUpstream = args.runUpstream ?? defaultRunUpstream;
   const gh = args.gh ?? { api: defaultGhApi, prView: defaultGhPrView };
+  const store =
+    args.store ?? createFsStore(defaultSealedShippingDir(REPO_ROOT));
   const io = args.io ?? {
     stdout: (s) => process.stdout.write(s),
     stderr: (s) => process.stderr.write(s),
@@ -782,8 +861,23 @@ export async function runEnrichedWatchPr(args) {
     return result.exitCode;
   }
 
-  const attestation = parseAttestationFromArgv(args.argv);
-  const decision = evaluateMergeDisposition({ clearance, attestation });
+  const headRefOid = resolveHeadRefOid(
+    gh,
+    { owner: evidence.owner, repo: evidence.repo },
+    evidence.pr,
+  );
+  const attestation = resolveMergeAttestation({
+    argv: args.argv,
+    store,
+    owner: evidence.owner,
+    repo: evidence.repo,
+    pr: evidence.pr,
+  });
+  const decision = evaluateMergeDisposition({
+    clearance,
+    attestation,
+    headRefOid,
+  });
   io.stderr(formatDispositionPretty(decision));
   return decision.exitCode;
 }
@@ -1044,80 +1138,119 @@ async function runSelfTest() {
 }
 
 async function runMergeDispositionHarness() {
+  const tip = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+  const other = "cccccccccccccccccccccccccccccccccccccccc";
+  const sealedPass = /** @type {const} */ ({
+    kind: "sealed-shipping",
+    verdict: "PASS",
+    headRefOid: tip,
+    sealedAt: "2026-11-08T00:00:00.000Z",
+  });
+  const sealedFail = /** @type {const} */ ({
+    kind: "sealed-shipping",
+    verdict: "FAIL",
+    headRefOid: tip,
+    sealedAt: "2026-11-08T00:00:00.000Z",
+  });
+
+  /** @type {ReadonlyArray<{
+   *   name: string;
+   *   clearance: ReviewClearance;
+   *   attestation: import("./merge-policy.mjs").MergeAttestation | null;
+   *   headRefOid: string | null;
+   *   wantDisposition: string;
+   *   wantExit: number;
+   *   wantReason?: string;
+   *   wantMissing?: string;
+   * }>} */
   const matrix = [
     {
       name: "approved + null → allow/0",
-      clearance: /** @type {ReviewClearance} */ ({ kind: "approved" }),
+      clearance: { kind: "approved" },
       attestation: null,
+      headRefOid: tip,
       wantDisposition: "allow",
       wantExit: 0,
     },
     {
       name: "ci-only + null → require-attestation/2",
-      clearance: /** @type {ReviewClearance} */ ({
-        kind: "ci-only",
-        reason: "unprotected-base",
-      }),
+      clearance: { kind: "ci-only", reason: "unprotected-base" },
       attestation: null,
+      headRefOid: tip,
       wantDisposition: "require-attestation",
       wantExit: 2,
+      wantMissing: "sealed-shipping-or-override",
     },
     {
-      name: "ci-only + shipping PASS → allow/0",
-      clearance: /** @type {ReviewClearance} */ ({
-        kind: "ci-only",
-        reason: "unprotected-base",
-      }),
-      attestation: /** @type {const} */ ({
-        kind: "shipping-verdict",
-        verdict: "PASS",
-      }),
+      name: "ci-only + sealed PASS matching oid → allow/0",
+      clearance: { kind: "ci-only", reason: "unprotected-base" },
+      attestation: sealedPass,
+      headRefOid: tip,
       wantDisposition: "allow",
       wantExit: 0,
     },
     {
-      name: "ci-only + shipping FAIL → block/3",
-      clearance: /** @type {ReviewClearance} */ ({
-        kind: "ci-only",
-        reason: "unprotected-base",
-      }),
-      attestation: /** @type {const} */ ({
-        kind: "shipping-verdict",
-        verdict: "FAIL",
-      }),
+      name: "ci-only + sealed PASS mismatched oid → require-attestation/2",
+      clearance: { kind: "ci-only", reason: "unprotected-base" },
+      attestation: sealedPass,
+      headRefOid: other,
+      wantDisposition: "require-attestation",
+      wantExit: 2,
+      wantMissing: "sealed-shipping-or-override",
+    },
+    {
+      name: "ci-only + sealed PASS + null headRefOid → require-attestation/2",
+      clearance: { kind: "ci-only", reason: "unprotected-base" },
+      attestation: sealedPass,
+      headRefOid: null,
+      wantDisposition: "require-attestation",
+      wantExit: 2,
+      wantMissing: "sealed-shipping-or-override",
+    },
+    {
+      name: "ci-only + sealed FAIL matching oid → block/3",
+      clearance: { kind: "ci-only", reason: "unprotected-base" },
+      attestation: sealedFail,
+      headRefOid: tip,
       wantDisposition: "block",
       wantExit: 3,
       wantReason: "attestation-rejected",
     },
     {
-      name: "review-required + shipping PASS → block/3",
-      clearance: /** @type {ReviewClearance} */ ({ kind: "review-required" }),
-      attestation: /** @type {const} */ ({
-        kind: "shipping-verdict",
-        verdict: "PASS",
-      }),
+      name: "ci-only + explicit-override → allow/0",
+      clearance: { kind: "ci-only", reason: "unprotected-base" },
+      attestation: {
+        kind: "explicit-override",
+        by: "alice",
+        reason: "emergency",
+      },
+      headRefOid: null,
+      wantDisposition: "allow",
+      wantExit: 0,
+    },
+    {
+      name: "review-required + sealed matching PASS → block/3",
+      clearance: { kind: "review-required" },
+      attestation: sealedPass,
+      headRefOid: tip,
       wantDisposition: "block",
       wantExit: 3,
       wantReason: "review-required",
     },
     {
       name: "changes-requested + null → block/3",
-      clearance: /** @type {ReviewClearance} */ ({ kind: "changes-requested" }),
+      clearance: { kind: "changes-requested" },
       attestation: null,
+      headRefOid: tip,
       wantDisposition: "block",
       wantExit: 3,
       wantReason: "changes-requested",
     },
     {
-      name: "unknown + shipping PASS → block/3",
-      clearance: /** @type {ReviewClearance} */ ({
-        kind: "unknown",
-        detail: "HTTP 403",
-      }),
-      attestation: /** @type {const} */ ({
-        kind: "shipping-verdict",
-        verdict: "PASS",
-      }),
+      name: "unknown + sealed PASS → block/3",
+      clearance: { kind: "unknown", detail: "HTTP 403" },
+      attestation: sealedPass,
+      headRefOid: tip,
       wantDisposition: "block",
       wantExit: 3,
       wantReason: "unknown",
@@ -1128,6 +1261,7 @@ async function runMergeDispositionHarness() {
     const decision = evaluateMergeDisposition({
       clearance: row.clearance,
       attestation: row.attestation,
+      headRefOid: row.headRefOid,
     });
     assert(
       decision.disposition === row.wantDisposition,
@@ -1143,9 +1277,17 @@ async function runMergeDispositionHarness() {
         `${row.name}: reason ${decision.disposition === "block" ? decision.reason : "?"}`,
       );
     }
+    if (row.wantMissing) {
+      assert(
+        decision.disposition === "require-attestation" &&
+          decision.missing === row.wantMissing,
+        `${row.name}: missing ${decision.disposition === "require-attestation" ? decision.missing : "?"}`,
+      );
+    }
     const again = evaluateMergeDisposition({
       clearance: row.clearance,
       attestation: row.attestation,
+      headRefOid: row.headRefOid,
     });
     assert(
       JSON.stringify(again) === JSON.stringify(decision),
@@ -1154,19 +1296,28 @@ async function runMergeDispositionHarness() {
     console.log(`ok  disposition ${row.name}`);
   }
 
-  const parsedPass = parseAttestationFromArgv([
-    "--shipping-verdict",
-    "PASS",
-  ]);
-  assert(
-    parsedPass?.kind === "shipping-verdict" && parsedPass.verdict === "PASS",
-    "parse --shipping-verdict PASS",
-  );
+  let threwShipping = false;
+  try {
+    parseAttestationFromArgv(["--shipping-verdict", "PASS"]);
+  } catch (err) {
+    threwShipping = isShippingVerdictRemovedError(err);
+  }
+  assert(threwShipping, "parse --shipping-verdict PASS hard-throws");
   assert(
     parseAttestationFromArgv([]) === null,
     "parse no attestation → null",
   );
-  console.log("ok  parseAttestationFromArgv PASS / null");
+  const parsedOverride = parseAttestationFromArgv([
+    "--merge-override",
+    "alice",
+    "--merge-override-reason",
+    "ship",
+  ]);
+  assert(
+    parsedOverride?.kind === "explicit-override",
+    "parse override still works",
+  );
+  console.log("ok  parseAttestationFromArgv rejects shipping-verdict / accepts override");
 
   const prettyCiOnlyReady = [
     "READY: no merge conflicts, no unresolved review threads, no failing or pending checks",
@@ -1183,6 +1334,7 @@ async function runMergeDispositionHarness() {
   const observeCode = await runEnrichedWatchPr({
     argv: ["--owner", "o", "--repo", "r", "--pr", "40", "--pretty"],
     upstreamDir: "/tmp",
+    store: createMemoryStore(),
     runUpstream: () => ({
       stdout: prettyCiOnlyReady,
       stderr: "",
@@ -1193,7 +1345,11 @@ async function runMergeDispositionHarness() {
         status: 404,
         body: { message: "Branch not protected" },
       }),
-      prView: () => ({ baseRefName: "main", reviewDecision: null }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: null,
+        headRefOid: tip,
+      }),
     },
     io: {
       stdout: (s) => observeOut.push(s),
@@ -1213,6 +1369,7 @@ async function runMergeDispositionHarness() {
 
   /** @type {string[]} */
   const assertErr = [];
+  const emptyStore = createMemoryStore();
   const assertNoAttest = await runEnrichedWatchPr({
     argv: [
       "--assert-merge",
@@ -1225,6 +1382,7 @@ async function runMergeDispositionHarness() {
       "--pretty",
     ],
     upstreamDir: "/tmp",
+    store: emptyStore,
     runUpstream: () => ({
       stdout: prettyCiOnlyReady,
       stderr: "",
@@ -1235,7 +1393,11 @@ async function runMergeDispositionHarness() {
         status: 404,
         body: { message: "Branch not protected" },
       }),
-      prView: () => ({ baseRefName: "main", reviewDecision: null }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: null,
+        headRefOid: tip,
+      }),
     },
     io: {
       stdout: () => {},
@@ -1244,19 +1406,31 @@ async function runMergeDispositionHarness() {
   });
   assert(
     assertNoAttest === 2,
-    `assert ci-only no attest exit ${assertNoAttest}`,
+    `assert ci-only empty store exit ${assertNoAttest}`,
   );
   assert(
     assertErr.join("").includes("disposition=require-attestation"),
     "assert emits require-attestation",
   );
-  console.log("ok  --assert-merge ci-only without attestation → exit 2");
+  assert(
+    assertErr.join("").includes("missing=sealed-shipping-or-override"),
+    "assert missing sealed-shipping-or-override",
+  );
+  console.log("ok  --assert-merge ci-only empty store → exit 2");
 
-  const assertPass = await runEnrichedWatchPr({
+  const matchStore = createMemoryStore();
+  matchStore.put({
+    schema: "hebmu.sealed-shipping.v1",
+    owner: "o",
+    repo: "r",
+    pr: 40,
+    headRefOid: tip,
+    verdict: "PASS",
+    sealedAt: "2026-11-08T00:00:00.000Z",
+  });
+  const assertMatch = await runEnrichedWatchPr({
     argv: [
       "--assert-merge",
-      "--shipping-verdict",
-      "PASS",
       "--owner",
       "o",
       "--repo",
@@ -1266,6 +1440,7 @@ async function runMergeDispositionHarness() {
       "--pretty",
     ],
     upstreamDir: "/tmp",
+    store: matchStore,
     runUpstream: () => ({
       stdout: prettyCiOnlyReady,
       stderr: "",
@@ -1276,24 +1451,68 @@ async function runMergeDispositionHarness() {
         status: 404,
         body: { message: "Branch not protected" },
       }),
-      prView: () => ({ baseRefName: "main", reviewDecision: null }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: null,
+        headRefOid: tip,
+      }),
     },
     io: {
       stdout: () => {},
       stderr: () => {},
     },
   });
-  assert(assertPass === 0, `assert ci-only + PASS exit ${assertPass}`);
-  console.log("ok  --assert-merge ci-only + --shipping-verdict PASS → exit 0");
+  assert(assertMatch === 0, `assert matching seal exit ${assertMatch}`);
+  console.log("ok  --assert-merge ci-only + matching sealed PASS → exit 0");
 
-  const reviewRequiredPretty = [
-    "READY: no merge conflicts, no unresolved review threads, no failing or pending checks",
-    "mergeStateStatus=CLEAN",
-    "reviewDecision=REVIEW_REQUIRED",
-    "isDraft=false",
-    "",
-  ].join("\n");
-  const assertBlocked = await runEnrichedWatchPr({
+  const staleStore = createMemoryStore();
+  staleStore.put({
+    schema: "hebmu.sealed-shipping.v1",
+    owner: "o",
+    repo: "r",
+    pr: 40,
+    headRefOid: tip,
+    verdict: "PASS",
+    sealedAt: "2026-11-08T00:00:00.000Z",
+  });
+  const assertStale = await runEnrichedWatchPr({
+    argv: [
+      "--assert-merge",
+      "--owner",
+      "o",
+      "--repo",
+      "r",
+      "--pr",
+      "40",
+      "--pretty",
+    ],
+    upstreamDir: "/tmp",
+    store: staleStore,
+    runUpstream: () => ({
+      stdout: prettyCiOnlyReady,
+      stderr: "",
+      exitCode: 0,
+    }),
+    gh: {
+      api: () => ({
+        status: 404,
+        body: { message: "Branch not protected" },
+      }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: null,
+        headRefOid: other,
+      }),
+    },
+    io: {
+      stdout: () => {},
+      stderr: () => {},
+    },
+  });
+  assert(assertStale === 2, `assert stale oid exit ${assertStale}`);
+  console.log("ok  --assert-merge ci-only + stale sealed PASS → exit 2");
+
+  const barePass = await runEnrichedWatchPr({
     argv: [
       "--assert-merge",
       "--shipping-verdict",
@@ -1307,6 +1526,104 @@ async function runMergeDispositionHarness() {
       "--pretty",
     ],
     upstreamDir: "/tmp",
+    store: createMemoryStore(),
+    runUpstream: () => ({
+      stdout: prettyCiOnlyReady,
+      stderr: "",
+      exitCode: 0,
+    }),
+    gh: {
+      api: () => ({
+        status: 404,
+        body: { message: "Branch not protected" },
+      }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: null,
+        headRefOid: tip,
+      }),
+    },
+    io: {
+      stdout: () => {},
+      stderr: () => {},
+    },
+  });
+  assert(barePass === 2, `assert bare --shipping-verdict PASS exit ${barePass}`);
+  console.log(
+    "ok  --assert-merge ci-only + bare --shipping-verdict PASS → exit 2",
+  );
+
+  const assertOverride = await runEnrichedWatchPr({
+    argv: [
+      "--assert-merge",
+      "--merge-override",
+      "alice",
+      "--merge-override-reason",
+      "emergency",
+      "--owner",
+      "o",
+      "--repo",
+      "r",
+      "--pr",
+      "40",
+      "--pretty",
+    ],
+    upstreamDir: "/tmp",
+    store: createMemoryStore(),
+    runUpstream: () => ({
+      stdout: prettyCiOnlyReady,
+      stderr: "",
+      exitCode: 0,
+    }),
+    gh: {
+      api: () => ({
+        status: 404,
+        body: { message: "Branch not protected" },
+      }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: null,
+        headRefOid: tip,
+      }),
+    },
+    io: {
+      stdout: () => {},
+      stderr: () => {},
+    },
+  });
+  assert(assertOverride === 0, `assert override exit ${assertOverride}`);
+  console.log("ok  --assert-merge ci-only + override → exit 0 without store");
+
+  const reviewRequiredPretty = [
+    "READY: no merge conflicts, no unresolved review threads, no failing or pending checks",
+    "mergeStateStatus=CLEAN",
+    "reviewDecision=REVIEW_REQUIRED",
+    "isDraft=false",
+    "",
+  ].join("\n");
+  const reviewStore = createMemoryStore();
+  reviewStore.put({
+    schema: "hebmu.sealed-shipping.v1",
+    owner: "o",
+    repo: "r",
+    pr: 40,
+    headRefOid: tip,
+    verdict: "PASS",
+    sealedAt: "2026-11-08T00:00:00.000Z",
+  });
+  const assertBlocked = await runEnrichedWatchPr({
+    argv: [
+      "--assert-merge",
+      "--owner",
+      "o",
+      "--repo",
+      "r",
+      "--pr",
+      "40",
+      "--pretty",
+    ],
+    upstreamDir: "/tmp",
+    store: reviewStore,
     runUpstream: () => ({
       stdout: reviewRequiredPretty,
       stderr: "",
@@ -1324,6 +1641,7 @@ async function runMergeDispositionHarness() {
       prView: () => ({
         baseRefName: "main",
         reviewDecision: "REVIEW_REQUIRED",
+        headRefOid: tip,
       }),
     },
     io: {
@@ -1333,10 +1651,10 @@ async function runMergeDispositionHarness() {
   });
   assert(
     assertBlocked === 3,
-    `assert review-required + PASS exit ${assertBlocked}`,
+    `assert review-required + sealed PASS exit ${assertBlocked}`,
   );
   console.log(
-    "ok  --assert-merge review-required + --shipping-verdict PASS → exit 3",
+    "ok  --assert-merge review-required + matching sealed PASS → exit 3",
   );
 
   const stripped = stripHebmuMergeArgv([
@@ -1384,6 +1702,7 @@ async function runMergeDispositionHarness() {
       "--pretty",
     ],
     upstreamDir: "/tmp",
+    store: createMemoryStore(),
     runUpstream: (_dir, argv) => {
       capturedUpstreamArgv = [...argv];
       return {
@@ -1394,7 +1713,11 @@ async function runMergeDispositionHarness() {
     },
     gh: {
       api: () => ({ status: 404, body: { message: "Not Found" } }),
-      prView: () => ({ baseRefName: "main", reviewDecision: null }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: null,
+        headRefOid: tip,
+      }),
     },
     io: {
       stdout: () => {},
