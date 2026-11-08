@@ -111,6 +111,11 @@ protectionRequiredApprovals=1
 `ci-only` (with `reviewClearanceReason` of `unprotected-base` or
 `no-required-reviews`) | `unknown` (with `reviewClearanceDetail`).
 
+On this repo's unprotected `main`, a live READY/STATUS prove usually hits only
+`ci-only` / `unprotected-base`. The other discriminants are proven by the
+recorded multi-class harness inside `--self-test` (mocked `gh` protection and
+`reviewDecision`), not by ambient forge state.
+
 ### JSON READY / STATUS (sidecar)
 
 Without `--pretty`, the upstream READY or STATUS JSON line is left unchanged.
@@ -128,3 +133,7 @@ Parsers that only read line 1 keep working. Agents that need clearance read the
 ```bash
 node scripts/watch-pr-clearance.mjs --self-test
 ```
+
+Self-test covers classify cases, STATUS/READY parse fixtures, and the
+discriminant harness (`approved`, `review-required`, `changes-requested`, both
+`ci-only` reasons, and both `unknown` shapes).
