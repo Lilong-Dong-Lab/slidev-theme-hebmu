@@ -24,10 +24,12 @@ import {
   parseAttestationFromArgv,
 } from "./merge-policy.mjs";
 import {
-  loadVerifierSigningKeyFromEnv,
+  forgeLegacyHmacWireForTest,
+  generateSealKeyPairForTest,
+  loadSealVerifyKeyFromEnv,
   mintVerifierBoundAttestation,
-  signingKeyFromTestSecret,
-} from "./attestation-mac.mjs";
+  refuseSealMintKeyInAssertEnv,
+} from "./attestation-crypto.mjs";
 import {
   createVerifyingFsStore,
   createVerifyingMemoryStore,
@@ -48,17 +50,27 @@ import {
   defaultLastObserveDir,
 } from "./last-observe-store.mjs";
 
-/** Self-test HMAC material — not a production secret. */
-const SELF_TEST_SEAL_KEY = signingKeyFromTestSecret(
-  "hebmu-watch-pr-clearance-self-test-key",
-);
+/** Self-test Ed25519 pair — not production secrets. */
+const SELF_TEST_KEYS = generateSealKeyPairForTest();
+const SELF_TEST_MINT_KEY = SELF_TEST_KEYS.mintKey;
+const SELF_TEST_VERIFY_KEY = SELF_TEST_KEYS.verifyKey;
 
 /**
  * @returns {import("./attestation-store.mjs").MemoryAttestationStore}
  */
 function selfTestStore() {
-  return createVerifyingMemoryStore(SELF_TEST_SEAL_KEY);
+  return createVerifyingMemoryStore(SELF_TEST_VERIFY_KEY);
 }
+
+/** Observe stub: no seal I/O, no key load. */
+const OBSERVE_STORE_STUB = {
+  put() {
+    throw new Error("watch-pr-clearance: observe path must not write seals");
+  },
+  get() {
+    return null;
+  },
+};
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(SCRIPT_DIR, "..");
@@ -830,22 +842,34 @@ export async function runEnrichedWatchPr(args) {
 
   const evidence = parseEnrichEvidenceFromStdout(result.stdout, repoPr);
   const assertMerge = wantsAssertMerge(args.argv);
-  // Observe never reads seals (ADR 0003). Assert loads verifying FS store + key.
-  const store =
-    args.store ??
-    (assertMerge
-      ? createVerifyingFsStore(
-          defaultSealedShippingDir(REPO_ROOT),
-          loadVerifierSigningKeyFromEnv(process.env),
-        )
-      : {
-          put() {
-            throw new Error("watch-pr-clearance: observe path must not write seals");
-          },
-          get() {
-            return null;
-          },
-        });
+  // Observe never reads seals (ADR 0003). Load verify key only when store.get
+  // runs so --merge-override works with no seal env.
+  /** @type {import("./attestation-store.mjs").AttestationStore | undefined} */
+  let cachedStore = args.store;
+  /**
+   * @returns {import("./attestation-store.mjs").AttestationStore}
+   */
+  function ensureStore() {
+    if (cachedStore) return cachedStore;
+    if (!assertMerge) {
+      cachedStore = OBSERVE_STORE_STUB;
+      return cachedStore;
+    }
+    refuseSealMintKeyInAssertEnv(process.env);
+    cachedStore = createVerifyingFsStore(
+      defaultSealedShippingDir(REPO_ROOT),
+      loadSealVerifyKeyFromEnv(process.env),
+    );
+    return cachedStore;
+  }
+  const store = {
+    put(artifact) {
+      return ensureStore().put(artifact);
+    },
+    get(key) {
+      return ensureStore().get(key);
+    },
+  };
   const lastObserveStore =
     args.lastObserveStore ??
     (!assertMerge
@@ -2011,6 +2035,67 @@ async function runMergeDispositionHarness() {
     "ok  lander-mintable forged JSON → reject (require-attestation/2)",
   );
 
+  // #58: tip-matching PASS minted with shared HMAC only → require-attestation/2
+  const landerSharedKeyStore = selfTestStore();
+  landerSharedKeyStore.putRawForTest(
+    forgeLegacyHmacWireForTest(
+      {
+        owner: "o",
+        repo: "r",
+        pr: 40,
+        headRefOid: tip,
+        verdict: "PASS",
+        sealedAt: "2026-11-08T00:00:00.000Z",
+      },
+      "lander-also-holds-this-shared-hmac",
+    ),
+  );
+  assert(
+    landerSharedKeyStore.get({ owner: "o", repo: "r", pr: 40 }) === null,
+    "#58 lander-with-shared-key → null at store.get",
+  );
+  const assertLanderSharedKey = await runEnrichedWatchPr({
+    argv: [
+      "--assert-merge",
+      "--owner",
+      "o",
+      "--repo",
+      "r",
+      "--pr",
+      "40",
+      "--pretty",
+    ],
+    upstreamDir: "/tmp",
+    store: landerSharedKeyStore,
+    runUpstream: () => ({
+      stdout: prettyCiOnlyReady,
+      stderr: "",
+      exitCode: 0,
+    }),
+    gh: {
+      api: () => ({
+        status: 404,
+        body: { message: "Branch not protected" },
+      }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: null,
+        headRefOid: tip,
+      }),
+    },
+    io: {
+      stdout: () => {},
+      stderr: () => {},
+    },
+  });
+  assert(
+    assertLanderSharedKey === 2,
+    `#58 lander-with-shared-key → require-attestation exit ${assertLanderSharedKey}`,
+  );
+  console.log(
+    "ok  #58 lander-with-shared-key → reject (require-attestation/2)",
+  );
+
   const matchStore = selfTestStore();
   matchStore.put(
     mintVerifierBoundAttestation(
@@ -2022,7 +2107,7 @@ async function runMergeDispositionHarness() {
         verdict: "PASS",
         sealedAt: "2026-11-08T00:00:00.000Z",
       },
-      SELF_TEST_SEAL_KEY,
+      SELF_TEST_MINT_KEY,
     ),
   );
   const assertMatch = await runEnrichedWatchPr({
@@ -2075,7 +2160,7 @@ async function runMergeDispositionHarness() {
         verdict: "PASS",
         sealedAt: "2026-11-08T00:00:00.000Z",
       },
-      SELF_TEST_SEAL_KEY,
+      SELF_TEST_MINT_KEY,
     ),
   );
   const assertStale = await runEnrichedWatchPr({
@@ -2197,6 +2282,124 @@ async function runMergeDispositionHarness() {
   assert(assertOverride === 0, `assert override exit ${assertOverride}`);
   console.log("ok  --assert-merge ci-only + override → exit 0 without store");
 
+  {
+    const savedMint = process.env.HEBMU_SEAL_MINT_KEY;
+    const savedVerify = process.env.HEBMU_SEAL_VERIFY_KEY;
+    const savedHmac = process.env.HEBMU_SEAL_HMAC_KEY;
+    delete process.env.HEBMU_SEAL_MINT_KEY;
+    delete process.env.HEBMU_SEAL_VERIFY_KEY;
+    delete process.env.HEBMU_SEAL_HMAC_KEY;
+    try {
+      const overrideNoSealEnv = await runEnrichedWatchPr({
+        argv: [
+          "--assert-merge",
+          "--merge-override",
+          "alice",
+          "--merge-override-reason",
+          "emergency",
+          "--owner",
+          "o",
+          "--repo",
+          "r",
+          "--pr",
+          "40",
+          "--pretty",
+        ],
+        upstreamDir: "/tmp",
+        // no store inject — prod lazy path
+        runUpstream: () => ({
+          stdout: prettyCiOnlyReady,
+          stderr: "",
+          exitCode: 0,
+        }),
+        gh: {
+          api: () => ({
+            status: 404,
+            body: { message: "Branch not protected" },
+          }),
+          prView: () => ({
+            baseRefName: "main",
+            reviewDecision: null,
+            headRefOid: tip,
+          }),
+        },
+        io: {
+          stdout: () => {},
+          stderr: () => {},
+        },
+      });
+      assert(
+        overrideNoSealEnv === 0,
+        `#58 override without seal env exit ${overrideNoSealEnv}`,
+      );
+      console.log(
+        "ok  #58 --merge-override works with no seal env (lazy verify-key)",
+      );
+    } finally {
+      if (savedMint === undefined) delete process.env.HEBMU_SEAL_MINT_KEY;
+      else process.env.HEBMU_SEAL_MINT_KEY = savedMint;
+      if (savedVerify === undefined) delete process.env.HEBMU_SEAL_VERIFY_KEY;
+      else process.env.HEBMU_SEAL_VERIFY_KEY = savedVerify;
+      if (savedHmac === undefined) delete process.env.HEBMU_SEAL_HMAC_KEY;
+      else process.env.HEBMU_SEAL_HMAC_KEY = savedHmac;
+    }
+  }
+
+  // #58: assert refuses when mint key still present (direct watch-pr --assert-merge)
+  {
+    const savedMint = process.env.HEBMU_SEAL_MINT_KEY;
+    const savedVerify = process.env.HEBMU_SEAL_VERIFY_KEY;
+    process.env.HEBMU_SEAL_MINT_KEY = "should-refuse";
+    delete process.env.HEBMU_SEAL_VERIFY_KEY;
+    let mintRefuseThrew = false;
+    try {
+      await runEnrichedWatchPr({
+        argv: [
+          "--assert-merge",
+          "--owner",
+          "o",
+          "--repo",
+          "r",
+          "--pr",
+          "40",
+          "--pretty",
+        ],
+        upstreamDir: "/tmp",
+        runUpstream: () => ({
+          stdout: prettyCiOnlyReady,
+          stderr: "",
+          exitCode: 0,
+        }),
+        gh: {
+          api: () => ({
+            status: 404,
+            body: { message: "Branch not protected" },
+          }),
+          prView: () => ({
+            baseRefName: "main",
+            reviewDecision: null,
+            headRefOid: tip,
+          }),
+        },
+        io: {
+          stdout: () => {},
+          stderr: () => {},
+        },
+      });
+    } catch (err) {
+      mintRefuseThrew =
+        err instanceof Error &&
+        err.message.includes("HEBMU_SEAL_MINT_KEY must not be set");
+    } finally {
+      if (savedMint === undefined) delete process.env.HEBMU_SEAL_MINT_KEY;
+      else process.env.HEBMU_SEAL_MINT_KEY = savedMint;
+      if (savedVerify === undefined) delete process.env.HEBMU_SEAL_VERIFY_KEY;
+      else process.env.HEBMU_SEAL_VERIFY_KEY = savedVerify;
+    }
+    assert(mintRefuseThrew, "#58 assert refuses mint key in env");
+    console.log("ok  #58 assert refuses HEBMU_SEAL_MINT_KEY in env");
+  }
+
   const reviewRequiredPretty = [
     "READY: no merge conflicts, no unresolved review threads, no failing or pending checks",
     "mergeStateStatus=CLEAN",
@@ -2215,7 +2418,7 @@ async function runMergeDispositionHarness() {
         verdict: "PASS",
         sealedAt: "2026-11-08T00:00:00.000Z",
       },
-      SELF_TEST_SEAL_KEY,
+      SELF_TEST_MINT_KEY,
     ),
   );
   const assertBlocked = await runEnrichedWatchPr({

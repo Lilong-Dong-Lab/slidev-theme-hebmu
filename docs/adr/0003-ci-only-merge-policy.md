@@ -11,12 +11,18 @@ and not a permanent block. A sealed `FAIL` is `attestation-rejected` (exit 3).
 
 Honor-system `--shipping-verdict PASS` is removed (issue #47). Assert never
 treats that flag as a valid attestation. Verifiers mint
-`hebmu.sealed-shipping.v2` (required `mac` over tip-bound claims) under
-`.git/hebmu/sealed-shipping/` via `npm run seal-shipping` with
-`HEBMU_SEAL_HMAC_KEY` (issue #52). Assert loads a verifying store: unsigned,
-v1, or forged MAC yields null (same as missing). A lander-writable JSON file
-alone is not proof. Allow requires verifier-bound PASS ∧ live `headRefOid`
-match (or `--merge-override`).
+`hebmu.sealed-shipping.v3` (required Ed25519 `sig` over tip-bound claims)
+under `.git/hebmu/sealed-shipping/` via `npm run seal-shipping` with
+`HEBMU_SEAL_MINT_KEY` (issue #58). Assert / land load **verify-only**
+`HEBMU_SEAL_VERIFY_KEY`; mint material must not be present in the assert env
+(`land-pr` scrubs it). Shared `HEBMU_SEAL_HMAC_KEY` (#52) is retired —
+loaders reject it; a tip-matching v2 HMAC wire the lander alone could mint
+is null at `store.get`. Unsigned, forged, or wrong-key wires yield null
+(same as missing). Local JSON alone is not proof. Allow requires
+verifier-bound PASS ∧ live `headRefOid` match (or `--merge-override`).
+Stolen mint keys remain an accepted residual risk; remote check-run
+identity is a named follow-up if mint must be forge-bound outside the
+machine.
 
 The gate lives behind `--assert-merge`. The default observe path
 (`./scripts/watch-pr` without that flag) still returns upstream exit so

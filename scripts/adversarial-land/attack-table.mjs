@@ -219,11 +219,16 @@ export const ATTACKS = Object.freeze([
 
   {
     id: "forged-seal",
-    title: "unsigned/forged lander JSON must not clear ci-only",
+    title:
+      "unsigned/forged/legacy-HMAC lander JSON must not clear ci-only (#58)",
     async run(ctx) {
       /** @type {number[]} */
       const exits = [];
-      for (const kind of /** @type {const} */ (["unsigned", "forged-mac"])) {
+      for (const kind of /** @type {const} */ ([
+        "unsigned",
+        "forged-mac",
+        "legacy-hmac",
+      ])) {
         const store = ctx.freshStore();
         ctx.fixtures.putForgedOrUnsigned(store, kind);
         const got = store.get({
@@ -258,7 +263,8 @@ export const ATTACKS = Object.freeze([
       return {
         id: "forged-seal",
         outcome: "denied",
-        detail: "assert exit 2 (unsigned + forged-mac; store get null)",
+        detail:
+          "assert exit 2 (unsigned + forged-mac + legacy-hmac; store get null)",
         evidence: { exitCode: exits[0] },
       };
     },
