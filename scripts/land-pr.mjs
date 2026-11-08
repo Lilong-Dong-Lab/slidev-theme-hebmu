@@ -5,8 +5,8 @@
  * Always runs ./scripts/watch-pr --assert-merge before gh pr merge.
  * Observe READY/STATUS exit 0 is never merge clearance.
  * On ci-only, assert reads a verifier-bound sealed-shipping artifact
- * (seal-shipping CLI + HEBMU_SEAL_HMAC_KEY); bare --shipping-verdict is
- * rejected at parse.
+ * (seal-shipping mint + HEBMU_SEAL_VERIFY_KEY on land); bare --shipping-verdict
+ * is rejected at parse. Assert child env never inherits HEBMU_SEAL_MINT_KEY.
  *
  * Usage:
  *   npm run land-pr -- --owner … --repo … --pr <n> [--dry-run]
@@ -16,6 +16,7 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { HEBMU_SEAL_MINT_KEY_ENV } from "./attestation-crypto.mjs";
 import { stdoutHasHebmuClearance } from "./clearance-presence.mjs";
 import { evaluateLastObservePreflight } from "./last-observe-preflight.mjs";
 import {
@@ -240,6 +241,20 @@ export function mintPermitFromAssertSession(args) {
 }
 
 /**
+ * Assert child must be verify-only: scrub mint even if the land shell still
+ * has HEBMU_SEAL_MINT_KEY exported after seal-then-land in one session.
+ *
+ * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env
+ * @returns {NodeJS.ProcessEnv}
+ */
+export function scrubMintKeyFromAssertEnv(env) {
+  /** @type {NodeJS.ProcessEnv} */
+  const out = { ...env };
+  delete out[HEBMU_SEAL_MINT_KEY_ENV];
+  return out;
+}
+
+/**
  * @param {PrTarget} target
  * @param {AssertPassthrough} passthrough
  * @returns {Promise<ProcResult>}
@@ -249,7 +264,7 @@ export async function defaultRunAssert(target, passthrough) {
   const r = spawnSync(WATCH_PR, argv, {
     encoding: "utf8",
     cwd: REPO_ROOT,
-    env: process.env,
+    env: scrubMintKeyFromAssertEnv(process.env),
   });
   return {
     exitCode: r.status === null ? 1 : r.status,
@@ -660,6 +675,32 @@ export async function runLandSelfTest() {
     const src = readFileSync(new URL("./land-pr.mjs", import.meta.url), "utf8");
     const legacyMint = ["mintPermit", "FromAssertExit"].join("");
     assertSelf("exit-only assert mint removed", !src.includes(legacyMint));
+  }
+
+  {
+    const scrubbed = scrubMintKeyFromAssertEnv({
+      HEBMU_SEAL_MINT_KEY: "must-not-forward",
+      HEBMU_SEAL_VERIFY_KEY: "keep-verify",
+      PATH: "/usr/bin",
+    });
+    assertSelf(
+      "#58 scrubMintKeyFromAssertEnv drops mint",
+      scrubbed.HEBMU_SEAL_MINT_KEY === undefined,
+    );
+    assertSelf(
+      "#58 scrubMintKeyFromAssertEnv keeps verify",
+      scrubbed.HEBMU_SEAL_VERIFY_KEY === "keep-verify",
+    );
+    assertSelf(
+      "#58 scrubMintKeyFromAssertEnv keeps PATH",
+      scrubbed.PATH === "/usr/bin",
+    );
+    assertSelf(
+      "#58 defaultRunAssert uses scrubMintKeyFromAssertEnv",
+      defaultRunAssert
+        .toString()
+        .includes("scrubMintKeyFromAssertEnv"),
+    );
   }
 
   // --- #54 last-observe preflight (before runAssert) ---
