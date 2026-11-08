@@ -27,6 +27,23 @@ review/protection clearance.
 Override the watcher directory with `HEBMU_WATCH_PR_DIR` if your skills live
 elsewhere.
 
+## Wrapper boundary (blast radius)
+
+Clearance is **hebmu-wrapper-only**. Upstream poteto-mode `watch-pr` does not
+emit `reviewClearance` or `protection`. This theme does not vendor or patch
+that upstream from the package.
+
+| Path | Clearance |
+| --- | --- |
+| `./scripts/watch-pr` or `npm run watch-pr` from this repo | Attached on READY and STATUS |
+| Personal `~/.cursor/skills/poteto-mode/scripts/watch-pr` (bare) | None |
+| pstack plugin-cache `watch-pr` (bare) | None |
+| Cursor built-in babysit skill that invokes upstream without this wrapper | None |
+
+For this repo, treat a bare upstream READY/STATUS as CI-thread green only.
+Read the hebmu clearance block (or `hebmu.clearance.v1` sidecar) before calling
+a PR review-cleared. Decision record: `docs/adr/0002-hebmu-watch-pr-clearance-boundary.md`.
+
 ## Drive vs check
 
 - One-shot status: add `--status-only` (emits STATUS; clearance still attaches).
