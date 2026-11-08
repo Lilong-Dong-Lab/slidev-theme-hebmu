@@ -54,6 +54,29 @@ When the wrapper cannot run, measure merge-ready from `gh` mergeable / checks /
 unresolved threads, say the watcher was skipped, and do not treat a missing
 Bun runtime as a blocker. See the poteto-mode Babysit playbook.
 
+## Merge requires `--assert-merge`
+
+Babysit observe (`./scripts/watch-pr` without `--assert-merge`) attaches
+clearance and keeps the upstream exit. That exit is **not** merge clearance.
+Before `gh pr merge`, run the assert path:
+
+```bash
+./scripts/watch-pr --assert-merge --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --status-only --pretty
+```
+
+On `ci-only`, assert exits `2` (`require-attestation`) until you pass a
+Shipping attestation:
+
+```bash
+./scripts/watch-pr --assert-merge --shipping-verdict PASS \
+  --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --status-only --pretty
+```
+
+Disposition exits: `0` allow, `2` need attestation, `3` block
+(`review-required` / `changes-requested` / `unknown` / rejected attestation).
+Shipping PASS does not clear `review-required`. Policy record:
+`docs/adr/0003-ci-only-merge-policy.md`.
+
 ## READY / STATUS is not review clearance
 
 Upstream `READY` means CI-clean, no unresolved review threads, no merge
@@ -134,6 +157,7 @@ Parsers that only read line 1 keep working. Agents that need clearance read the
 node scripts/watch-pr-clearance.mjs --self-test
 ```
 
-Self-test covers classify cases, STATUS/READY parse fixtures, and the
-discriminant harness (`approved`, `review-required`, `changes-requested`, both
-`ci-only` reasons, and both `unknown` shapes).
+Self-test covers classify cases, STATUS/READY parse fixtures, the discriminant
+harness (`approved`, `review-required`, `changes-requested`, both `ci-only`
+reasons, and both `unknown` shapes), and the merge disposition matrix
+(observe exit passthrough vs `--assert-merge` exits `0` / `2` / `3`).
