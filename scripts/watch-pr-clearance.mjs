@@ -28,6 +28,15 @@ import {
   createMemoryStore,
   defaultSealedShippingDir,
 } from "./attestation-store.mjs";
+import {
+  CLEARANCE_PRETTY_HEADER,
+  CLEARANCE_SCHEMA,
+  advanceAssertPhase,
+  mintClearedVerdict,
+  parseClearancePresence,
+  resolveAssertProcessExit,
+  stdoutHasHebmuClearance,
+} from "./clearance-presence.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(SCRIPT_DIR, "..");
@@ -128,7 +137,7 @@ export function parseProtectionHttp(status, body) {
  * @returns {string}
  */
 export function formatClearancePretty(clearance, protection) {
-  const lines = ["--- hebmu clearance ---", `reviewClearance=${clearance.kind}`];
+  const lines = [CLEARANCE_PRETTY_HEADER, `reviewClearance=${clearance.kind}`];
   if (clearance.kind === "ci-only") {
     lines.push(`reviewClearanceReason=${clearance.reason}`);
   }
@@ -156,10 +165,7 @@ export function formatClearancePretty(clearance, protection) {
  * @returns {string}
  */
 export function appendClearanceToPretty(prettyStdout, clearance, protection) {
-  if (
-    /^reviewClearance=/m.test(prettyStdout) ||
-    /--- hebmu clearance ---/.test(prettyStdout)
-  ) {
+  if (stdoutHasHebmuClearance(prettyStdout)) {
     return prettyStdout;
   }
   const hasReady = /^READY:/m.test(prettyStdout);
@@ -184,7 +190,7 @@ export function appendClearanceToPretty(prettyStdout, clearance, protection) {
  */
 export function buildClearanceSidecar(args) {
   return {
-    schema: "hebmu.clearance.v1",
+    schema: CLEARANCE_SCHEMA,
     pr: args.pr,
     verdictKind: args.verdictKind,
     clearance: args.clearance,
@@ -766,6 +772,7 @@ export function resolveMergeAttestation(args) {
  *   };
  *   store?: import("./attestation-store.mjs").AttestationStore;
  *   io?: { stdout: (s: string) => void; stderr: (s: string) => void };
+ *   attachClearance?: boolean;
  * }} args
  * @returns {Promise<number>}
  */
@@ -778,6 +785,8 @@ export async function runEnrichedWatchPr(args) {
     stdout: (s) => process.stdout.write(s),
     stderr: (s) => process.stderr.write(s),
   };
+  // False only for self-tests that simulate enrich bypass / bare fed to assert.
+  const attachClearance = args.attachClearance !== false;
 
   const upstreamArgv = stripHebmuMergeArgv(args.argv);
   const result = runUpstream(args.upstreamDir, upstreamArgv);
@@ -798,8 +807,25 @@ export async function runEnrichedWatchPr(args) {
   }
 
   const evidence = parseEnrichEvidenceFromStdout(result.stdout, repoPr);
+  const assertMerge = wantsAssertMerge(args.argv);
+
   if (!evidence) {
     if (result.stdout) io.stdout(result.stdout);
+    // Observe: always upstream exit (ADR 0003).
+    // Assert + no-terminal: passthrough. Assert + terminal without
+    // enrich evidence still hard-fails (bare READY/STATUS shaped output).
+    if (assertMerge) {
+      const presence = parseClearancePresence(result.stdout);
+      if (
+        presence.kind === "absent" &&
+        presence.reason === "terminal-without-clearance"
+      ) {
+        io.stderr(
+          "hebmu: missing-clearance (exit 4): READY/STATUS without hebmu clearance markers\n",
+        );
+        return 4;
+      }
+    }
     return result.exitCode;
   }
 
@@ -835,29 +861,34 @@ export async function runEnrichedWatchPr(args) {
     protection,
   });
 
-  if (evidence.mode === "pretty" || repoPr.pretty) {
-    io.stdout(
-      appendClearanceToPretty(result.stdout, clearance, protection),
-    );
-  } else {
-    const sidecar = buildClearanceSidecar({
-      pr: evidence.pr,
-      verdictKind: evidence.kind,
-      clearance,
-      protection,
-      reviewDecision,
-      baseRefName,
-    });
-    io.stdout(
-      appendSidecarToJsonStdout(
+  /** @type {string} */
+  let finalStdout = result.stdout;
+  if (attachClearance) {
+    if (evidence.mode === "pretty" || repoPr.pretty) {
+      finalStdout = appendClearanceToPretty(
+        result.stdout,
+        clearance,
+        protection,
+      );
+    } else {
+      const sidecar = buildClearanceSidecar({
+        pr: evidence.pr,
+        verdictKind: evidence.kind,
+        clearance,
+        protection,
+        reviewDecision,
+        baseRefName,
+      });
+      finalStdout = appendSidecarToJsonStdout(
         result.stdout,
         evidence.lineIndex,
         sidecar,
-      ),
-    );
+      );
+    }
   }
+  io.stdout(finalStdout);
 
-  if (!wantsAssertMerge(args.argv)) {
+  if (!assertMerge) {
     return result.exitCode;
   }
 
@@ -873,13 +904,61 @@ export async function runEnrichedWatchPr(args) {
     repo: evidence.repo,
     pr: evidence.pr,
   });
-  const decision = evaluateMergeDisposition({
+
+  const presence = parseClearancePresence(finalStdout);
+  if (
+    presence.kind === "absent" &&
+    presence.reason === "no-terminal-verdict"
+  ) {
+    return result.exitCode;
+  }
+
+  const outcome = advanceAssertPhase({
+    presence,
     clearance,
     attestation,
     headRefOid,
   });
-  io.stderr(formatDispositionPretty(decision));
-  return decision.exitCode;
+  if (outcome.kind === "missing-clearance") {
+    io.stderr(
+      `hebmu: missing-clearance (exit 4): ${outcome.detail}\n`,
+    );
+    return outcome.exitCode;
+  }
+  io.stderr(formatDispositionPretty(outcome.decision));
+  return outcome.decision.exitCode;
+}
+
+/**
+ * Thin alias over runEnrichedWatchPr for session-shaped call sites.
+ *
+ * @param {{
+ *   mode?: "observe" | "assert";
+ *   argv: readonly string[];
+ *   upstreamDir: string;
+ *   runUpstream?: typeof defaultRunUpstream;
+ *   gh?: {
+ *     api: (path: string) => { status: number; body: unknown };
+ *     prView: (
+ *       repo: { owner: string; repo: string },
+ *       pr: number,
+ *       fields: readonly string[],
+ *     ) => Record<string, unknown>;
+ *   };
+ *   store?: import("./attestation-store.mjs").AttestationStore;
+ *   io?: { stdout: (s: string) => void; stderr: (s: string) => void };
+ * }} args
+ * @returns {Promise<number>}
+ */
+export async function runWatchSession(args) {
+  /** @type {string[]} */
+  let argv = [...args.argv];
+  if (args.mode === "assert" && !wantsAssertMerge(argv)) {
+    argv = ["--assert-merge", ...argv];
+  } else if (args.mode === "observe" && wantsAssertMerge(argv)) {
+    argv = argv.filter((a) => a !== "--assert-merge");
+  }
+  return runEnrichedWatchPr({ ...args, argv });
 }
 
 // ---------------------------------------------------------------------------
@@ -1133,8 +1212,236 @@ async function runSelfTest() {
 
   await runDiscriminantHarness();
   await runMergeDispositionHarness();
+  await runWrapperOnlyPresenceHarness();
 
   console.log("\nself-test: all passed");
+}
+
+/**
+ * #48: bare READY/STATUS cannot assert-clear; missing clearance → exit 4.
+ */
+async function runWrapperOnlyPresenceHarness() {
+  const tip = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+  const bareReady = [
+    "READY: no merge conflicts, no unresolved review threads, no failing or pending checks",
+    "mergeStateStatus=CLEAN",
+    "reviewDecision=null",
+    "isDraft=false",
+    "",
+  ].join("\n");
+
+  const barePresence = parseClearancePresence(bareReady);
+  assert(
+    barePresence.kind === "absent" &&
+      barePresence.reason === "terminal-without-clearance",
+    "bare READY presence absent/terminal-without-clearance",
+  );
+  const bareOutcome = advanceAssertPhase({
+    presence: barePresence,
+    clearance: null,
+    attestation: null,
+    headRefOid: tip,
+  });
+  assert(
+    bareOutcome.kind === "missing-clearance" && bareOutcome.exitCode === 4,
+    `assert bare READY outcome ${JSON.stringify(bareOutcome)}`,
+  );
+  assert(
+    resolveAssertProcessExit({
+      stdout: bareReady,
+      upstreamExit: 0,
+      clearance: null,
+      attestation: null,
+      headRefOid: tip,
+    }) === 4,
+    "assert bare READY process exit 4",
+  );
+  const bareProcessExit = await runEnrichedWatchPr({
+    argv: [
+      "--assert-merge",
+      "--owner",
+      "o",
+      "--repo",
+      "r",
+      "--pr",
+      "48",
+      "--pretty",
+    ],
+    upstreamDir: "/tmp",
+    store: createMemoryStore(),
+    attachClearance: false,
+    runUpstream: () => ({
+      stdout: bareReady,
+      stderr: "",
+      exitCode: 0,
+    }),
+    gh: {
+      api: () => ({
+        status: 404,
+        body: { message: "Branch not protected" },
+      }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: null,
+        headRefOid: tip,
+      }),
+    },
+    io: { stdout: () => {}, stderr: () => {} },
+  });
+  assert(
+    bareProcessExit === 4,
+    `assert bare READY runEnrichedWatchPr exit ${bareProcessExit}`,
+  );
+  console.log("ok  assert bare READY (no hebmu markers) → exit 4");
+
+  const bareReadyJson = JSON.stringify({
+    kind: "READY",
+    exitCode: 0,
+    scope: {
+      kind: "single",
+      pr: {
+        kind: "ready-pr",
+        context: { owner: "o", repo: "r", number: 48 },
+        proof: { gate: { reviewDecision: null } },
+      },
+    },
+  });
+  assert(
+    resolveAssertProcessExit({
+      stdout: bareReadyJson + "\n",
+      upstreamExit: 0,
+      attestation: null,
+      headRefOid: tip,
+    }) === 4,
+    "assert bare READY JSON without sidecar → exit 4",
+  );
+  console.log("ok  assert bare READY JSON without sidecar → exit 4");
+
+  const enrichedPretty = appendClearanceToPretty(
+    bareReady,
+    { kind: "ci-only", reason: "unprotected-base" },
+    { kind: "unprotected" },
+  );
+  const enrichedPresence = parseClearancePresence(enrichedPretty);
+  assert(enrichedPresence.kind === "present", "enriched pretty present");
+  assert(
+    parseClearancePresence(enrichedPretty).kind === "present",
+    "parseClearancePresence idempotent on enriched pretty",
+  );
+  assert(enrichedPresence.kind === "present", "enriched presence for mint");
+  const cleared = mintClearedVerdict({
+    presence: enrichedPresence,
+    upstreamExit: 0,
+  });
+  assert(cleared.__brand === "HebmuClearedVerdict", "cleared verdict brand");
+  console.log("ok  parseClearancePresence present + mintClearedVerdict");
+
+  assert(
+    resolveAssertProcessExit({
+      stdout: "waiting on checks…\n",
+      upstreamExit: 7,
+      attestation: null,
+      headRefOid: tip,
+    }) === 7,
+    "assert no-terminal passthrough upstream exit",
+  );
+  console.log("ok  assert no-terminal-verdict passthrough upstream exit");
+
+  // Wire-live: STATUS JSON with empty rows is terminal-shaped but not enrichable.
+  const emptyStatusJson = JSON.stringify({ kind: "STATUS", rows: [] }) + "\n";
+  const emptyStatusCode = await runEnrichedWatchPr({
+    argv: [
+      "--assert-merge",
+      "--owner",
+      "o",
+      "--repo",
+      "r",
+      "--pr",
+      "48",
+    ],
+    upstreamDir: "/tmp",
+    store: createMemoryStore(),
+    runUpstream: () => ({
+      stdout: emptyStatusJson,
+      stderr: "",
+      exitCode: 0,
+    }),
+    gh: {
+      api: () => ({ status: 404, body: { message: "Not Found" } }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: null,
+        headRefOid: tip,
+      }),
+    },
+    io: { stdout: () => {}, stderr: () => {} },
+  });
+  assert(
+    emptyStatusCode === 4,
+    `assert terminal without enrich evidence exit ${emptyStatusCode}`,
+  );
+  console.log("ok  assert terminal-without-clearance via runEnrichedWatchPr → 4");
+
+  /** @type {string[]} */
+  const approvedOut = [];
+  const approvedStore = createMemoryStore();
+  const approvedPretty = [
+    "READY: no merge conflicts, no unresolved review threads, no failing or pending checks",
+    "mergeStateStatus=CLEAN",
+    "reviewDecision=APPROVED",
+    "isDraft=false",
+    "",
+  ].join("\n");
+  const approvedCode = await runEnrichedWatchPr({
+    argv: [
+      "--assert-merge",
+      "--owner",
+      "o",
+      "--repo",
+      "r",
+      "--pr",
+      "48",
+      "--pretty",
+    ],
+    upstreamDir: "/tmp",
+    store: approvedStore,
+    runUpstream: () => ({
+      stdout: approvedPretty,
+      stderr: "",
+      exitCode: 0,
+    }),
+    gh: {
+      api: () => ({
+        status: 200,
+        body: {
+          required_pull_request_reviews: {
+            required_approving_review_count: 1,
+          },
+        },
+      }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: "APPROVED",
+        headRefOid: tip,
+      }),
+    },
+    io: {
+      stdout: (s) => approvedOut.push(s),
+      stderr: () => {},
+    },
+  });
+  assert(approvedCode === 0, `assert approved path exit ${approvedCode}`);
+  assert(
+    stdoutHasHebmuClearance(approvedOut.join("")),
+    "assert approved stdout has clearance",
+  );
+  console.log("ok  assert enriched approved path → exit 0");
+
+  const { readFileSync } = await import("node:fs");
+  const landSrc = readFileSync(join(SCRIPT_DIR, "land-pr.mjs"), "utf8");
+  const legacyMint = ["mintPermit", "FromAssertExit"].join("");
+  assert(!landSrc.includes(legacyMint), "land-pr exit-only mint removed");
+  console.log("ok  no remaining callers of exit-only assert mint");
 }
 
 async function runMergeDispositionHarness() {
