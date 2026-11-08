@@ -42,6 +42,11 @@ import {
   resolveAssertProcessExit,
   stdoutHasHebmuClearance,
 } from "./clearance-presence.mjs";
+import {
+  buildLastObserveReceipt,
+  createFsLastObserveStore,
+  defaultLastObserveDir,
+} from "./last-observe-store.mjs";
 
 /** Self-test HMAC material — not a production secret. */
 const SELF_TEST_SEAL_KEY = signingKeyFromTestSecret(
@@ -788,6 +793,7 @@ export function resolveMergeAttestation(args) {
  *     ) => Record<string, unknown>;
  *   };
  *   store?: import("./attestation-store.mjs").AttestationStore;
+ *   lastObserveStore?: import("./last-observe-store.mjs").LastObserveStore;
  *   io?: { stdout: (s: string) => void; stderr: (s: string) => void };
  *   attachClearance?: boolean;
  * }} args
@@ -812,6 +818,7 @@ export async function runEnrichedWatchPr(args) {
     repoPr = parseRepoPrFromArgv(args.argv);
   } catch (err) {
     // Upstream already ran; pass stdout through and keep its exit code.
+    // No target → no last-observe receipt (argv parse failure).
     if (result.stdout) io.stdout(result.stdout);
     if (!result.stderr) {
       io.stderr(
@@ -839,6 +846,42 @@ export async function runEnrichedWatchPr(args) {
             return null;
           },
         });
+  const lastObserveStore =
+    args.lastObserveStore ??
+    (!assertMerge
+      ? createFsLastObserveStore(defaultLastObserveDir(REPO_ROOT))
+      : null);
+
+  /**
+   * Observe side-write (#54). Positive + negative. Never remaps exit.
+   * @param {string} stdoutForPresence
+   * @param {number} upstreamExit
+   */
+  function putLastObserveReceipt(stdoutForPresence, upstreamExit) {
+    if (assertMerge || !lastObserveStore) return;
+    try {
+      const presence = parseClearancePresence(stdoutForPresence);
+      const headRefOid = resolveHeadRefOid(
+        gh,
+        { owner: repoPr.owner, repo: repoPr.repo },
+        repoPr.pr,
+      );
+      const receipt = buildLastObserveReceipt({
+        target: { owner: repoPr.owner, repo: repoPr.repo, pr: repoPr.pr },
+        presence,
+        upstreamExit,
+        headRefOid,
+        observedAt: new Date().toISOString(),
+      });
+      lastObserveStore.put(receipt);
+    } catch (err) {
+      io.stderr(
+        `hebmu: last-observe receipt write failed: ${
+          err instanceof Error ? err.message : String(err)
+        }\n`,
+      );
+    }
+  }
 
   if (!evidence) {
     if (result.stdout) io.stdout(result.stdout);
@@ -856,6 +899,8 @@ export async function runEnrichedWatchPr(args) {
         );
         return 4;
       }
+    } else {
+      putLastObserveReceipt(result.stdout ?? "", result.exitCode);
     }
     return result.exitCode;
   }
@@ -920,6 +965,7 @@ export async function runEnrichedWatchPr(args) {
   io.stdout(finalStdout);
 
   if (!assertMerge) {
+    putLastObserveReceipt(finalStdout, result.exitCode);
     return result.exitCode;
   }
 
@@ -1704,6 +1750,95 @@ async function runMergeDispositionHarness() {
     "observe must not emit disposition",
   );
   console.log("ok  observe path keeps upstream exit 0 for ci-only READY");
+
+  // --- #54 last-observe receipt side-write (exit unchanged) ---
+  {
+    const {
+      createMemoryLastObserveStore,
+    } = await import("./last-observe-store.mjs");
+    const observeStore = createMemoryLastObserveStore();
+    /** @type {string[]} */
+    const out = [];
+    const code = await runEnrichedWatchPr({
+      argv: ["--owner", "o", "--repo", "r", "--pr", "54", "--pretty"],
+      upstreamDir: "/tmp",
+      store: selfTestStore(),
+      lastObserveStore: observeStore,
+      runUpstream: () => ({
+        stdout: prettyCiOnlyReady,
+        stderr: "",
+        exitCode: 0,
+      }),
+      gh: {
+        api: () => ({
+          status: 404,
+          body: { message: "Branch not protected" },
+        }),
+        prView: () => ({
+          baseRefName: "main",
+          reviewDecision: null,
+          headRefOid: tip,
+        }),
+      },
+      io: {
+        stdout: (s) => out.push(s),
+        stderr: () => {},
+      },
+    });
+    assert(code === 0, `observe enriched READY still exit ${code}`);
+    const receipt = observeStore.get({ owner: "o", repo: "r", pr: 54 });
+    assert(receipt !== null, "observe enriched writes last-observe receipt");
+    assert(
+      receipt.markersPresent === true,
+      "observe enriched receipt markersPresent true",
+    );
+    assert(
+      receipt.headRefOid === tip,
+      "observe enriched receipt binds tip when gh resolves",
+    );
+    assert(
+      out.join("").includes("reviewClearance=ci-only"),
+      "observe enriched still prints clearance",
+    );
+    console.log("ok  observe enriched writes markersPresent:true receipt");
+
+    const bareStore = createMemoryLastObserveStore();
+    const bareCode = await runEnrichedWatchPr({
+      argv: ["--owner", "o", "--repo", "r", "--pr", "54", "--pretty"],
+      upstreamDir: "/tmp",
+      store: selfTestStore(),
+      lastObserveStore: bareStore,
+      attachClearance: false,
+      runUpstream: () => ({
+        stdout: prettyCiOnlyReady,
+        stderr: "",
+        exitCode: 0,
+      }),
+      gh: {
+        api: () => ({
+          status: 404,
+          body: { message: "Branch not protected" },
+        }),
+        prView: () => ({
+          baseRefName: "main",
+          reviewDecision: null,
+          headRefOid: tip,
+        }),
+      },
+      io: {
+        stdout: () => {},
+        stderr: () => {},
+      },
+    });
+    assert(bareCode === 0, `observe attachClearance:false still exit ${bareCode}`);
+    const bareReceipt = bareStore.get({ owner: "o", repo: "r", pr: 54 });
+    assert(bareReceipt !== null, "observe bare still writes negative receipt");
+    assert(
+      bareReceipt.markersPresent === false,
+      "observe bare receipt markersPresent false",
+    );
+    console.log("ok  observe bare writes markersPresent:false receipt; exit 0");
+  }
 
   /** @type {string[]} */
   const assertErr = [];
