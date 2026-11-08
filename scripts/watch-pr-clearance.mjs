@@ -9,13 +9,20 @@
  *
  * Usage (via scripts/watch-pr):
  *   ./scripts/watch-pr --owner … --repo … --pr <n> --status-only --pretty
+ *   ./scripts/watch-pr --assert-merge --shipping-verdict PASS --owner … --repo … --pr <n>
  *
- * Self-check (classify + STATUS/READY fixtures + multi-class discriminant harness):
+ * Self-check (classify + STATUS/READY fixtures + multi-class discriminant harness
+ * + merge disposition matrix):
  *   node scripts/watch-pr-clearance.mjs --self-test
  */
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
+import {
+  evaluateMergeDisposition,
+  formatDispositionPretty,
+  parseAttestationFromArgv,
+} from "./merge-policy.mjs";
 
 // ---------------------------------------------------------------------------
 // Pure domain
@@ -184,6 +191,14 @@ export function buildClearanceSidecar(args) {
 // ---------------------------------------------------------------------------
 // Boundary parse
 // ---------------------------------------------------------------------------
+
+/**
+ * @param {readonly string[]} argv
+ * @returns {boolean}
+ */
+export function wantsAssertMerge(argv) {
+  return argv.includes("--assert-merge");
+}
 
 /**
  * @param {readonly string[]} argv
@@ -739,7 +754,15 @@ export async function runEnrichedWatchPr(args) {
     );
   }
 
-  return result.exitCode;
+  // Observe path never remaps exit. Assert path returns disposition exit only.
+  if (!wantsAssertMerge(args.argv)) {
+    return result.exitCode;
+  }
+
+  const attestation = parseAttestationFromArgv(args.argv);
+  const decision = evaluateMergeDisposition({ clearance, attestation });
+  io.stderr(formatDispositionPretty(decision));
+  return decision.exitCode;
 }
 
 // ---------------------------------------------------------------------------
@@ -992,8 +1015,309 @@ async function runSelfTest() {
   console.log("ok  STATUS JSON dual-line with verdictKind STATUS");
 
   await runDiscriminantHarness();
+  await runMergeDispositionHarness();
 
   console.log("\nself-test: all passed");
+}
+
+/**
+ * Disposition matrix + observe/assert exit split (#40).
+ */
+async function runMergeDispositionHarness() {
+  const matrix = [
+    {
+      name: "approved + null → allow/0",
+      clearance: /** @type {ReviewClearance} */ ({ kind: "approved" }),
+      attestation: null,
+      wantDisposition: "allow",
+      wantExit: 0,
+    },
+    {
+      name: "ci-only + null → require-attestation/2",
+      clearance: /** @type {ReviewClearance} */ ({
+        kind: "ci-only",
+        reason: "unprotected-base",
+      }),
+      attestation: null,
+      wantDisposition: "require-attestation",
+      wantExit: 2,
+    },
+    {
+      name: "ci-only + shipping PASS → allow/0",
+      clearance: /** @type {ReviewClearance} */ ({
+        kind: "ci-only",
+        reason: "unprotected-base",
+      }),
+      attestation: /** @type {const} */ ({
+        kind: "shipping-verdict",
+        verdict: "PASS",
+      }),
+      wantDisposition: "allow",
+      wantExit: 0,
+    },
+    {
+      name: "ci-only + shipping FAIL → block/3",
+      clearance: /** @type {ReviewClearance} */ ({
+        kind: "ci-only",
+        reason: "unprotected-base",
+      }),
+      attestation: /** @type {const} */ ({
+        kind: "shipping-verdict",
+        verdict: "FAIL",
+      }),
+      wantDisposition: "block",
+      wantExit: 3,
+      wantReason: "attestation-rejected",
+    },
+    {
+      name: "review-required + shipping PASS → block/3",
+      clearance: /** @type {ReviewClearance} */ ({ kind: "review-required" }),
+      attestation: /** @type {const} */ ({
+        kind: "shipping-verdict",
+        verdict: "PASS",
+      }),
+      wantDisposition: "block",
+      wantExit: 3,
+      wantReason: "review-required",
+    },
+    {
+      name: "changes-requested + null → block/3",
+      clearance: /** @type {ReviewClearance} */ ({ kind: "changes-requested" }),
+      attestation: null,
+      wantDisposition: "block",
+      wantExit: 3,
+      wantReason: "changes-requested",
+    },
+    {
+      name: "unknown + shipping PASS → block/3",
+      clearance: /** @type {ReviewClearance} */ ({
+        kind: "unknown",
+        detail: "HTTP 403",
+      }),
+      attestation: /** @type {const} */ ({
+        kind: "shipping-verdict",
+        verdict: "PASS",
+      }),
+      wantDisposition: "block",
+      wantExit: 3,
+      wantReason: "unknown",
+    },
+  ];
+
+  for (const row of matrix) {
+    const decision = evaluateMergeDisposition({
+      clearance: row.clearance,
+      attestation: row.attestation,
+    });
+    assert(
+      decision.disposition === row.wantDisposition,
+      `${row.name}: disposition ${decision.disposition}`,
+    );
+    assert(
+      decision.exitCode === row.wantExit,
+      `${row.name}: exit ${decision.exitCode}`,
+    );
+    if (row.wantReason) {
+      assert(
+        decision.disposition === "block" && decision.reason === row.wantReason,
+        `${row.name}: reason ${decision.disposition === "block" ? decision.reason : "?"}`,
+      );
+    }
+    const again = evaluateMergeDisposition({
+      clearance: row.clearance,
+      attestation: row.attestation,
+    });
+    assert(
+      JSON.stringify(again) === JSON.stringify(decision),
+      `${row.name}: idempotent`,
+    );
+    console.log(`ok  disposition ${row.name}`);
+  }
+
+  const parsedPass = parseAttestationFromArgv([
+    "--shipping-verdict",
+    "PASS",
+  ]);
+  assert(
+    parsedPass?.kind === "shipping-verdict" && parsedPass.verdict === "PASS",
+    "parse --shipping-verdict PASS",
+  );
+  assert(
+    parseAttestationFromArgv([]) === null,
+    "parse no attestation → null",
+  );
+  console.log("ok  parseAttestationFromArgv PASS / null");
+
+  const prettyCiOnlyReady = [
+    "READY: no merge conflicts, no unresolved review threads, no failing or pending checks",
+    "mergeStateStatus=CLEAN",
+    "reviewDecision=null",
+    "isDraft=false",
+    "",
+  ].join("\n");
+
+  /** @type {string[]} */
+  const observeOut = [];
+  /** @type {string[]} */
+  const observeErr = [];
+  const observeCode = await runEnrichedWatchPr({
+    argv: ["--owner", "o", "--repo", "r", "--pr", "40", "--pretty"],
+    upstreamDir: "/tmp",
+    runUpstream: () => ({
+      stdout: prettyCiOnlyReady,
+      stderr: "",
+      exitCode: 0,
+    }),
+    gh: {
+      api: () => ({
+        status: 404,
+        body: { message: "Branch not protected" },
+      }),
+      prView: () => ({ baseRefName: "main", reviewDecision: null }),
+    },
+    io: {
+      stdout: (s) => observeOut.push(s),
+      stderr: (s) => observeErr.push(s),
+    },
+  });
+  assert(observeCode === 0, `observe ci-only READY exit ${observeCode}`);
+  assert(
+    observeOut.join("").includes("reviewClearance=ci-only"),
+    "observe still enriches clearance",
+  );
+  assert(
+    !observeErr.join("").includes("--- hebmu merge disposition ---"),
+    "observe must not emit disposition",
+  );
+  console.log("ok  observe path keeps upstream exit 0 for ci-only READY");
+
+  /** @type {string[]} */
+  const assertErr = [];
+  const assertNoAttest = await runEnrichedWatchPr({
+    argv: [
+      "--assert-merge",
+      "--owner",
+      "o",
+      "--repo",
+      "r",
+      "--pr",
+      "40",
+      "--pretty",
+    ],
+    upstreamDir: "/tmp",
+    runUpstream: () => ({
+      stdout: prettyCiOnlyReady,
+      stderr: "",
+      exitCode: 0,
+    }),
+    gh: {
+      api: () => ({
+        status: 404,
+        body: { message: "Branch not protected" },
+      }),
+      prView: () => ({ baseRefName: "main", reviewDecision: null }),
+    },
+    io: {
+      stdout: () => {},
+      stderr: (s) => assertErr.push(s),
+    },
+  });
+  assert(
+    assertNoAttest === 2,
+    `assert ci-only no attest exit ${assertNoAttest}`,
+  );
+  assert(
+    assertErr.join("").includes("disposition=require-attestation"),
+    "assert emits require-attestation",
+  );
+  console.log("ok  --assert-merge ci-only without attestation → exit 2");
+
+  const assertPass = await runEnrichedWatchPr({
+    argv: [
+      "--assert-merge",
+      "--shipping-verdict",
+      "PASS",
+      "--owner",
+      "o",
+      "--repo",
+      "r",
+      "--pr",
+      "40",
+      "--pretty",
+    ],
+    upstreamDir: "/tmp",
+    runUpstream: () => ({
+      stdout: prettyCiOnlyReady,
+      stderr: "",
+      exitCode: 0,
+    }),
+    gh: {
+      api: () => ({
+        status: 404,
+        body: { message: "Branch not protected" },
+      }),
+      prView: () => ({ baseRefName: "main", reviewDecision: null }),
+    },
+    io: {
+      stdout: () => {},
+      stderr: () => {},
+    },
+  });
+  assert(assertPass === 0, `assert ci-only + PASS exit ${assertPass}`);
+  console.log("ok  --assert-merge ci-only + --shipping-verdict PASS → exit 0");
+
+  const reviewRequiredPretty = [
+    "READY: no merge conflicts, no unresolved review threads, no failing or pending checks",
+    "mergeStateStatus=CLEAN",
+    "reviewDecision=REVIEW_REQUIRED",
+    "isDraft=false",
+    "",
+  ].join("\n");
+  const assertBlocked = await runEnrichedWatchPr({
+    argv: [
+      "--assert-merge",
+      "--shipping-verdict",
+      "PASS",
+      "--owner",
+      "o",
+      "--repo",
+      "r",
+      "--pr",
+      "40",
+      "--pretty",
+    ],
+    upstreamDir: "/tmp",
+    runUpstream: () => ({
+      stdout: reviewRequiredPretty,
+      stderr: "",
+      exitCode: 0,
+    }),
+    gh: {
+      api: () => ({
+        status: 200,
+        body: {
+          required_pull_request_reviews: {
+            required_approving_review_count: 1,
+          },
+        },
+      }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: "REVIEW_REQUIRED",
+      }),
+    },
+    io: {
+      stdout: () => {},
+      stderr: () => {},
+    },
+  });
+  assert(
+    assertBlocked === 3,
+    `assert review-required + PASS exit ${assertBlocked}`,
+  );
+  console.log(
+    "ok  --assert-merge review-required + --shipping-verdict PASS → exit 3",
+  );
 }
 
 /**
