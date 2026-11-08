@@ -10,7 +10,7 @@
  * Usage (via scripts/watch-pr):
  *   ./scripts/watch-pr --owner … --repo … --pr <n> --status-only --pretty
  *
- * Self-check:
+ * Self-check (classify + STATUS/READY fixtures + multi-class discriminant harness):
  *   node scripts/watch-pr-clearance.mjs --self-test
  */
 import { spawnSync } from "node:child_process";
@@ -750,7 +750,7 @@ function assert(cond, msg) {
   if (!cond) throw new Error(msg);
 }
 
-function runSelfTest() {
+async function runSelfTest() {
   const cases = [
     {
       name: "unprotected + null → ci-only/unprotected-base",
@@ -991,7 +991,193 @@ function runSelfTest() {
   );
   console.log("ok  STATUS JSON dual-line with verdictKind STATUS");
 
+  await runDiscriminantHarness();
+
   console.log("\nself-test: all passed");
+}
+
+/**
+ * Forge-backed multi-class harness (#39).
+ * Ambient live prove on unprotected main only hits ci-only/unprotected-base.
+ * Each advertised reviewClearance kind is exercised through runEnrichedWatchPr
+ * with recorded upstream READY + mocked gh protection/reviewDecision.
+ */
+async function runDiscriminantHarness() {
+  /** @type {ReadonlyArray<{
+   *   name: string;
+   *   reviewDecisionLine: string;
+   *   protectionHttp: { status: number; body: unknown };
+   *   wantClearance: string;
+   *   wantExtra?: string;
+   *   wantProtection: string;
+   * }>} */
+  const matrix = [
+    {
+      name: "approved",
+      reviewDecisionLine: "reviewDecision=APPROVED",
+      protectionHttp: {
+        status: 200,
+        body: {
+          required_pull_request_reviews: {
+            required_approving_review_count: 1,
+          },
+        },
+      },
+      wantClearance: "reviewClearance=approved",
+      wantProtection: "protection=protected",
+    },
+    {
+      name: "review-required",
+      reviewDecisionLine: "reviewDecision=REVIEW_REQUIRED",
+      protectionHttp: {
+        status: 200,
+        body: {
+          required_pull_request_reviews: {
+            required_approving_review_count: 1,
+          },
+        },
+      },
+      wantClearance: "reviewClearance=review-required",
+      wantProtection: "protection=protected",
+    },
+    {
+      name: "changes-requested",
+      reviewDecisionLine: "reviewDecision=CHANGES_REQUESTED",
+      protectionHttp: {
+        status: 200,
+        body: {
+          required_pull_request_reviews: {
+            required_approving_review_count: 1,
+          },
+        },
+      },
+      wantClearance: "reviewClearance=changes-requested",
+      wantProtection: "protection=protected",
+    },
+    {
+      name: "ci-only/unprotected-base",
+      reviewDecisionLine: "reviewDecision=null",
+      protectionHttp: { status: 404, body: { message: "Branch not protected" } },
+      wantClearance: "reviewClearance=ci-only",
+      wantExtra: "reviewClearanceReason=unprotected-base",
+      wantProtection: "protection=unprotected",
+    },
+    {
+      name: "ci-only/no-required-reviews",
+      reviewDecisionLine: "reviewDecision=null",
+      protectionHttp: {
+        status: 200,
+        body: {
+          required_pull_request_reviews: {
+            required_approving_review_count: 0,
+          },
+        },
+      },
+      wantClearance: "reviewClearance=ci-only",
+      wantExtra: "reviewClearanceReason=no-required-reviews",
+      wantProtection: "protection=protected",
+    },
+    {
+      name: "unknown/missing-decision-on-protected",
+      reviewDecisionLine: "reviewDecision=null",
+      protectionHttp: {
+        status: 200,
+        body: {
+          required_pull_request_reviews: {
+            required_approving_review_count: 2,
+          },
+        },
+      },
+      wantClearance: "reviewClearance=unknown",
+      wantExtra:
+        "reviewClearanceDetail=reviewDecision missing while requiredApprovingReviewCount > 0",
+      wantProtection: "protection=protected",
+    },
+    {
+      name: "unknown/protection-unavailable",
+      reviewDecisionLine: "reviewDecision=null",
+      protectionHttp: { status: 403, body: { message: "HTTP 403" } },
+      wantClearance: "reviewClearance=unknown",
+      wantExtra: "reviewClearanceDetail=HTTP 403",
+      wantProtection: "protection=unavailable",
+    },
+  ];
+
+  const kinds = new Set(
+    matrix.map((row) => row.wantClearance.replace("reviewClearance=", "")),
+  );
+  for (const required of [
+    "approved",
+    "review-required",
+    "changes-requested",
+    "ci-only",
+    "unknown",
+  ]) {
+    assert(kinds.has(required), `matrix missing kind ${required}`);
+  }
+
+  for (const row of matrix) {
+    const prettyIn = [
+      "READY: no merge conflicts, no unresolved review threads, no failing or pending checks",
+      "mergeStateStatus=CLEAN",
+      row.reviewDecisionLine,
+      "isDraft=false",
+      "",
+    ].join("\n");
+
+    /** @type {string[]} */
+    const out = [];
+    const code = await runEnrichedWatchPr({
+      argv: ["--owner", "o", "--repo", "r", "--pr", "39", "--pretty"],
+      upstreamDir: "/tmp",
+      runUpstream: () => ({ stdout: prettyIn, stderr: "", exitCode: 0 }),
+      gh: {
+        api: () => row.protectionHttp,
+        prView: () => ({
+          baseRefName: "main",
+          reviewDecision: null,
+        }),
+      },
+      io: {
+        stdout: (s) => out.push(s),
+        stderr: () => {},
+      },
+    });
+    assert(code === 0, `${row.name}: exit ${code}`);
+    const text = out.join("");
+    assert(
+      text.includes("--- hebmu clearance ---"),
+      `${row.name}: missing clearance header`,
+    );
+    assert(text.includes(row.wantClearance), `${row.name}: ${row.wantClearance}`);
+    if (row.wantExtra) {
+      assert(text.includes(row.wantExtra), `${row.name}: ${row.wantExtra}`);
+    }
+    assert(
+      text.includes(row.wantProtection),
+      `${row.name}: ${row.wantProtection}`,
+    );
+
+    // Pretty format unit for the same classified pair (no forge).
+    const decisionRaw = row.reviewDecisionLine.split("=")[1];
+    const clearance = classifyReviewClearance({
+      reviewDecision: normalizeReviewDecision(decisionRaw),
+      protection: parseProtectionHttp(
+        row.protectionHttp.status,
+        row.protectionHttp.body,
+      ),
+    });
+    const prettyBlock = formatClearancePretty(
+      clearance,
+      parseProtectionHttp(row.protectionHttp.status, row.protectionHttp.body),
+    );
+    assert(
+      prettyBlock.includes(row.wantClearance),
+      `${row.name}: formatClearancePretty`,
+    );
+
+    console.log(`ok  discriminant harness ${row.name}`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1000,7 +1186,7 @@ function runSelfTest() {
 
 async function main(argv) {
   if (argv.includes("--self-test")) {
-    runSelfTest();
+    await runSelfTest();
     return 0;
   }
 
