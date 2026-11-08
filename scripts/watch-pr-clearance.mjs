@@ -842,8 +842,8 @@ export async function runEnrichedWatchPr(args) {
 
   const evidence = parseEnrichEvidenceFromStdout(result.stdout, repoPr);
   const assertMerge = wantsAssertMerge(args.argv);
-  // Observe never reads seals (ADR 0003). Assert verify-key / FS store load
-  // is lazy AFTER --merge-override short-circuit (Interrogate #58).
+  // Observe never reads seals (ADR 0003). Load verify key only when store.get
+  // runs so --merge-override works with no seal env.
   /** @type {import("./attestation-store.mjs").AttestationStore | undefined} */
   let cachedStore = args.store;
   /**
@@ -2282,7 +2282,6 @@ async function runMergeDispositionHarness() {
   assert(assertOverride === 0, `assert override exit ${assertOverride}`);
   console.log("ok  --assert-merge ci-only + override → exit 0 without store");
 
-  // #58 Interrogate: override short-circuits before verify-key load
   {
     const savedMint = process.env.HEBMU_SEAL_MINT_KEY;
     const savedVerify = process.env.HEBMU_SEAL_VERIFY_KEY;
