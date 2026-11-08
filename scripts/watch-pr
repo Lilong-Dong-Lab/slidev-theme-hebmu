@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run pstack poteto-mode watch-pr without requiring a global Bun install,
-# then enrich READY output with hebmu review/protection clearance (#31).
+# then enrich READY/STATUS with hebmu review/protection clearance (#31/#36).
 # Prefers `npx -y bun` so babysit gets READY/merge-ready when `bun` is absent.
 # Usage (from theme repo root):
 #   ./scripts/watch-pr --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --pretty
@@ -53,5 +53,5 @@ if ! command -v node >/dev/null 2>&1; then
   exit 1
 fi
 
-# Enricher spawns upstream (bun / npx bun) and attaches clearance on READY.
+# Enricher spawns upstream (bun / npx bun) and attaches clearance on READY/STATUS.
 exec node "$CLEARANCE" --upstream-dir "$DIR" -- "$@"
