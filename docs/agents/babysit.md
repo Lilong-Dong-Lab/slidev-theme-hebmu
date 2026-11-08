@@ -95,7 +95,9 @@ npm run land-pr -- --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> \
 
 Disposition exits: `0` allow, `2` need attestation, `3` block
 (`review-required` / `changes-requested` / `unknown` / rejected attestation).
-A sealed PASS does not clear `review-required`. Policy record:
+Assert/land hard-fail with exit `4` (`missing-clearance`) when READY/STATUS
+lacks hebmu clearance markers — bare personal/plugin READY cannot mint a
+permit. A sealed PASS does not clear `review-required`. Policy record:
 `docs/adr/0003-ci-only-merge-policy.md`.
 
 Proof without live `gh`:
