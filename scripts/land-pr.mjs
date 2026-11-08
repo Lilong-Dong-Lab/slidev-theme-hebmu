@@ -17,6 +17,13 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { stdoutHasHebmuClearance } from "./clearance-presence.mjs";
+import { evaluateLastObservePreflight } from "./last-observe-preflight.mjs";
+import {
+  buildLastObserveReceipt,
+  createFsLastObserveStore,
+  createMemoryLastObserveStore,
+  defaultLastObserveDir,
+} from "./last-observe-store.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(SCRIPT_DIR, "..");
@@ -64,6 +71,10 @@ const WATCH_PR = join(SCRIPT_DIR, "watch-pr");
  * @typedef {{
  *   runAssert: (target: PrTarget, passthrough: AssertPassthrough) => Promise<ProcResult>;
  *   runMerge: (permit: LandPermit, mergeArgs: readonly string[]) => Promise<ProcResult>;
+ *   readLastObserveReceipt: (
+ *     target: PrTarget,
+ *   ) => import("./last-observe-store.mjs").LastObserveReceipt | null;
+ *   resolveHeadRefOid: (target: PrTarget) => Promise<string | null>;
  *   io?: { stdout: (s: string) => void; stderr: (s: string) => void };
  *   nowMs?: () => number;
  * }} LandDeps
@@ -274,6 +285,46 @@ export async function defaultRunMerge(permit, mergeArgs) {
 }
 
 /**
+ * Best-effort live tip for last-observe preflight. Never throws — null
+ * fails closed as tip-unbound.
+ *
+ * @param {PrTarget} target
+ * @returns {Promise<string | null>}
+ */
+export async function defaultLandResolveHeadRefOid(target) {
+  try {
+    const r = spawnSync(
+      "gh",
+      [
+        "pr",
+        "view",
+        String(target.pr),
+        "--repo",
+        `${target.owner}/${target.repo}`,
+        "--json",
+        "headRefOid",
+      ],
+      { encoding: "utf8", cwd: REPO_ROOT, env: process.env },
+    );
+    if (r.status !== 0) return null;
+    const parsed = JSON.parse(r.stdout ?? "{}");
+    return typeof parsed.headRefOid === "string" && parsed.headRefOid
+      ? parsed.headRefOid
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {PrTarget} target
+ * @returns {import("./last-observe-store.mjs").LastObserveReceipt | null}
+ */
+export function defaultReadLastObserveReceipt(target) {
+  return createFsLastObserveStore(defaultLastObserveDir(REPO_ROOT)).get(target);
+}
+
+/**
  * @param {LandRequest} request
  * @param {LandDeps} deps
  * @returns {Promise<number>}
@@ -284,6 +335,17 @@ export async function landPr(request, deps) {
     stderr: (s) => process.stderr.write(s),
   };
   const nowMs = deps.nowMs ?? Date.now;
+
+  // #54: refuse before assert when last observe lacked markers / tip match.
+  const tipOid = await deps.resolveHeadRefOid(request.target);
+  const receipt = deps.readLastObserveReceipt(request.target);
+  const pre = evaluateLastObservePreflight({ receipt, tipOid });
+  if (pre.kind === "deny") {
+    io.stderr(
+      `land-pr: ${pre.detail} (exit ${pre.exitCode}); assert skipped\n`,
+    );
+    return pre.exitCode;
+  }
 
   const assertResult = await deps.runAssert(
     request.target,
@@ -336,6 +398,28 @@ export async function runLandSelfTest() {
   const target = { owner: "Lilong-Dong-Lab", repo: "slidev-theme-hebmu", pr: 46 };
   const silentIo = { stdout: () => {}, stderr: () => {} };
   const clock = { nowMs: () => 1_700_000_000_000 };
+  const TIP = "cccccccccccccccccccccccccccccccccccccccc";
+
+  /** Cleared tip-bound receipt so preflight allows assert/mint paths. */
+  function clearedObserveDeps() {
+    const store = createMemoryLastObserveStore();
+    store.put(
+      buildLastObserveReceipt({
+        target,
+        presence: {
+          kind: "present",
+          verdictKind: "READY",
+        },
+        upstreamExit: 0,
+        headRefOid: TIP,
+        observedAt: "2026-11-08T13:00:00.000Z",
+      }),
+    );
+    return {
+      readLastObserveReceipt: (t) => store.get(t),
+      resolveHeadRefOid: async () => TIP,
+    };
+  }
 
   {
     const withoutFlag = parseLandArgv([
@@ -462,6 +546,7 @@ export async function runLandSelfTest() {
       {
         io: silentIo,
         nowMs: clock.nowMs,
+        ...clearedObserveDeps(),
         runAssert: async () => ({
           exitCode: assertExit,
           stdout: opts.stdout ?? enrichedStdout,
@@ -577,6 +662,183 @@ export async function runLandSelfTest() {
     assertSelf("exit-only assert mint removed", !src.includes(legacyMint));
   }
 
+  // --- #54 last-observe preflight (before runAssert) ---
+  {
+    let assertCalls = 0;
+    /** @type {string[]} */
+    const err = [];
+    const exitMissing = await landPr(
+      {
+        target,
+        passthrough: { argvTail: [] },
+        dryRun: true,
+        mergeArgs: [],
+      },
+      {
+        io: {
+          stdout: () => {},
+          stderr: (s) => err.push(s),
+        },
+        nowMs: clock.nowMs,
+        readLastObserveReceipt: () => null,
+        resolveHeadRefOid: async () => TIP,
+        runAssert: async () => {
+          assertCalls += 1;
+          throw new Error("runAssert must not run");
+        },
+        runMerge: async () => {
+          throw new Error("runMerge must not run");
+        },
+      },
+    );
+    assertSelf("missing last-observe → land exit 4", exitMissing === 4);
+    assertSelf("missing last-observe → runAssert not called", assertCalls === 0);
+    assertSelf(
+      "missing last-observe stderr detail",
+      err.join("").includes("hebmu-last-observe-missing"),
+    );
+  }
+
+  {
+    let assertCalls = 0;
+    const store = createMemoryLastObserveStore();
+    store.put(
+      buildLastObserveReceipt({
+        target,
+        presence: { kind: "absent" },
+        upstreamExit: 0,
+        headRefOid: TIP,
+        observedAt: "2026-11-08T13:00:00.000Z",
+        verdictKind: "READY",
+      }),
+    );
+    const exitBare = await landPr(
+      {
+        target,
+        passthrough: { argvTail: [] },
+        dryRun: true,
+        mergeArgs: [],
+      },
+      {
+        io: silentIo,
+        nowMs: clock.nowMs,
+        readLastObserveReceipt: (t) => store.get(t),
+        resolveHeadRefOid: async () => TIP,
+        runAssert: async () => {
+          assertCalls += 1;
+          throw new Error("runAssert must not run");
+        },
+        runMerge: async () => ({ exitCode: 0, stdout: "", stderr: "" }),
+      },
+    );
+    assertSelf(
+      "bare last-observe (markersPresent false) → land exit 4",
+      exitBare === 4,
+    );
+    assertSelf("bare last-observe → runAssert not called", assertCalls === 0);
+
+    const preBare = evaluateLastObservePreflight({
+      receipt: store.get(target),
+      tipOid: TIP,
+    });
+    assertSelf(
+      "preflight bare detail lacked-clearance",
+      preBare.kind === "deny" &&
+        preBare.detail === "hebmu-last-observe-lacked-clearance",
+    );
+  }
+
+  {
+    const store = createMemoryLastObserveStore();
+    store.put(
+      buildLastObserveReceipt({
+        target,
+        presence: {
+          kind: "present",
+          verdictKind: "READY",
+        },
+        upstreamExit: 0,
+        headRefOid: null,
+        observedAt: "2026-11-08T13:00:00.000Z",
+      }),
+    );
+    const preUnbound = evaluateLastObservePreflight({
+      receipt: store.get(target),
+      tipOid: TIP,
+    });
+    assertSelf(
+      "cleared receipt with null tip → tip-unbound",
+      preUnbound.kind === "deny" &&
+        preUnbound.detail === "hebmu-last-observe-tip-unbound",
+    );
+
+    store.put(
+      buildLastObserveReceipt({
+        target,
+        presence: {
+          kind: "present",
+          verdictKind: "READY",
+        },
+        upstreamExit: 0,
+        headRefOid: TIP,
+        observedAt: "2026-11-08T13:00:00.000Z",
+      }),
+    );
+    const preStale = evaluateLastObservePreflight({
+      receipt: store.get(target),
+      tipOid: "dddddddddddddddddddddddddddddddddddddddd",
+    });
+    assertSelf(
+      "tip mismatch → tip-stale",
+      preStale.kind === "deny" &&
+        preStale.detail === "hebmu-last-observe-tip-stale",
+    );
+  }
+
+  {
+    let assertCalls = 0;
+    const store = createMemoryLastObserveStore();
+    store.put(
+      buildLastObserveReceipt({
+        target,
+        presence: {
+          kind: "present",
+          verdictKind: "READY",
+        },
+        upstreamExit: 0,
+        headRefOid: TIP,
+        observedAt: "2026-11-08T13:00:00.000Z",
+      }),
+    );
+    const exitOk = await landPr(
+      {
+        target,
+        passthrough: { argvTail: [] },
+        dryRun: true,
+        mergeArgs: [],
+      },
+      {
+        io: silentIo,
+        nowMs: clock.nowMs,
+        readLastObserveReceipt: (t) => store.get(t),
+        resolveHeadRefOid: async () => TIP,
+        runAssert: async () => {
+          assertCalls += 1;
+          return {
+            exitCode: 0,
+            stdout: enrichedStdout,
+            stderr: "",
+          };
+        },
+        runMerge: async () => ({ exitCode: 0, stdout: "", stderr: "" }),
+      },
+    );
+    assertSelf(
+      "good receipt + tip match → continues to assert (dry-run 0)",
+      exitOk === 0 && assertCalls === 1,
+    );
+  }
+
   console.log("ok  land-pr self-test passed");
 }
 
@@ -594,6 +856,8 @@ export async function main(argv) {
   return landPr(request, {
     runAssert: defaultRunAssert,
     runMerge: defaultRunMerge,
+    readLastObserveReceipt: defaultReadLastObserveReceipt,
+    resolveHeadRefOid: defaultLandResolveHeadRefOid,
   });
 }
 

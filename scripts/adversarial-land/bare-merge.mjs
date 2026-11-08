@@ -148,6 +148,7 @@ export async function probePermitCoupling(ctx) {
       {
         io: silentIo,
         nowMs: () => 1_700_000_000_000,
+        ...ctx.clearedLastObserveDeps(),
         runAssert: async () => ({
           exitCode: assertExit,
           stdout: opts.stdout ?? fixtures.enrichedCiOnlyStdout(),

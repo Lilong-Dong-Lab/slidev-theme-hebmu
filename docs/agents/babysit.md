@@ -58,11 +58,17 @@ Bun runtime as a blocker. See the poteto-mode Babysit playbook.
 
 Babysit observe (`./scripts/watch-pr` without `--assert-merge`) attaches
 clearance and keeps the upstream exit. That exit is **not** merge clearance.
-Shipping land is seal-then-land: the verifier mints a tip-bound,
-HMAC-signed seal (`HEBMU_SEAL_HMAC_KEY`), then the fail-closed helper always
-injects `--assert-merge` and only then may call `gh pr merge`. Local JSON
-under `.git/hebmu/sealed-shipping/` is a receipt on disk — it is not merge
-proof unless the MAC verifies with the verifier key:
+The wrapper also side-writes a local last-observe receipt under
+`.git/hebmu/last-observe/` (`markersPresent` + tip when resolvable). Observe
+exit stays upstream (READY → `0`) even when markers are absent. `land-pr`
+refuses **before** assert when that receipt is missing, lacked clearance
+markers, or the tip does not match — bare personal/plugin observe never
+writes a receipt, so land fails closed on that soft lure. Shipping land is
+seal-then-land: the verifier mints a tip-bound, HMAC-signed seal
+(`HEBMU_SEAL_HMAC_KEY`), then the fail-closed helper always injects
+`--assert-merge` and only then may call `gh pr merge`. Local JSON under
+`.git/hebmu/sealed-shipping/` is a receipt on disk — it is not merge proof
+unless the MAC verifies with the verifier key:
 
 ```bash
 export HEBMU_SEAL_HMAC_KEY='…verifier-only material…'
@@ -102,7 +108,9 @@ Disposition exits: `0` allow, `2` need attestation, `3` block
 (`review-required` / `changes-requested` / `unknown` / rejected attestation).
 Assert/land hard-fail with exit `4` (`missing-clearance`) when READY/STATUS
 lacks hebmu clearance markers — bare personal/plugin READY cannot mint a
-permit. A sealed PASS does not clear `review-required`. Policy record:
+permit. Land also exits `4` with `hebmu-last-observe-*` details when the
+last wrapper observe lacked markers or tip binding (assert skipped). A
+sealed PASS does not clear `review-required`. Policy record:
 `docs/adr/0003-ci-only-merge-policy.md`.
 
 Proof without live `gh`:

@@ -167,6 +167,9 @@ export const ATTACKS = Object.freeze([
         {
           io: ctx.silentIo,
           nowMs: () => 1_700_000_000_000,
+          // Cleared observe receipt so preflight allows; assert-session bare
+          // still denies (#48). soft-lure-observe covers missing/bare observe.
+          ...ctx.clearedLastObserveDeps(),
           runAssert: async () => ({
             exitCode: 0,
             stdout: bare,
@@ -271,6 +274,109 @@ export const ATTACKS = Object.freeze([
         outcome: probe.outcome,
         detail: probe.detail,
         evidence: probe.evidence,
+      };
+    },
+  },
+
+  {
+    id: "soft-lure-observe",
+    title:
+      "bare/missing last-observe receipt → land exit 4 before runAssert (#54)",
+    async run(ctx) {
+      /** @type {string[]} */
+      const parts = [];
+      let denied = true;
+
+      // Missing receipt (ADR 0002 bare personal/plugin never writes).
+      let assertCalls = 0;
+      const missingExit = await ctx.tip.landPr(
+        {
+          target: ctx.target,
+          passthrough: { argvTail: [] },
+          dryRun: false,
+          mergeArgs: [],
+        },
+        {
+          io: ctx.silentIo,
+          nowMs: () => 1_700_000_000_000,
+          readLastObserveReceipt: () => null,
+          resolveHeadRefOid: async () => ctx.fixtures.liveTipOid,
+          runAssert: async () => {
+            assertCalls += 1;
+            return {
+              exitCode: 0,
+              stdout: ctx.fixtures.enrichedCiOnlyStdout(),
+              stderr: "",
+            };
+          },
+          runMerge: async () => ({ exitCode: 0, stdout: "", stderr: "" }),
+        },
+      );
+      if (missingExit !== 4 || assertCalls !== 0) {
+        denied = false;
+        parts.push(
+          `missing exit=${missingExit} assertCalls=${assertCalls}`,
+        );
+      } else {
+        parts.push("missing→4 assertSkipped");
+      }
+
+      // Negative receipt (wrapper observe with attachClearance false).
+      const {
+        buildLastObserveReceipt,
+        createMemoryLastObserveStore,
+      } = await import("../last-observe-store.mjs");
+      const bareStore = createMemoryLastObserveStore();
+      bareStore.put(
+        buildLastObserveReceipt({
+          target: ctx.target,
+          presence: { kind: "absent" },
+          upstreamExit: 0,
+          headRefOid: ctx.fixtures.liveTipOid,
+          observedAt: "2026-11-08T00:00:00.000Z",
+          verdictKind: "READY",
+        }),
+      );
+      let bareAssertCalls = 0;
+      const bareExit = await ctx.tip.landPr(
+        {
+          target: ctx.target,
+          passthrough: { argvTail: [] },
+          dryRun: false,
+          mergeArgs: [],
+        },
+        {
+          io: ctx.silentIo,
+          nowMs: () => 1_700_000_000_000,
+          readLastObserveReceipt: (t) => bareStore.get(t),
+          resolveHeadRefOid: async () => ctx.fixtures.liveTipOid,
+          runAssert: async () => {
+            bareAssertCalls += 1;
+            return {
+              exitCode: 0,
+              stdout: ctx.fixtures.enrichedCiOnlyStdout(),
+              stderr: "",
+            };
+          },
+          runMerge: async () => ({ exitCode: 0, stdout: "", stderr: "" }),
+        },
+      );
+      if (bareExit !== 4 || bareAssertCalls !== 0) {
+        denied = false;
+        parts.push(
+          `bare-receipt exit=${bareExit} assertCalls=${bareAssertCalls}`,
+        );
+      } else {
+        parts.push("bare-receipt→4 assertSkipped");
+      }
+
+      return {
+        id: "soft-lure-observe",
+        outcome: denied ? "denied" : "allowed",
+        detail: denied
+          ? "missing+bare last-observe → exit 4; assert skipped"
+          : parts.join("; "),
+        evidence: { exitCode: missingExit, mergeCalls: 0 },
       };
     },
   },
