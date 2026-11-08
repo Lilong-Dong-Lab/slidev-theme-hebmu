@@ -57,14 +57,14 @@ export function oidsMatch(a, b) {
 
 /**
  * Map a verifying-store domain value into a policy attestation.
- * Store already verified MAC; unsigned wire never reaches here as branded.
+ * Store already verified sig; unsigned wire never reaches here as branded.
  *
- * @param {import("./attestation-mac.mjs").VerifierBoundAttestation | null | undefined} artifact
+ * @param {import("./attestation-crypto.mjs").VerifierBoundAttestation | null | undefined} artifact
  * @returns {MergeAttestation | null}
  */
 export function artifactToAttestation(artifact) {
   if (!artifact || artifact.__brand !== "VerifierBoundAttestation") return null;
-  if (artifact.schema !== "hebmu.sealed-shipping.v2") return null;
+  if (artifact.schema !== "hebmu.sealed-shipping.v3") return null;
   const { claims } = artifact;
   if (claims.verdict !== "PASS" && claims.verdict !== "FAIL") return null;
   if (typeof claims.headRefOid !== "string" || !claims.headRefOid) return null;
