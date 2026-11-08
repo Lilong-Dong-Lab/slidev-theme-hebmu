@@ -201,6 +201,32 @@ export function wantsAssertMerge(argv) {
 }
 
 /**
+ * Drop hebmu merge-gate flags before spawning upstream watch-pr.
+ * Commander rejects unknown options, so --assert-merge must not leak.
+ *
+ * @param {readonly string[]} argv
+ * @returns {string[]}
+ */
+export function stripHebmuMergeArgv(argv) {
+  /** @type {string[]} */
+  const out = [];
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--assert-merge") continue;
+    if (
+      a === "--shipping-verdict" ||
+      a === "--merge-override" ||
+      a === "--merge-override-reason"
+    ) {
+      if (i + 1 < argv.length && !argv[i + 1].startsWith("--")) i++;
+      continue;
+    }
+    out.push(a);
+  }
+  return out;
+}
+
+/**
  * @param {readonly string[]} argv
  * @returns {{ owner: string; repo: string; pr: number; pretty: boolean }}
  */
@@ -677,7 +703,8 @@ export async function runEnrichedWatchPr(args) {
     stderr: (s) => process.stderr.write(s),
   };
 
-  const result = runUpstream(args.upstreamDir, args.argv);
+  const upstreamArgv = stripHebmuMergeArgv(args.argv);
+  const result = runUpstream(args.upstreamDir, upstreamArgv);
   if (result.stderr) io.stderr(result.stderr);
 
   let repoPr;
@@ -1318,6 +1345,77 @@ async function runMergeDispositionHarness() {
   console.log(
     "ok  --assert-merge review-required + --shipping-verdict PASS → exit 3",
   );
+
+  const stripped = stripHebmuMergeArgv([
+    "--assert-merge",
+    "--shipping-verdict",
+    "PASS",
+    "--merge-override",
+    "alice",
+    "--merge-override-reason",
+    "ship",
+    "--owner",
+    "o",
+    "--repo",
+    "r",
+    "--pr",
+    "40",
+    "--pretty",
+  ]);
+  assert(
+    !stripped.includes("--assert-merge") &&
+      !stripped.includes("--shipping-verdict") &&
+      !stripped.includes("PASS") &&
+      !stripped.includes("--merge-override") &&
+      !stripped.includes("alice") &&
+      !stripped.includes("--merge-override-reason") &&
+      !stripped.includes("ship") &&
+      stripped.includes("--owner") &&
+      stripped.includes("--pretty"),
+    `stripHebmuMergeArgv kept hebmu flags: ${stripped.join(" ")}`,
+  );
+
+  /** @type {string[] | null} */
+  let capturedUpstreamArgv = null;
+  await runEnrichedWatchPr({
+    argv: [
+      "--assert-merge",
+      "--shipping-verdict",
+      "PASS",
+      "--owner",
+      "o",
+      "--repo",
+      "r",
+      "--pr",
+      "40",
+      "--pretty",
+    ],
+    upstreamDir: "/tmp",
+    runUpstream: (_dir, argv) => {
+      capturedUpstreamArgv = [...argv];
+      return {
+        stdout: prettyCiOnlyReady,
+        stderr: "",
+        exitCode: 0,
+      };
+    },
+    gh: {
+      api: () => ({ status: 404, body: { message: "Not Found" } }),
+      prView: () => ({ baseRefName: "main", reviewDecision: null }),
+    },
+    io: {
+      stdout: () => {},
+      stderr: () => {},
+    },
+  });
+  assert(capturedUpstreamArgv !== null, "upstream argv not captured");
+  assert(
+    !capturedUpstreamArgv.includes("--assert-merge") &&
+      !capturedUpstreamArgv.includes("--shipping-verdict") &&
+      !capturedUpstreamArgv.includes("PASS"),
+    `upstream saw hebmu flags: ${capturedUpstreamArgv.join(" ")}`,
+  );
+  console.log("ok  hebmu merge flags stripped before upstream");
 }
 
 /**
