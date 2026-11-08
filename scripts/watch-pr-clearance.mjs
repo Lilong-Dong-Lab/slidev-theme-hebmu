@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
- * Hebmu watch-pr enricher (#31).
+ * Hebmu watch-pr enricher (#31 / #36).
  *
- * Runs upstream poteto-mode watch-pr unchanged, then on READY only attaches
- * review/protection clearance so babysit can tell CI-only green from review
- * clearance. Does not gate READY on APPROVED. Does not vendor upstream.
+ * Runs upstream poteto-mode watch-pr unchanged, then on READY or STATUS
+ * attaches review/protection clearance so babysit can tell CI-only green
+ * from review clearance (including the documented --status-only path).
+ * Does not gate READY on APPROVED. Does not vendor upstream.
  *
  * Usage (via scripts/watch-pr):
  *   ./scripts/watch-pr --owner … --repo … --pr <n> --status-only --pretty
@@ -30,6 +31,17 @@ import { join } from "node:path";
  *   | { kind: "changes-requested" }
  *   | { kind: "ci-only"; reason: "no-required-reviews" | "unprotected-base" }
  *   | { kind: "unknown"; detail: string }} ReviewClearance
+ *
+ * @typedef {{
+ *   kind: "READY" | "STATUS";
+ *   owner: string;
+ *   repo: string;
+ *   pr: number;
+ *   reviewDecision: string | null;
+ *   baseRefName: string | null;
+ *   mode: "json" | "pretty";
+ *   lineIndex: number;
+ * }} EnrichEvidence
  */
 
 /**
@@ -121,7 +133,7 @@ export function formatClearancePretty(clearance, protection) {
 }
 
 /**
- * Append clearance under a READY pretty block once.
+ * Append clearance under a READY or STATUS pretty block once.
  *
  * @param {string} prettyStdout
  * @param {ReviewClearance} clearance
@@ -135,7 +147,9 @@ export function appendClearanceToPretty(prettyStdout, clearance, protection) {
   ) {
     return prettyStdout;
   }
-  if (!/^READY:/m.test(prettyStdout)) return prettyStdout;
+  const hasReady = /^READY:/m.test(prettyStdout);
+  const hasStatusTable = /^\| PR \| CI \|/m.test(prettyStdout);
+  if (!hasReady && !hasStatusTable) return prettyStdout;
   const base = prettyStdout.endsWith("\n") ? prettyStdout : prettyStdout + "\n";
   return base + formatClearancePretty(clearance, protection);
 }
@@ -145,6 +159,7 @@ export function appendClearanceToPretty(prettyStdout, clearance, protection) {
  *
  * @param {{
  *   pr: number;
+ *   verdictKind: "READY" | "STATUS";
  *   clearance: ReviewClearance;
  *   protection: ProtectionSummary;
  *   reviewDecision: string | null;
@@ -156,7 +171,7 @@ export function buildClearanceSidecar(args) {
   return {
     schema: "hebmu.clearance.v1",
     pr: args.pr,
-    verdictKind: "READY",
+    verdictKind: args.verdictKind,
     clearance: args.clearance,
     protection: args.protection,
     signals: {
@@ -211,17 +226,18 @@ function normalizeReviewDecision(value) {
 }
 
 /**
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+function normalizeBaseRefName(value) {
+  if (typeof value !== "string" || !value) return null;
+  return value;
+}
+
+/**
  * @param {unknown} obj
  * @param {{ owner: string; repo: string; pr: number }} fallback
- * @returns {{
- *   kind: "READY";
- *   owner: string;
- *   repo: string;
- *   pr: number;
- *   reviewDecision: string | null;
- *   baseRefName: string | null;
- *   rawJson: unknown;
- * } | null}
+ * @returns {Omit<EnrichEvidence, "mode" | "lineIndex"> | null}
  */
 function readyEvidenceFromJson(obj, fallback) {
   if (!obj || typeof obj !== "object") return null;
@@ -265,30 +281,69 @@ function readyEvidenceFromJson(obj, fallback) {
     pr: typeof ctx?.number === "number" ? ctx.number : fallback.pr,
     reviewDecision: normalizeReviewDecision(gate?.reviewDecision),
     baseRefName: null,
-    rawJson: obj,
   };
 }
 
 /**
+ * Pick the STATUS row for the argv PR, else the first row.
+ *
+ * @param {unknown} obj
+ * @param {{ owner: string; repo: string; pr: number }} fallback
+ * @returns {Omit<EnrichEvidence, "mode" | "lineIndex"> | null}
+ */
+function statusEvidenceFromJson(obj, fallback) {
+  if (!obj || typeof obj !== "object") return null;
+  const rec = /** @type {Record<string, unknown>} */ (obj);
+  if (rec.kind !== "STATUS") return null;
+  if (!Array.isArray(rec.rows) || rec.rows.length === 0) return null;
+
+  /** @type {Record<string, unknown>[]} */
+  const rows = rec.rows.filter((r) => r && typeof r === "object").map(
+    (r) => /** @type {Record<string, unknown>} */ (r),
+  );
+  if (rows.length === 0) return null;
+
+  const matched =
+    rows.find((row) => {
+      const ctx =
+        row.context && typeof row.context === "object"
+          ? /** @type {Record<string, unknown>} */ (row.context)
+          : null;
+      return typeof ctx?.number === "number" && ctx.number === fallback.pr;
+    }) ?? rows[0];
+
+  const ctx =
+    matched.context && typeof matched.context === "object"
+      ? /** @type {Record<string, unknown>} */ (matched.context)
+      : null;
+  const facts =
+    matched.facts && typeof matched.facts === "object"
+      ? /** @type {Record<string, unknown>} */ (matched.facts)
+      : null;
+
+  return {
+    kind: "STATUS",
+    owner: typeof ctx?.owner === "string" ? ctx.owner : fallback.owner,
+    repo: typeof ctx?.repo === "string" ? ctx.repo : fallback.repo,
+    pr: typeof ctx?.number === "number" ? ctx.number : fallback.pr,
+    reviewDecision: normalizeReviewDecision(facts?.reviewDecision),
+    baseRefName: normalizeBaseRefName(facts?.baseRefName),
+  };
+}
+
+/**
+ * Parse READY or STATUS enrich evidence from upstream stdout.
+ * Prefers READY when both could match (should not happen in one verdict).
+ *
  * @param {string} stdout
  * @param {{ owner: string; repo: string; pr: number }} fallback
- * @returns {{
- *   kind: "READY";
- *   owner: string;
- *   repo: string;
- *   pr: number;
- *   reviewDecision: string | null;
- *   baseRefName: string | null;
- *   rawJson: unknown | null;
- *   mode: "json" | "pretty";
- *   readyLineIndex: number;
- * } | null}
+ * @returns {EnrichEvidence | null}
  */
-export function parseReadyEvidenceFromStdout(stdout, fallback) {
+export function parseEnrichEvidenceFromStdout(stdout, fallback) {
   const trimmed = stdout.replace(/\s+$/, "");
   if (!trimmed) return null;
 
-  // Pretty path: READY headline.
+  // Pretty READY headline.
   if (/^READY:/m.test(trimmed) && !trimmed.trimStart().startsWith("{")) {
     const m = trimmed.match(/^reviewDecision=(.*)$/m);
     return {
@@ -298,45 +353,84 @@ export function parseReadyEvidenceFromStdout(stdout, fallback) {
       pr: fallback.pr,
       reviewDecision: m ? normalizeReviewDecision(m[1]) : null,
       baseRefName: null,
-      rawJson: null,
       mode: "pretty",
-      readyLineIndex: -1,
+      lineIndex: -1,
     };
   }
 
-  // JSON / NDJSON: last READY object wins.
+  // Pretty STATUS table (header from upstream renderStatusTable).
+  if (
+    /^\| PR \| CI \|/m.test(trimmed) &&
+    !trimmed.trimStart().startsWith("{")
+  ) {
+    return {
+      kind: "STATUS",
+      owner: fallback.owner,
+      repo: fallback.repo,
+      pr: fallback.pr,
+      reviewDecision: null,
+      baseRefName: null,
+      mode: "pretty",
+      lineIndex: -1,
+    };
+  }
+
+  // JSON / NDJSON: last READY or STATUS object wins (READY preferred if both).
   const lines = trimmed.split("\n");
+  /** @type {EnrichEvidence | null} */
+  let statusHit = null;
   for (let i = lines.length - 1; i >= 0; i--) {
     const line = lines[i].trim();
     if (!line.startsWith("{")) continue;
     try {
       const obj = JSON.parse(line);
-      const evidence = readyEvidenceFromJson(obj, fallback);
-      if (evidence) {
-        return { ...evidence, mode: "json", readyLineIndex: i };
+      const ready = readyEvidenceFromJson(obj, fallback);
+      if (ready) {
+        return { ...ready, mode: "json", lineIndex: i };
+      }
+      if (!statusHit) {
+        const status = statusEvidenceFromJson(obj, fallback);
+        if (status) {
+          statusHit = { ...status, mode: "json", lineIndex: i };
+        }
       }
     } catch {
       // keep scanning
     }
   }
-  return null;
+  return statusHit;
 }
 
 /**
- * Insert sidecar after the READY JSON line; leave upstream line bytes intact.
+ * @param {string} stdout
+ * @param {{ owner: string; repo: string; pr: number }} fallback
+ * @returns {(EnrichEvidence & { readyLineIndex: number; rawJson: unknown | null }) | null}
+ */
+export function parseReadyEvidenceFromStdout(stdout, fallback) {
+  const evidence = parseEnrichEvidenceFromStdout(stdout, fallback);
+  if (!evidence || evidence.kind !== "READY") return null;
+  return {
+    ...evidence,
+    readyLineIndex: evidence.lineIndex,
+    rawJson: null,
+  };
+}
+
+/**
+ * Insert sidecar after the enrich JSON line; leave upstream line bytes intact.
  *
  * @param {string} stdout
- * @param {number} readyLineIndex
+ * @param {number} lineIndex
  * @param {Record<string, unknown>} sidecar
  * @returns {string}
  */
-export function appendSidecarToJsonStdout(stdout, readyLineIndex, sidecar) {
+export function appendSidecarToJsonStdout(stdout, lineIndex, sidecar) {
   const endsWithNl = stdout.endsWith("\n");
   const lines = stdout.replace(/\n$/, "").split("\n");
-  if (readyLineIndex < 0 || readyLineIndex >= lines.length) {
+  if (lineIndex < 0 || lineIndex >= lines.length) {
     return stdout + (endsWithNl || stdout === "" ? "" : "\n") + JSON.stringify(sidecar) + "\n";
   }
-  lines.splice(readyLineIndex + 1, 0, JSON.stringify(sidecar));
+  lines.splice(lineIndex + 1, 0, JSON.stringify(sidecar));
   return lines.join("\n") + "\n";
 }
 
@@ -475,6 +569,52 @@ export function probeProtection(gh, repo, baseRefName) {
 }
 
 /**
+ * Fetch baseRefName and/or reviewDecision in one gh pr view when either is missing.
+ *
+ * @param {{
+ *   prView: (
+ *     repo: { owner: string; repo: string },
+ *     pr: number,
+ *     fields: readonly string[],
+ *   ) => Record<string, unknown>
+ * }} gh
+ * @param {{ owner: string; repo: string }} repo
+ * @param {number} pr
+ * @param {{ baseRefName: string | null; reviewDecision: string | null }} known
+ * @returns {Promise<{ baseRefName: string; reviewDecision: string | null }>}
+ */
+export async function resolvePrSignals(gh, repo, pr, known) {
+  const needBase = !known.baseRefName;
+  const needReview =
+    known.reviewDecision === null || known.reviewDecision === undefined;
+  if (!needBase && !needReview) {
+    return {
+      baseRefName: /** @type {string} */ (known.baseRefName),
+      reviewDecision: known.reviewDecision,
+    };
+  }
+
+  /** @type {string[]} */
+  const fields = [];
+  if (needBase) fields.push("baseRefName");
+  if (needReview) fields.push("reviewDecision");
+  const view = gh.prView(repo, pr, fields);
+
+  const baseRefName = needBase
+    ? normalizeBaseRefName(view.baseRefName)
+    : known.baseRefName;
+  if (!baseRefName) {
+    throw new Error("gh pr view did not return baseRefName");
+  }
+
+  const reviewDecision = needReview
+    ? normalizeReviewDecision(view.reviewDecision)
+    : known.reviewDecision;
+
+  return { baseRefName, reviewDecision };
+}
+
+/**
  * @param {{
  *   prView: (
  *     repo: { owner: string; repo: string },
@@ -490,8 +630,8 @@ export function probeProtection(gh, repo, baseRefName) {
 export async function resolveBaseRefName(gh, repo, pr, known) {
   if (known) return known;
   const view = gh.prView(repo, pr, ["baseRefName"]);
-  const base = view.baseRefName;
-  if (typeof base !== "string" || !base) {
+  const base = normalizeBaseRefName(view.baseRefName);
+  if (!base) {
     throw new Error("gh pr view did not return baseRefName");
   }
   return base;
@@ -539,7 +679,7 @@ export async function runEnrichedWatchPr(args) {
     return result.exitCode;
   }
 
-  const evidence = parseReadyEvidenceFromStdout(result.stdout, repoPr);
+  const evidence = parseEnrichEvidenceFromStdout(result.stdout, repoPr);
   if (!evidence) {
     if (result.stdout) io.stdout(result.stdout);
     return result.exitCode;
@@ -547,13 +687,19 @@ export async function runEnrichedWatchPr(args) {
 
   let protection;
   let baseRefName = evidence.baseRefName;
+  let reviewDecision = evidence.reviewDecision;
   try {
-    baseRefName = await resolveBaseRefName(
+    const signals = await resolvePrSignals(
       gh,
       { owner: evidence.owner, repo: evidence.repo },
       evidence.pr,
-      evidence.baseRefName,
+      {
+        baseRefName: evidence.baseRefName,
+        reviewDecision: evidence.reviewDecision,
+      },
     );
+    baseRefName = signals.baseRefName;
+    reviewDecision = signals.reviewDecision;
     protection = probeProtection(
       gh,
       { owner: evidence.owner, repo: evidence.repo },
@@ -567,7 +713,7 @@ export async function runEnrichedWatchPr(args) {
   }
 
   const clearance = classifyReviewClearance({
-    reviewDecision: evidence.reviewDecision,
+    reviewDecision,
     protection,
   });
 
@@ -578,15 +724,16 @@ export async function runEnrichedWatchPr(args) {
   } else {
     const sidecar = buildClearanceSidecar({
       pr: evidence.pr,
+      verdictKind: evidence.kind,
       clearance,
       protection,
-      reviewDecision: evidence.reviewDecision,
+      reviewDecision,
       baseRefName,
     });
     io.stdout(
       appendSidecarToJsonStdout(
         result.stdout,
-        evidence.readyLineIndex,
+        evidence.lineIndex,
         sidecar,
       ),
     );
@@ -713,14 +860,75 @@ function runSelfTest() {
   );
   console.log("ok  pretty append block");
 
+  const statusPretty = appendClearanceToPretty(
+    "| PR | CI | Review | Merge |\n| --- | --- | --- | --- |\n| [#35](https://github.com/o/r/pull/35) | ✅ | ✅ | ✅ |\n",
+    { kind: "ci-only", reason: "unprotected-base" },
+    { kind: "unprotected" },
+  );
+  assert(
+    statusPretty.includes("--- hebmu clearance ---"),
+    "STATUS pretty header",
+  );
+  assert(
+    statusPretty.includes("reviewClearance=ci-only"),
+    "STATUS pretty clearance",
+  );
+  assert(
+    appendClearanceToPretty(
+      statusPretty,
+      { kind: "approved" },
+      { kind: "unprotected" },
+    ) === statusPretty,
+    "STATUS pretty idempotent",
+  );
+  console.log("ok  STATUS pretty append block");
+
+  const statusParsed = parseEnrichEvidenceFromStdout(
+    "| PR | CI | Review | Merge |\n| --- | --- | --- | --- |\n| [#35](https://github.com/o/r/pull/35) | ✅ | ✅ | ✅ |\n",
+    { owner: "o", repo: "r", pr: 35 },
+  );
+  assert(statusParsed?.kind === "STATUS", "parse STATUS pretty kind");
+  assert(statusParsed?.mode === "pretty", "parse STATUS pretty mode");
+  assert(statusParsed?.reviewDecision === null, "STATUS pretty no reviewDecision");
+  console.log("ok  parse STATUS pretty evidence");
+
+  const statusJsonLine = JSON.stringify({
+    kind: "STATUS",
+    rows: [
+      {
+        kind: "merged",
+        context: { owner: "o", repo: "r", number: 35 },
+        facts: {
+          reviewDecision: "APPROVED",
+          baseRefName: "main",
+        },
+      },
+    ],
+  });
+  const statusJsonParsed = parseEnrichEvidenceFromStdout(statusJsonLine + "\n", {
+    owner: "o",
+    repo: "r",
+    pr: 35,
+  });
+  assert(statusJsonParsed?.kind === "STATUS", "parse STATUS json kind");
+  assert(statusJsonParsed?.mode === "json", "parse STATUS json mode");
+  assert(
+    statusJsonParsed?.reviewDecision === "APPROVED",
+    "STATUS json reviewDecision",
+  );
+  assert(statusJsonParsed?.baseRefName === "main", "STATUS json baseRefName");
+  console.log("ok  parse STATUS JSON evidence");
+
   const sidecar = buildClearanceSidecar({
     pr: 31,
+    verdictKind: "READY",
     clearance: { kind: "ci-only", reason: "unprotected-base" },
     protection: { kind: "unprotected" },
     reviewDecision: null,
     baseRefName: "main",
   });
   assert(sidecar.schema === "hebmu.clearance.v1", "sidecar schema");
+  assert(sidecar.verdictKind === "READY", "sidecar READY verdictKind");
   const jsonOut = appendSidecarToJsonStdout(
     '{"kind":"READY","exitCode":0}\n',
     0,
@@ -734,6 +942,29 @@ function runSelfTest() {
     "sidecar line",
   );
   console.log("ok  JSON sidecar leaves upstream kind unchanged");
+
+  const statusSidecar = buildClearanceSidecar({
+    pr: 35,
+    verdictKind: "STATUS",
+    clearance: { kind: "ci-only", reason: "unprotected-base" },
+    protection: { kind: "unprotected" },
+    reviewDecision: null,
+    baseRefName: "main",
+  });
+  assert(statusSidecar.verdictKind === "STATUS", "sidecar STATUS verdictKind");
+  const statusJsonOut = appendSidecarToJsonStdout(
+    statusJsonLine + "\n",
+    0,
+    statusSidecar,
+  );
+  const statusJsonLines = statusJsonOut.trim().split("\n");
+  assert(statusJsonLines.length === 2, "STATUS json dual line");
+  assert(JSON.parse(statusJsonLines[0]).kind === "STATUS", "STATUS upstream intact");
+  assert(
+    JSON.parse(statusJsonLines[1]).verdictKind === "STATUS",
+    "STATUS sidecar verdictKind",
+  );
+  console.log("ok  STATUS JSON dual-line with verdictKind STATUS");
 
   console.log("\nself-test: all passed");
 }
