@@ -847,8 +847,13 @@ function runSelfTest() {
   );
   console.log("ok  parseProtectionHttp 2xx → protected count");
 
+  // Live upstream READY interpolates JS null as the literal "null"
+  // (render.ts: reviewDecision=${gate.reviewDecision}). gh returns "" for no
+  // decision; upstream normalizes "" → null before pretty print.
+  const liveReadyPretty =
+    "READY: no merge conflicts, no unresolved review threads, no failing or pending checks\nmergeStateStatus=CLEAN\nreviewDecision=null\nisDraft=false\n";
   const pretty = appendClearanceToPretty(
-    "READY: ok\nreviewDecision=\nisDraft=false\n",
+    liveReadyPretty,
     { kind: "ci-only", reason: "unprotected-base" },
     { kind: "unprotected" },
   );
@@ -859,6 +864,26 @@ function runSelfTest() {
     "pretty reason",
   );
   console.log("ok  pretty append block");
+
+  const liveReadyParsed = parseEnrichEvidenceFromStdout(liveReadyPretty, {
+    owner: "o",
+    repo: "r",
+    pr: 38,
+  });
+  assert(liveReadyParsed?.kind === "READY", "live READY kind");
+  assert(
+    liveReadyParsed?.reviewDecision === null,
+    "live reviewDecision=null → null",
+  );
+  const emptyReadyParsed = parseEnrichEvidenceFromStdout(
+    "READY: ok\nreviewDecision=\nisDraft=false\n",
+    { owner: "o", repo: "r", pr: 38 },
+  );
+  assert(
+    emptyReadyParsed?.reviewDecision === null,
+    "empty reviewDecision= still → null",
+  );
+  console.log("ok  parse live reviewDecision=null READY fixture");
 
   const statusPretty = appendClearanceToPretty(
     "| PR | CI | Review | Merge |\n| --- | --- | --- | --- |\n| [#35](https://github.com/o/r/pull/35) | ✅ | ✅ | ✅ |\n",
