@@ -86,13 +86,17 @@ Upstream READY lines stay. Clearance is appended the same way:
 ```text
 READY: no merge conflicts, no unresolved review threads, no failing or pending checks
 mergeStateStatus=CLEAN
-reviewDecision=
+reviewDecision=null
 isDraft=false
 --- hebmu clearance ---
 reviewClearance=ci-only
 reviewClearanceReason=unprotected-base
 protection=unprotected
 ```
+
+Upstream prints `reviewDecision=null` when GitHub has no decision (`gh` returns
+`""`, normalized to null). Empty `reviewDecision=` is legacy; the enricher
+treats both as null.
 
 When approvals exist and GitHub reports `APPROVED`:
 
