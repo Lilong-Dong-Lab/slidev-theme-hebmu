@@ -154,4 +154,6 @@ Do not require a global Bun install. Use `./scripts/watch-pr` or
 `npm run watch-pr -- …` (wraps pstack `watch-pr` via `npx -y bun` when needed).
 On READY and STATUS (`--status-only`), the wrapper attaches hebmu
 review/protection clearance so CI-only green is not mistaken for review
-clearance. See `docs/agents/babysit.md`.
+clearance. Bare personal/plugin `watch-pr` has no clearance; see the wrapper
+boundary in `docs/agents/babysit.md` and
+`docs/adr/0002-hebmu-watch-pr-clearance-boundary.md`.
