@@ -9,10 +9,8 @@
  *
  * Usage (via scripts/watch-pr):
  *   ./scripts/watch-pr --owner … --repo … --pr <n> --status-only --pretty
- *   ./scripts/watch-pr --assert-merge --shipping-verdict PASS --owner … --repo … --pr <n>
  *
- * Self-check (classify + STATUS/READY fixtures + multi-class discriminant harness
- * + merge disposition matrix):
+ * Self-check:
  *   node scripts/watch-pr-clearance.mjs --self-test
  */
 import { spawnSync } from "node:child_process";
@@ -201,7 +199,6 @@ export function wantsAssertMerge(argv) {
 }
 
 /**
- * Drop hebmu merge-gate flags before spawning upstream watch-pr.
  * Commander rejects unknown options, so --assert-merge must not leak.
  *
  * @param {readonly string[]} argv
@@ -781,7 +778,6 @@ export async function runEnrichedWatchPr(args) {
     );
   }
 
-  // Observe path never remaps exit. Assert path returns disposition exit only.
   if (!wantsAssertMerge(args.argv)) {
     return result.exitCode;
   }
@@ -1047,9 +1043,6 @@ async function runSelfTest() {
   console.log("\nself-test: all passed");
 }
 
-/**
- * Disposition matrix + observe/assert exit split (#40).
- */
 async function runMergeDispositionHarness() {
   const matrix = [
     {

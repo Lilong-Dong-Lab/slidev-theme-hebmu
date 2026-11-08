@@ -1,10 +1,4 @@
 #!/usr/bin/env node
-/**
- * Hebmu merge disposition for ci-only clearance (#40).
- *
- * Pure policy: when may ci-only become merge-cleared?
- * Observation stays in watch-pr-clearance; assert-merge asks this module.
- */
 
 /**
  * @typedef {{ kind: "approved" }
@@ -40,9 +34,6 @@
  */
 
 /**
- * True iff attestation satisfies ci-only override.
- * PASS-only for shipping-verdict. explicit-override requires non-empty by+reason.
- *
  * @param {MergeAttestation | null} attestation
  * @returns {boolean}
  */
@@ -58,8 +49,6 @@ export function isValidAttestation(attestation) {
 }
 
 /**
- * Single source of truth for merge policy. Pure. No I/O.
- *
  * @param {EvaluateMergeArgs} args
  * @returns {MergeDisposition}
  */
@@ -144,10 +133,6 @@ function flagValue(argv, flag) {
 }
 
 /**
- * Boundary: argv → domain attestation (or null).
- * Accepts --shipping-verdict PASS | --merge-override <by> --merge-override-reason <text>
- * Unknown / partial flags → throw (fail closed at boundary).
- *
  * @param {readonly string[]} argv
  * @returns {MergeAttestation | null}
  */
@@ -190,8 +175,6 @@ export function parseAttestationFromArgv(argv) {
 }
 
 /**
- * Pretty stderr block for assert-merge (agents + humans).
- *
  * @param {MergeDisposition} decision
  * @returns {string}
  */
@@ -218,9 +201,6 @@ export function formatDispositionPretty(decision) {
 }
 
 /**
- * Optional NDJSON sidecar for assert-merge JSON mode.
- * Separate schema — do not overload hebmu.clearance.v1.
- *
  * @param {{ pr: number; decision: MergeDisposition }} args
  * @returns {Record<string, unknown>}
  */
