@@ -15,6 +15,7 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { stdoutHasHebmuClearance } from "./clearance-presence.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(SCRIPT_DIR, "..");
@@ -189,26 +190,40 @@ export function buildAssertArgv(target, passthrough) {
 }
 
 /**
- * @param {PrTarget} target
- * @param {number} assertExitCode
- * @param {{ nowMs: () => number }} clock
+ * Exit 0 is necessary but not sufficient. Clearance markers must appear in
+ * assert stdout (pretty header or hebmu.clearance.v1 sidecar).
+ *
+ * @param {{
+ *   target: PrTarget;
+ *   exitCode: number;
+ *   stdout: string;
+ *   stderr?: string;
+ *   clock: { nowMs: () => number };
+ * }} args
  * @returns {AssertGateResult}
  */
-export function mintPermitFromAssertExit(target, assertExitCode, clock) {
-  if (assertExitCode === 0) {
+export function mintPermitFromAssertSession(args) {
+  if (!stdoutHasHebmuClearance(args.stdout)) {
     return {
-      kind: "allow",
-      permit: {
-        __brand: "LandPermit",
-        target,
-        assertedAtMs: clock.nowMs(),
-      },
+      kind: "deny",
+      exitCode: 4,
+      detail: "hebmu-missing-clearance",
+    };
+  }
+  if (args.exitCode !== 0) {
+    return {
+      kind: "deny",
+      exitCode: args.exitCode,
+      detail: `assert exit ${args.exitCode}`,
     };
   }
   return {
-    kind: "deny",
-    exitCode: assertExitCode,
-    detail: `assert exit ${assertExitCode}`,
+    kind: "allow",
+    permit: {
+      __brand: "LandPermit",
+      target: args.target,
+      assertedAtMs: args.clock.nowMs(),
+    },
   };
 }
 
@@ -276,8 +291,12 @@ export async function landPr(request, deps) {
   if (assertResult.stdout) io.stdout(assertResult.stdout);
   if (assertResult.stderr) io.stderr(assertResult.stderr);
 
-  const gate = mintPermitFromAssertExit(request.target, assertResult.exitCode, {
-    nowMs,
+  const gate = mintPermitFromAssertSession({
+    target: request.target,
+    exitCode: assertResult.exitCode,
+    stdout: assertResult.stdout,
+    stderr: assertResult.stderr,
+    clock: { nowMs },
   });
 
   if (gate.kind === "deny") {
@@ -408,9 +427,25 @@ export async function runLandSelfTest() {
     );
   }
 
+  const bareReadyStdout = [
+    "READY: no merge conflicts, no unresolved review threads, no failing or pending checks",
+    "mergeStateStatus=CLEAN",
+    "reviewDecision=null",
+    "isDraft=false",
+    "",
+  ].join("\n");
+
+  const enrichedStdout = [
+    bareReadyStdout.trimEnd(),
+    "--- hebmu clearance ---",
+    "reviewClearance=approved",
+    "protection=unprotected",
+    "",
+  ].join("\n");
+
   /**
    * @param {number} assertExit
-   * @param {{ dryRun?: boolean; mergeExit?: number }} opts
+   * @param {{ dryRun?: boolean; mergeExit?: number; stdout?: string }} opts
    */
   async function runCase(assertExit, opts = {}) {
     let mergeCalls = 0;
@@ -428,7 +463,7 @@ export async function runLandSelfTest() {
         nowMs: clock.nowMs,
         runAssert: async () => ({
           exitCode: assertExit,
-          stdout: "",
+          stdout: opts.stdout ?? enrichedStdout,
           stderr: "",
         }),
         runMerge: async (permit, mergeArgs) => {
@@ -496,13 +531,49 @@ export async function runLandSelfTest() {
   }
 
   {
-    const deny = mintPermitFromAssertExit(target, 2, clock);
-    assertSelf("mint deny has no permit field", deny.kind === "deny");
-    const allow = mintPermitFromAssertExit(target, 0, clock);
+    const r = await runCase(0, { stdout: bareReadyStdout });
+    assertSelf("exit 0 + bare READY stdout → land exit 4", r.exit === 4);
+    assertSelf("exit 0 + bare READY → merge NOT called", r.mergeCalls === 0);
+  }
+
+  {
+    const denyBare = mintPermitFromAssertSession({
+      target,
+      exitCode: 0,
+      stdout: bareReadyStdout,
+      clock,
+    });
     assertSelf(
-      "mint allow brands LandPermit",
+      "mintPermitFromAssertSession exit 0 + bare → deny/4",
+      denyBare.kind === "deny" && denyBare.exitCode === 4,
+    );
+    const denyDisp = mintPermitFromAssertSession({
+      target,
+      exitCode: 2,
+      stdout: enrichedStdout,
+      clock,
+    });
+    assertSelf(
+      "mintPermitFromAssertSession enriched exit 2 → deny/2",
+      denyDisp.kind === "deny" && denyDisp.exitCode === 2,
+    );
+    const allow = mintPermitFromAssertSession({
+      target,
+      exitCode: 0,
+      stdout: enrichedStdout,
+      clock,
+    });
+    assertSelf(
+      "mintPermitFromAssertSession exit 0 + enriched → allow",
       allow.kind === "allow" && allow.permit.__brand === "LandPermit",
     );
+  }
+
+  {
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync(new URL("./land-pr.mjs", import.meta.url), "utf8");
+    const legacyMint = ["mintPermit", "FromAssertExit"].join("");
+    assertSelf("exit-only assert mint removed", !src.includes(legacyMint));
   }
 
   console.log("ok  land-pr self-test passed");
