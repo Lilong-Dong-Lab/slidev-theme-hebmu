@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 /**
- * Fail-closed land helper (#46).
+ * Fail-closed land helper (#46 / #47).
  *
  * Always runs ./scripts/watch-pr --assert-merge before gh pr merge.
  * Observe READY/STATUS exit 0 is never merge clearance.
+ * On ci-only, assert reads a sealed-shipping artifact (seal-shipping CLI);
+ * bare --shipping-verdict is rejected at parse.
  *
  * Usage:
- *   npm run land-pr -- --owner … --repo … --pr <n> [--shipping-verdict PASS] [--dry-run]
+ *   npm run land-pr -- --owner … --repo … --pr <n> [--dry-run]
+ *   npm run land-pr -- --owner … --repo … --pr <n> --merge-override <who> --merge-override-reason <why>
  *   node scripts/land-pr.mjs --self-test
  */
 import { spawnSync } from "node:child_process";
@@ -68,10 +71,13 @@ const LAND_VALUE_FLAGS = new Set([
   "--owner",
   "--repo",
   "--pr",
-  "--shipping-verdict",
   "--merge-override",
   "--merge-override-reason",
 ]);
+
+/** @type {string} */
+export const LAND_SHIPPING_VERDICT_REMOVED =
+  "land-pr: --shipping-verdict removed; run seal-shipping after Shipping VERDICT PASS, then land-pr (or use --merge-override)";
 
 const LAND_BOOL_FLAGS = new Set([
   "--dry-run",
@@ -114,17 +120,13 @@ export function parseLandArgv(argv) {
     throw new Error(`land-pr: --pr must be a positive integer, got ${prRaw}`);
   }
 
+  if (argv.includes("--shipping-verdict")) {
+    throw new Error(LAND_SHIPPING_VERDICT_REMOVED);
+  }
+
   /** @type {string[]} */
   const argvTail = [];
   if (argv.includes("--pretty")) argvTail.push("--pretty");
-
-  const shipping = flagValue(argv, "--shipping-verdict");
-  if (argv.includes("--shipping-verdict")) {
-    if (shipping === undefined) {
-      throw new Error("land-pr: --shipping-verdict requires a value");
-    }
-    argvTail.push("--shipping-verdict", shipping);
-  }
 
   const overrideBy = flagValue(argv, "--merge-override");
   const overrideReason = flagValue(argv, "--merge-override-reason");
@@ -348,8 +350,7 @@ export async function runLandSelfTest() {
       "46",
       "--assert-merge",
       "--status-only",
-      "--shipping-verdict",
-      "PASS",
+      "--pretty",
     ]);
     const argv = buildAssertArgv(req.target, req.passthrough);
     assertSelf(
@@ -358,8 +359,52 @@ export async function runLandSelfTest() {
         argv.filter((a) => a === "--assert-merge").length === 1,
     );
     assertSelf(
-      "attestation passthrough reaches assert argv",
-      argv.includes("--shipping-verdict") && argv.includes("PASS"),
+      "happy-path passthrough has no shipping-verdict",
+      !argv.includes("--shipping-verdict") &&
+        req.passthrough.argvTail.filter((a) => a !== "--pretty").length === 0,
+    );
+  }
+
+  {
+    let rejected = false;
+    try {
+      parseLandArgv([
+        "--owner",
+        target.owner,
+        "--repo",
+        target.repo,
+        "--pr",
+        "46",
+        "--shipping-verdict",
+        "PASS",
+      ]);
+    } catch (err) {
+      rejected =
+        err instanceof Error && err.message === LAND_SHIPPING_VERDICT_REMOVED;
+    }
+    assertSelf("parse rejects --shipping-verdict PASS", rejected);
+  }
+
+  {
+    const req = parseLandArgv([
+      "--owner",
+      target.owner,
+      "--repo",
+      target.repo,
+      "--pr",
+      "46",
+      "--merge-override",
+      "alice",
+      "--merge-override-reason",
+      "emergency",
+    ]);
+    const argv = buildAssertArgv(req.target, req.passthrough);
+    assertSelf(
+      "override passthrough reaches assert argv",
+      argv.includes("--merge-override") &&
+        argv.includes("alice") &&
+        argv.includes("--merge-override-reason") &&
+        argv.includes("emergency"),
     );
   }
 

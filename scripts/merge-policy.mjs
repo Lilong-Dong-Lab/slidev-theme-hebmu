@@ -7,8 +7,17 @@
  *   | { kind: "ci-only"; reason: "no-required-reviews" | "unprotected-base" }
  *   | { kind: "unknown"; detail: string }} ReviewClearance
  *
- * @typedef {{ kind: "shipping-verdict"; verdict: "PASS" | "FAIL" }
- *   | { kind: "explicit-override"; by: string; reason: string }} MergeAttestation
+ * @typedef {{
+ *   kind: "sealed-shipping";
+ *   verdict: "PASS" | "FAIL";
+ *   headRefOid: string;
+ *   sealedAt: string;
+ *   by?: string;
+ * } | {
+ *   kind: "explicit-override";
+ *   by: string;
+ *   reason: string;
+ * }} MergeAttestation
  *
  * @typedef {{
  *   disposition: "allow";
@@ -19,7 +28,7 @@
  *   disposition: "require-attestation";
  *   exitCode: 2;
  *   clearance: { kind: "ci-only"; reason: "no-required-reviews" | "unprotected-base" };
- *   missing: "shipping-verdict-or-override";
+ *   missing: "sealed-shipping-or-override";
  * } | {
  *   disposition: "block";
  *   exitCode: 3;
@@ -30,17 +39,80 @@
  * @typedef {{
  *   clearance: ReviewClearance;
  *   attestation: MergeAttestation | null;
+ *   headRefOid: string | null;
  * }} EvaluateMergeArgs
  */
 
 /**
- * @param {MergeAttestation | null} attestation
+ * Exact OID equality; empty / null never matches.
+ *
+ * @param {string | null | undefined} a
+ * @param {string | null | undefined} b
  * @returns {boolean}
  */
-export function isValidAttestation(attestation) {
+export function oidsMatch(a, b) {
+  if (!a || !b) return false;
+  return a === b;
+}
+
+/**
+ * Map a store artifact into a policy attestation, or null if unusable.
+ *
+ * @param {{
+ *   schema?: string;
+ *   verdict?: string;
+ *   headRefOid?: string;
+ *   sealedAt?: string;
+ *   by?: string;
+ * } | null | undefined} artifact
+ * @returns {MergeAttestation | null}
+ */
+export function artifactToAttestation(artifact) {
+  if (!artifact) return null;
+  if (artifact.schema !== "hebmu.sealed-shipping.v1") return null;
+  if (artifact.verdict !== "PASS" && artifact.verdict !== "FAIL") return null;
+  if (typeof artifact.headRefOid !== "string" || !artifact.headRefOid) {
+    return null;
+  }
+  if (typeof artifact.sealedAt !== "string" || !artifact.sealedAt) return null;
+  /** @type {MergeAttestation} */
+  const att = {
+    kind: "sealed-shipping",
+    verdict: artifact.verdict,
+    headRefOid: artifact.headRefOid,
+    sealedAt: artifact.sealedAt,
+  };
+  if (typeof artifact.by === "string" && artifact.by) att.by = artifact.by;
+  return att;
+}
+
+/**
+ * Sealed PASS with no live tip (or tip ≠ seal) is stale/unbound — re-seal, not block.
+ *
+ * @param {MergeAttestation} attestation
+ * @param {string | null | undefined} headRefOid
+ * @returns {boolean}
+ */
+function isStaleOrUnboundSeal(attestation, headRefOid) {
+  return (
+    attestation.kind === "sealed-shipping" &&
+    attestation.verdict === "PASS" &&
+    !oidsMatch(attestation.headRefOid, headRefOid)
+  );
+}
+
+/**
+ * @param {MergeAttestation | null} attestation
+ * @param {string | null | undefined} headRefOid
+ * @returns {boolean}
+ */
+export function isValidAttestation(attestation, headRefOid) {
   if (!attestation) return false;
-  if (attestation.kind === "shipping-verdict") {
-    return attestation.verdict === "PASS";
+  if (attestation.kind === "sealed-shipping") {
+    return (
+      attestation.verdict === "PASS" &&
+      oidsMatch(attestation.headRefOid, headRefOid)
+    );
   }
   if (attestation.kind === "explicit-override") {
     return Boolean(attestation.by.trim() && attestation.reason.trim());
@@ -53,7 +125,7 @@ export function isValidAttestation(attestation) {
  * @returns {MergeDisposition}
  */
 export function evaluateMergeDisposition(args) {
-  const { clearance, attestation } = args;
+  const { clearance, attestation, headRefOid = null } = args;
 
   switch (clearance.kind) {
     case "approved":
@@ -64,7 +136,15 @@ export function evaluateMergeDisposition(args) {
         attestation,
       };
     case "ci-only":
-      if (attestation && !isValidAttestation(attestation)) {
+      if (attestation && !isValidAttestation(attestation, headRefOid)) {
+        if (isStaleOrUnboundSeal(attestation, headRefOid)) {
+          return {
+            disposition: "require-attestation",
+            exitCode: 2,
+            clearance,
+            missing: "sealed-shipping-or-override",
+          };
+        }
         return {
           disposition: "block",
           exitCode: 3,
@@ -72,7 +152,7 @@ export function evaluateMergeDisposition(args) {
           reason: "attestation-rejected",
         };
       }
-      if (isValidAttestation(attestation)) {
+      if (isValidAttestation(attestation, headRefOid)) {
         return {
           disposition: "allow",
           exitCode: 0,
@@ -84,7 +164,7 @@ export function evaluateMergeDisposition(args) {
         disposition: "require-attestation",
         exitCode: 2,
         clearance,
-        missing: "shipping-verdict-or-override",
+        missing: "sealed-shipping-or-override",
       };
     case "review-required":
       return {
@@ -132,7 +212,22 @@ function flagValue(argv, flag) {
   return v;
 }
 
+/** @type {string} */
+export const SHIPPING_VERDICT_REMOVED =
+  "merge-policy: --shipping-verdict removed; seal with seal-shipping then land-pr (or use --merge-override)";
+
 /**
+ * @param {unknown} err
+ * @returns {boolean}
+ */
+export function isShippingVerdictRemovedError(err) {
+  return err instanceof Error && err.message === SHIPPING_VERDICT_REMOVED;
+}
+
+/**
+ * Argv attestation is override-only. Bare --shipping-verdict never yields a
+ * valid attestation (hard throw).
+ *
  * @param {readonly string[]} argv
  * @returns {MergeAttestation | null}
  */
@@ -143,21 +238,12 @@ export function parseAttestationFromArgv(argv) {
 
   if (hasVerdict && (hasOverride || hasOverrideReason)) {
     throw new Error(
-      "merge-policy: use either --shipping-verdict or --merge-override, not both",
+      "merge-policy: use either sealed-shipping (store) or --merge-override, not --shipping-verdict with override",
     );
   }
 
   if (hasVerdict) {
-    const verdict = flagValue(argv, "--shipping-verdict");
-    if (verdict === undefined) {
-      throw new Error("merge-policy: --shipping-verdict requires a value");
-    }
-    if (verdict !== "PASS" && verdict !== "FAIL") {
-      throw new Error(
-        `merge-policy: --shipping-verdict must be PASS or FAIL, got ${verdict}`,
-      );
-    }
-    return { kind: "shipping-verdict", verdict };
+    throw new Error(SHIPPING_VERDICT_REMOVED);
   }
 
   if (hasOverride || hasOverrideReason) {
@@ -188,7 +274,7 @@ export function formatDispositionPretty(decision) {
   if (decision.disposition === "require-attestation") {
     lines.push(`missing=${decision.missing}`);
     lines.push(
-      "hint=pass --shipping-verdict PASS after independent Shipping VERDICT",
+      "hint=run seal-shipping after Shipping VERDICT PASS, then land-pr (no --shipping-verdict)",
     );
   }
   if (decision.disposition === "block") {

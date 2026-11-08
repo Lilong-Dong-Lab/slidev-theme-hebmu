@@ -58,43 +58,51 @@ Bun runtime as a blocker. See the poteto-mode Babysit playbook.
 
 Babysit observe (`./scripts/watch-pr` without `--assert-merge`) attaches
 clearance and keeps the upstream exit. That exit is **not** merge clearance.
-Shipping land must use the fail-closed helper, which always injects
-`--assert-merge` and only then may call `gh pr merge`:
+Shipping land is seal-then-land: the verifier seals a tip-bound artifact, then
+the fail-closed helper always injects `--assert-merge` and only then may call
+`gh pr merge`:
 
 ```bash
-npm run land-pr -- \
+npm run seal-shipping -- \
   --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> \
-  --shipping-verdict PASS
+  --verdict PASS
+
+npm run land-pr -- \
+  --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n>
 ```
 
 Or:
 
 ```bash
-node scripts/land-pr.mjs --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> \
-  --shipping-verdict PASS
+node scripts/seal-shipping.mjs --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --verdict PASS
+node scripts/land-pr.mjs --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n>
 ```
 
 Do not run bare `gh pr merge` after observe READY/STATUS. Do not treat
 `./scripts/watch-pr --assert-merge && gh pr merge` as the land path either.
 `land-pr` owns that sequence so disposition `2` / `3` cannot reach merge.
+Do not pass `--shipping-verdict` (removed; land-pr rejects it).
 
 On `ci-only`, assert (inside `land-pr`) exits `2` (`require-attestation`) until
-you pass a Shipping attestation (`--shipping-verdict PASS`). Dry-run checks
-allow without merging:
+a sealed PASS matches the live `headRefOid` (or you use emergency
+`--merge-override`). Stale tip after new commits also exits `2` — re-seal.
+Dry-run checks allow without merging:
 
 ```bash
 npm run land-pr -- --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> \
-  --shipping-verdict PASS --dry-run
+  --dry-run
 ```
 
 Disposition exits: `0` allow, `2` need attestation, `3` block
 (`review-required` / `changes-requested` / `unknown` / rejected attestation).
-Shipping PASS does not clear `review-required`. Policy record:
+A sealed PASS does not clear `review-required`. Policy record:
 `docs/adr/0003-ci-only-merge-policy.md`.
 
 Proof without live `gh`:
 
 ```bash
+node scripts/watch-pr-clearance.mjs --self-test
+npm run seal-shipping:self-test
 npm run land-pr:self-test
 ```
 
