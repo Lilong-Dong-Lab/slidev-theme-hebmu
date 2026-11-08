@@ -1,10 +1,13 @@
 /**
- * AttackContext factory + shared fixtures for #53 adversarial suite.
+ * AttackContext factory + shared fixtures for #53 / #58 adversarial suite.
  */
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { signingKeyFromTestSecret } from "../attestation-mac.mjs";
-import { mintVerifierBoundAttestation } from "../attestation-mac.mjs";
+import {
+  forgeLegacyHmacWireForTest,
+  generateSealKeyPairForTest,
+  mintVerifierBoundAttestation,
+} from "../attestation-crypto.mjs";
 import { createVerifyingMemoryStore } from "../attestation-store.mjs";
 import {
   landPr,
@@ -23,10 +26,10 @@ import {
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_REPO_ROOT = join(SCRIPT_DIR, "..", "..");
 
-/** Adversarial-suite HMAC material — never production env. */
-export const ADVERSARIAL_SEAL_KEY = signingKeyFromTestSecret(
-  "hebmu-adversarial-land-self-test-key",
-);
+/** Adversarial-suite Ed25519 pair — never production env. */
+const ADVERSARIAL_KEYS = generateSealKeyPairForTest();
+export const ADVERSARIAL_MINT_KEY = ADVERSARIAL_KEYS.mintKey;
+export const ADVERSARIAL_VERIFY_KEY = ADVERSARIAL_KEYS.verifyKey;
 
 export const LIVE_TIP_OID = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 export const STALE_OID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -50,14 +53,16 @@ export const STALE_OID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
  *   putValidPass: (store: MemoryAttestationStore, oid: string) => void;
  *   putForgedOrUnsigned: (
  *     store: MemoryAttestationStore,
- *     kind: "unsigned" | "forged-mac",
+ *     kind: "unsigned" | "forged-mac" | "legacy-hmac",
  *   ) => void;
+ *   putLegacyHmacPass: (store: MemoryAttestationStore, oid: string) => void;
  * }} AttackFixtures
  *
  * @typedef {{
  *   target: PrTarget;
  *   repoRoot: string;
- *   sealKey: import("../attestation-mac.mjs").VerifierSigningKey;
+ *   mintKey: import("../attestation-crypto.mjs").SealMintKey;
+ *   verifyKey: import("../attestation-crypto.mjs").SealVerifyKey;
  *   freshStore: () => MemoryAttestationStore;
  *   tip: {
  *     landPr: typeof landPr;
@@ -103,7 +108,8 @@ export function createAttackContext(opts = {}) {
     repo: "slidev-theme-hebmu",
     pr: 53,
   };
-  const sealKey = ADVERSARIAL_SEAL_KEY;
+  const mintKey = ADVERSARIAL_MINT_KEY;
+  const verifyKey = ADVERSARIAL_VERIFY_KEY;
 
   /** @type {AttackFixtures} */
   const fixtures = {
@@ -140,14 +146,33 @@ export function createAttackContext(opts = {}) {
             verdict: "PASS",
             sealedAt: "2026-11-08T00:00:00.000Z",
           },
-          sealKey,
+          mintKey,
+        ),
+      );
+    },
+    putLegacyHmacPass(store, oid) {
+      store.putRawForTest(
+        forgeLegacyHmacWireForTest(
+          {
+            owner: target.owner,
+            repo: target.repo,
+            pr: target.pr,
+            headRefOid: oid,
+            verdict: "PASS",
+            sealedAt: "2026-11-08T00:00:00.000Z",
+          },
+          "hebmu-adversarial-legacy-hmac-secret",
         ),
       );
     },
     putForgedOrUnsigned(store, kind) {
+      if (kind === "legacy-hmac") {
+        fixtures.putLegacyHmacPass(store, LIVE_TIP_OID);
+        return;
+      }
       /** @type {Record<string, unknown>} */
       const raw = {
-        schema: "hebmu.sealed-shipping.v2",
+        schema: "hebmu.sealed-shipping.v3",
         owner: target.owner,
         repo: target.repo,
         pr: target.pr,
@@ -156,7 +181,7 @@ export function createAttackContext(opts = {}) {
         sealedAt: "2026-11-08T00:00:00.000Z",
       };
       if (kind === "forged-mac") {
-        raw.mac = "00".repeat(32);
+        raw.sig = "00".repeat(64);
       }
       store.putRawForTest(raw);
     },
@@ -165,8 +190,9 @@ export function createAttackContext(opts = {}) {
   return {
     target,
     repoRoot,
-    sealKey,
-    freshStore: () => createVerifyingMemoryStore(sealKey),
+    mintKey,
+    verifyKey,
+    freshStore: () => createVerifyingMemoryStore(verifyKey),
     tip: {
       landPr,
       parseLandArgv,
