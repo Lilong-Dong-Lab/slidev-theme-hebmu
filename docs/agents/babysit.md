@@ -108,6 +108,10 @@ permit. A sealed PASS does not clear `review-required`. Policy record:
 Proof without live `gh`:
 
 ```bash
+# CI / land adversarial gate (#53) — sole PR-gate land-path check
+npm run check:adversarial-land
+
+# Unit tools for focused local debug (not the CI adversarial suite)
 node scripts/watch-pr-clearance.mjs --self-test
 npm run seal-shipping:self-test
 npm run land-pr:self-test
