@@ -1,36 +1,47 @@
 #!/usr/bin/env node
 /**
- * Verifier CLI: mint a tip-bound, HMAC-signed Shipping seal (#47 / #52).
+ * Verifier CLI: mint a tip-bound, Ed25519-signed Shipping seal (#47 / #58).
  *
- * Requires HEBMU_SEAL_HMAC_KEY. Never writes unsigned JSON.
+ * Requires HEBMU_SEAL_MINT_KEY. Never writes unsigned JSON.
+ * Assert/land use HEBMU_SEAL_VERIFY_KEY only — never this mint material.
  *
  * Usage:
- *   export HEBMU_SEAL_HMAC_KEY='…'
+ *   node scripts/seal-shipping.mjs --gen-keys
+ *   export HEBMU_SEAL_MINT_KEY='…'
  *   npm run seal-shipping -- --owner … --repo … --pr <n> --verdict PASS
- *   npm run seal-shipping -- --owner … --repo … --pr <n> --verdict PASS --head-ref-oid <sha>
  *   node scripts/seal-shipping.mjs --self-test
  */
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import {
-  loadVerifierSigningKeyFromEnv,
+  encodeMintKeyForEnv,
+  encodeVerifyKeyForEnv,
+  forgeLegacyHmacWireForTest,
+  forgeRandomSigWireForTest,
+  generateSealKeyPairForTest,
+  loadSealMintKeyFromEnv,
+  loadSealVerifyKeyFromEnv,
   mintVerifierBoundAttestation,
-  signingKeyFromTestSecret,
+  sealedShippingWireFromBound,
   verifySealedShippingWire,
-} from "./attestation-mac.mjs";
+  HEBMU_SEAL_HMAC_KEY_ENV,
+  HEBMU_SEAL_MINT_KEY_ENV,
+  HEBMU_SEAL_VERIFY_KEY_ENV,
+  SEALED_SHIPPING_SCHEMA_V3,
+} from "./attestation-crypto.mjs";
 import {
-  createVerifyingFsStore,
   createVerifyingMemoryStore,
   defaultSealedShippingDir,
+  putBoundAttestation,
 } from "./attestation-store.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(SCRIPT_DIR, "..");
 
 /**
- * @typedef {import("./attestation-mac.mjs").VerifierBoundAttestation} VerifierBoundAttestation
- * @typedef {import("./attestation-mac.mjs").VerifierSigningKey} VerifierSigningKey
+ * @typedef {import("./attestation-crypto.mjs").VerifierBoundAttestation} VerifierBoundAttestation
+ * @typedef {import("./attestation-crypto.mjs").SealMintKey} SealMintKey
  * @typedef {import("./attestation-store.mjs").AttestationStore} AttestationStore
  *
  * @typedef {{
@@ -49,7 +60,7 @@ const REPO_ROOT = join(SCRIPT_DIR, "..");
  *     pr: number;
  *   }) => string;
  *   store: AttestationStore;
- *   signingKey: VerifierSigningKey;
+ *   mintKey: SealMintKey;
  *   nowIso?: () => string;
  *   io?: { stdout: (s: string) => void; stderr: (s: string) => void };
  * }} SealDeps
@@ -138,8 +149,10 @@ export function defaultResolveHeadRefOid(target) {
  * @returns {VerifierBoundAttestation}
  */
 export function sealShipping(request, deps) {
-  if (!deps.signingKey || deps.signingKey.__brand !== "VerifierSigningKey") {
-    throw new Error("seal-shipping: signingKey required (HEBMU_SEAL_HMAC_KEY)");
+  if (!deps.mintKey || deps.mintKey.__brand !== "SealMintKey") {
+    throw new Error(
+      `seal-shipping: mintKey required (${HEBMU_SEAL_MINT_KEY_ENV})`,
+    );
   }
   const headRefOid =
     request.headRefOid ??
@@ -149,7 +162,7 @@ export function sealShipping(request, deps) {
       pr: request.pr,
     });
   const nowIso = deps.nowIso ?? (() => new Date().toISOString());
-  /** @type {import("./attestation-mac.mjs").ShippingClaims} */
+  /** @type {import("./attestation-crypto.mjs").ShippingClaims} */
   const claims = {
     owner: request.owner,
     repo: request.repo,
@@ -160,7 +173,7 @@ export function sealShipping(request, deps) {
   };
   if (request.by) claims.by = request.by;
 
-  const bound = mintVerifierBoundAttestation(claims, deps.signingKey);
+  const bound = mintVerifierBoundAttestation(claims, deps.mintKey);
   deps.store.put(bound);
   const io = deps.io ?? {
     stdout: (s) => process.stdout.write(s),
@@ -170,6 +183,22 @@ export function sealShipping(request, deps) {
     `seal-shipping: sealed ${bound.claims.verdict} for ${bound.claims.owner}/${bound.claims.repo}#${bound.claims.pr} @ ${bound.claims.headRefOid}\n`,
   );
   return bound;
+}
+
+/**
+ * Prod FS writer used by CLI main (no verify key on mint path).
+ * @param {string} rootDir
+ * @returns {AttestationStore}
+ */
+function createMintFsStore(rootDir) {
+  return {
+    put(artifact) {
+      putBoundAttestation(rootDir, artifact);
+    },
+    get() {
+      throw new Error("seal-shipping: mint store is write-only");
+    },
+  };
 }
 
 /**
@@ -185,8 +214,8 @@ function assertSelf(label, ok) {
  * @returns {void}
  */
 export function runSealSelfTest() {
-  const key = signingKeyFromTestSecret("hebmu-seal-self-test-key");
-  const store = createVerifyingMemoryStore(key);
+  const { mintKey, verifyKey } = generateSealKeyPairForTest();
+  const store = createVerifyingMemoryStore(verifyKey);
   const oidA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
   const oidB = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
   const silent = { stdout: () => {}, stderr: () => {} };
@@ -206,21 +235,21 @@ export function runSealSelfTest() {
           return oidA;
         },
         store,
-        signingKey: key,
+        mintKey,
         nowIso: () => "2026-11-08T00:00:00.000Z",
         io: silent,
       },
     );
     assertSelf("resolver returned oid used in artifact", artifact.claims.headRefOid === oidA);
     assertSelf("resolver was invoked when oid omitted", resolved === oidA);
-    assertSelf("minted schema is v2", artifact.schema === "hebmu.sealed-shipping.v2");
+    assertSelf("minted schema is v3", artifact.schema === SEALED_SHIPPING_SCHEMA_V3);
     assertSelf("minted brand is verifier-bound", artifact.__brand === "VerifierBoundAttestation");
     const got = store.get({
       owner: "Lilong-Dong-Lab",
       repo: "slidev-theme-hebmu",
       pr: 47,
     });
-    assertSelf("memory get round-trip schema", got?.schema === "hebmu.sealed-shipping.v2");
+    assertSelf("memory get round-trip schema", got?.schema === SEALED_SHIPPING_SCHEMA_V3);
     assertSelf("memory get preserves headRefOid", got?.claims.headRefOid === oidA);
     assertSelf("memory get preserves PASS", got?.claims.verdict === "PASS");
     assertSelf("memory get returns branded attestation", got?.__brand === "VerifierBoundAttestation");
@@ -240,7 +269,7 @@ export function runSealSelfTest() {
           throw new Error("should not resolve when --head-ref-oid given");
         },
         store,
-        signingKey: key,
+        mintKey,
         nowIso: () => "2026-11-08T01:00:00.000Z",
         io: silent,
       },
@@ -278,7 +307,7 @@ export function runSealSelfTest() {
         {
           resolveHeadRefOid: () => oidA,
           store,
-          signingKey: /** @type {any} */ (undefined),
+          mintKey: /** @type {any} */ (undefined),
           nowIso: () => "2026-11-08T00:00:00.000Z",
           io: silent,
         },
@@ -286,89 +315,162 @@ export function runSealSelfTest() {
     } catch {
       threw = true;
     }
-    assertSelf("seal without signingKey throws (never unsigned write)", threw);
+    assertSelf("seal without mintKey throws (never unsigned write)", threw);
   }
 
   {
-    const forgeStore = createVerifyingMemoryStore(key);
-    forgeStore.putRawForTest({
-      schema: "hebmu.sealed-shipping.v2",
+    const tipMatchingPass = {
       owner: "o",
       repo: "r",
-      pr: 52,
+      pr: 58,
+      headRefOid: oidA,
+      verdict: /** @type {const} */ ("PASS"),
+      sealedAt: "2026-11-08T00:00:00.000Z",
+    };
+    const forgeStore = createVerifyingMemoryStore(verifyKey);
+
+    forgeStore.putRawForTest({
+      schema: "hebmu.sealed-shipping.v3",
+      owner: "o",
+      repo: "r",
+      pr: 58,
       headRefOid: oidA,
       verdict: "PASS",
       sealedAt: "2026-11-08T00:00:00.000Z",
-      // lander-mintable unsigned JSON — no mac
     });
     assertSelf(
       "lander-mintable unsigned JSON → get null",
-      forgeStore.get({ owner: "o", repo: "r", pr: 52 }) === null,
+      forgeStore.get({ owner: "o", repo: "r", pr: 58 }) === null,
     );
 
     forgeStore.putRawForTest({
       schema: "hebmu.sealed-shipping.v1",
       owner: "o",
       repo: "r",
-      pr: 52,
+      pr: 58,
       headRefOid: oidA,
       verdict: "PASS",
       sealedAt: "2026-11-08T00:00:00.000Z",
     });
     assertSelf(
       "lander-mintable v1 unsigned JSON → get null",
-      forgeStore.get({ owner: "o", repo: "r", pr: 52 }) === null,
+      forgeStore.get({ owner: "o", repo: "r", pr: 58 }) === null,
     );
 
-    forgeStore.putRawForTest({
-      schema: "hebmu.sealed-shipping.v2",
-      owner: "o",
-      repo: "r",
-      pr: 52,
-      headRefOid: oidA,
-      verdict: "PASS",
-      sealedAt: "2026-11-08T00:00:00.000Z",
-      mac: "deadbeef".repeat(8),
-    });
+    forgeStore.putRawForTest(forgeRandomSigWireForTest(tipMatchingPass));
     assertSelf(
-      "lander-mintable forged mac → get null",
-      forgeStore.get({ owner: "o", repo: "r", pr: 52 }) === null,
+      "lander-mintable forged sig → get null",
+      forgeStore.get({ owner: "o", repo: "r", pr: 58 }) === null,
     );
 
-    const bound = mintVerifierBoundAttestation(
-      {
-        owner: "o",
-        repo: "r",
-        pr: 52,
-        headRefOid: oidA,
-        verdict: "PASS",
-        sealedAt: "2026-11-08T00:00:00.000Z",
-      },
-      key,
+    // #58: lander-held secrets only (verify public + legacy shared HMAC)
+    const landerEnv = {
+      [HEBMU_SEAL_VERIFY_KEY_ENV]: encodeVerifyKeyForEnv(verifyKey),
+      [HEBMU_SEAL_HMAC_KEY_ENV]: "legacy-shared-hmac-secret",
+    };
+    let mintLoadThrew = false;
+    try {
+      loadSealMintKeyFromEnv(landerEnv);
+    } catch {
+      mintLoadThrew = true;
+    }
+    assertSelf(
+      "#58 lander env without mint key → loadSealMintKeyFromEnv throws",
+      mintLoadThrew,
     );
+
+    let verifyBrandMintThrew = false;
+    try {
+      mintVerifierBoundAttestation(
+        tipMatchingPass,
+        /** @type {any} */ (verifyKey),
+      );
+    } catch {
+      verifyBrandMintThrew = true;
+    }
+    assertSelf(
+      "#58 verify-only brand cannot mint",
+      verifyBrandMintThrew,
+    );
+
+    forgeStore.putRawForTest(
+      forgeLegacyHmacWireForTest(
+        tipMatchingPass,
+        landerEnv[HEBMU_SEAL_HMAC_KEY_ENV],
+      ),
+    );
+    assertSelf(
+      "#58 lander-with-shared-key / legacy HMAC wire → get null",
+      forgeStore.get({ owner: "o", repo: "r", pr: 58 }) === null,
+    );
+
+    // True verifier mint still allows
+    const bound = mintVerifierBoundAttestation(tipMatchingPass, mintKey);
     forgeStore.put(bound);
-    const verified = forgeStore.get({ owner: "o", repo: "r", pr: 52 });
+    const verified = forgeStore.get({ owner: "o", repo: "r", pr: 58 });
     assertSelf(
-      "verifier-signed matching OID → get branded",
+      "#58 verifier mint → get branded PASS",
       verified?.__brand === "VerifierBoundAttestation" &&
-        verified.claims.headRefOid === oidA,
+        verified.claims.headRefOid === oidA &&
+        verified.claims.verdict === "PASS",
     );
     assertSelf(
-      "verifySealedShippingWire accepts minted wire",
-      verifySealedShippingWire(
-        {
-          schema: "hebmu.sealed-shipping.v2",
-          owner: "o",
-          repo: "r",
-          pr: 52,
-          headRefOid: oidA,
-          verdict: "PASS",
-          sealedAt: "2026-11-08T00:00:00.000Z",
-          mac: bound.mac,
-        },
-        key,
-      ) !== null,
+      "#58 verifySealedShippingWire accepts minted wire",
+      verifySealedShippingWire(sealedShippingWireFromBound(bound), verifyKey) !==
+        null,
     );
+  }
+
+  {
+    let hmacMigrationThrew = false;
+    try {
+      loadSealVerifyKeyFromEnv({
+        [HEBMU_SEAL_VERIFY_KEY_ENV]: encodeVerifyKeyForEnv(verifyKey),
+        [HEBMU_SEAL_HMAC_KEY_ENV]: "still-present",
+      });
+    } catch (err) {
+      hmacMigrationThrew =
+        err instanceof Error && err.message.includes("retired");
+    }
+    assertSelf(
+      "#58 HEBMU_SEAL_HMAC_KEY → migration error from verify loader",
+      hmacMigrationThrew,
+    );
+
+    let mintHmacThrew = false;
+    try {
+      loadSealMintKeyFromEnv({
+        [HEBMU_SEAL_MINT_KEY_ENV]: encodeMintKeyForEnv(mintKey),
+        [HEBMU_SEAL_HMAC_KEY_ENV]: "still-present",
+      });
+    } catch (err) {
+      mintHmacThrew =
+        err instanceof Error && err.message.includes("retired");
+    }
+    assertSelf(
+      "#58 HEBMU_SEAL_HMAC_KEY → migration error from mint loader",
+      mintHmacThrew,
+    );
+
+    let spkiAsMintThrew = false;
+    try {
+      loadSealMintKeyFromEnv({
+        [HEBMU_SEAL_MINT_KEY_ENV]: encodeVerifyKeyForEnv(verifyKey),
+      });
+    } catch {
+      spkiAsMintThrew = true;
+    }
+    assertSelf("#58 VERIFY SPKI rejected by mint loader", spkiAsMintThrew);
+
+    let pkcs8AsVerifyThrew = false;
+    try {
+      loadSealVerifyKeyFromEnv({
+        [HEBMU_SEAL_VERIFY_KEY_ENV]: encodeMintKeyForEnv(mintKey),
+      });
+    } catch {
+      pkcs8AsVerifyThrew = true;
+    }
+    assertSelf("#58 MINT PKCS8 rejected by verify loader", pkcs8AsVerifyThrew);
   }
 
   console.log("ok  seal-shipping self-test passed");
@@ -384,16 +486,23 @@ export function main(argv) {
     return 0;
   }
 
+  if (argv.includes("--gen-keys")) {
+    const { mintKey, verifyKey } = generateSealKeyPairForTest();
+    process.stdout.write(
+      `# One-time seal keypair (#58). Mint is verifier-only; land uses verify.\n` +
+        `export ${HEBMU_SEAL_MINT_KEY_ENV}='${encodeMintKeyForEnv(mintKey)}'\n` +
+        `export ${HEBMU_SEAL_VERIFY_KEY_ENV}='${encodeVerifyKeyForEnv(verifyKey)}'\n` +
+        `# unset ${HEBMU_SEAL_MINT_KEY_ENV} before land-pr / --assert-merge\n`,
+    );
+    return 0;
+  }
+
   const request = parseSealArgv(argv);
-  const signingKey = loadVerifierSigningKeyFromEnv(process.env);
-  const store = createVerifyingFsStore(
-    defaultSealedShippingDir(REPO_ROOT),
-    signingKey,
-  );
+  const mintKey = loadSealMintKeyFromEnv(process.env);
   sealShipping(request, {
     resolveHeadRefOid: defaultResolveHeadRefOid,
-    store,
-    signingKey,
+    store: createMintFsStore(defaultSealedShippingDir(REPO_ROOT)),
+    mintKey,
   });
   return 0;
 }
