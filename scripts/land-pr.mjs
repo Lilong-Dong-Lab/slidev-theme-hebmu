@@ -4,8 +4,9 @@
  *
  * Always runs ./scripts/watch-pr --assert-merge before gh pr merge.
  * Observe READY/STATUS exit 0 is never merge clearance.
- * On ci-only, assert reads a sealed-shipping artifact (seal-shipping CLI);
- * bare --shipping-verdict is rejected at parse.
+ * On ci-only, assert reads a verifier-bound sealed-shipping artifact
+ * (seal-shipping CLI + HEBMU_SEAL_HMAC_KEY); bare --shipping-verdict is
+ * rejected at parse.
  *
  * Usage:
  *   npm run land-pr -- --owner … --repo … --pr <n> [--dry-run]

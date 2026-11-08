@@ -58,11 +58,15 @@ Bun runtime as a blocker. See the poteto-mode Babysit playbook.
 
 Babysit observe (`./scripts/watch-pr` without `--assert-merge`) attaches
 clearance and keeps the upstream exit. That exit is **not** merge clearance.
-Shipping land is seal-then-land: the verifier seals a tip-bound artifact, then
-the fail-closed helper always injects `--assert-merge` and only then may call
-`gh pr merge`:
+Shipping land is seal-then-land: the verifier mints a tip-bound,
+HMAC-signed seal (`HEBMU_SEAL_HMAC_KEY`), then the fail-closed helper always
+injects `--assert-merge` and only then may call `gh pr merge`. Local JSON
+under `.git/hebmu/sealed-shipping/` is a receipt on disk — it is not merge
+proof unless the MAC verifies with the verifier key:
 
 ```bash
+export HEBMU_SEAL_HMAC_KEY='…verifier-only material…'
+
 npm run seal-shipping -- \
   --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> \
   --verdict PASS
@@ -74,6 +78,7 @@ npm run land-pr -- \
 Or:
 
 ```bash
+export HEBMU_SEAL_HMAC_KEY='…verifier-only material…'
 node scripts/seal-shipping.mjs --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --verdict PASS
 node scripts/land-pr.mjs --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n>
 ```

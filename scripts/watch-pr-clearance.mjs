@@ -24,8 +24,13 @@ import {
   parseAttestationFromArgv,
 } from "./merge-policy.mjs";
 import {
-  createFsStore,
-  createMemoryStore,
+  loadVerifierSigningKeyFromEnv,
+  mintVerifierBoundAttestation,
+  signingKeyFromTestSecret,
+} from "./attestation-mac.mjs";
+import {
+  createVerifyingFsStore,
+  createVerifyingMemoryStore,
   defaultSealedShippingDir,
 } from "./attestation-store.mjs";
 import {
@@ -37,6 +42,18 @@ import {
   resolveAssertProcessExit,
   stdoutHasHebmuClearance,
 } from "./clearance-presence.mjs";
+
+/** Self-test HMAC material — not a production secret. */
+const SELF_TEST_SEAL_KEY = signingKeyFromTestSecret(
+  "hebmu-watch-pr-clearance-self-test-key",
+);
+
+/**
+ * @returns {import("./attestation-store.mjs").MemoryAttestationStore}
+ */
+function selfTestStore() {
+  return createVerifyingMemoryStore(SELF_TEST_SEAL_KEY);
+}
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(SCRIPT_DIR, "..");
@@ -779,8 +796,6 @@ export function resolveMergeAttestation(args) {
 export async function runEnrichedWatchPr(args) {
   const runUpstream = args.runUpstream ?? defaultRunUpstream;
   const gh = args.gh ?? { api: defaultGhApi, prView: defaultGhPrView };
-  const store =
-    args.store ?? createFsStore(defaultSealedShippingDir(REPO_ROOT));
   const io = args.io ?? {
     stdout: (s) => process.stdout.write(s),
     stderr: (s) => process.stderr.write(s),
@@ -808,6 +823,22 @@ export async function runEnrichedWatchPr(args) {
 
   const evidence = parseEnrichEvidenceFromStdout(result.stdout, repoPr);
   const assertMerge = wantsAssertMerge(args.argv);
+  // Observe never reads seals (ADR 0003). Assert loads verifying FS store + key.
+  const store =
+    args.store ??
+    (assertMerge
+      ? createVerifyingFsStore(
+          defaultSealedShippingDir(REPO_ROOT),
+          loadVerifierSigningKeyFromEnv(process.env),
+        )
+      : {
+          put() {
+            throw new Error("watch-pr-clearance: observe path must not write seals");
+          },
+          get() {
+            return null;
+          },
+        });
 
   if (!evidence) {
     if (result.stdout) io.stdout(result.stdout);
@@ -1268,7 +1299,7 @@ async function runWrapperOnlyPresenceHarness() {
       "--pretty",
     ],
     upstreamDir: "/tmp",
-    store: createMemoryStore(),
+    store: selfTestStore(),
     attachClearance: false,
     runUpstream: () => ({
       stdout: bareReady,
@@ -1360,7 +1391,7 @@ async function runWrapperOnlyPresenceHarness() {
       "48",
     ],
     upstreamDir: "/tmp",
-    store: createMemoryStore(),
+    store: selfTestStore(),
     runUpstream: () => ({
       stdout: emptyStatusJson,
       stderr: "",
@@ -1384,7 +1415,7 @@ async function runWrapperOnlyPresenceHarness() {
 
   /** @type {string[]} */
   const approvedOut = [];
-  const approvedStore = createMemoryStore();
+  const approvedStore = selfTestStore();
   const approvedPretty = [
     "READY: no merge conflicts, no unresolved review threads, no failing or pending checks",
     "mergeStateStatus=CLEAN",
@@ -1448,13 +1479,13 @@ async function runMergeDispositionHarness() {
   const tip = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
   const other = "cccccccccccccccccccccccccccccccccccccccc";
   const sealedPass = /** @type {const} */ ({
-    kind: "sealed-shipping",
+    kind: "verifier-bound-shipping",
     verdict: "PASS",
     headRefOid: tip,
     sealedAt: "2026-11-08T00:00:00.000Z",
   });
   const sealedFail = /** @type {const} */ ({
-    kind: "sealed-shipping",
+    kind: "verifier-bound-shipping",
     verdict: "FAIL",
     headRefOid: tip,
     sealedAt: "2026-11-08T00:00:00.000Z",
@@ -1489,7 +1520,7 @@ async function runMergeDispositionHarness() {
       wantMissing: "sealed-shipping-or-override",
     },
     {
-      name: "ci-only + sealed PASS matching oid → allow/0",
+      name: "ci-only + verifier-bound PASS matching oid → allow/0",
       clearance: { kind: "ci-only", reason: "unprotected-base" },
       attestation: sealedPass,
       headRefOid: tip,
@@ -1497,7 +1528,7 @@ async function runMergeDispositionHarness() {
       wantExit: 0,
     },
     {
-      name: "ci-only + sealed PASS mismatched oid → require-attestation/2",
+      name: "ci-only + verifier-bound PASS mismatched oid → require-attestation/2",
       clearance: { kind: "ci-only", reason: "unprotected-base" },
       attestation: sealedPass,
       headRefOid: other,
@@ -1506,7 +1537,7 @@ async function runMergeDispositionHarness() {
       wantMissing: "sealed-shipping-or-override",
     },
     {
-      name: "ci-only + sealed PASS + null headRefOid → require-attestation/2",
+      name: "ci-only + verifier-bound PASS + null headRefOid → require-attestation/2",
       clearance: { kind: "ci-only", reason: "unprotected-base" },
       attestation: sealedPass,
       headRefOid: null,
@@ -1515,7 +1546,7 @@ async function runMergeDispositionHarness() {
       wantMissing: "sealed-shipping-or-override",
     },
     {
-      name: "ci-only + sealed FAIL matching oid → block/3",
+      name: "ci-only + verifier-bound FAIL matching oid → block/3",
       clearance: { kind: "ci-only", reason: "unprotected-base" },
       attestation: sealedFail,
       headRefOid: tip,
@@ -1641,7 +1672,7 @@ async function runMergeDispositionHarness() {
   const observeCode = await runEnrichedWatchPr({
     argv: ["--owner", "o", "--repo", "r", "--pr", "40", "--pretty"],
     upstreamDir: "/tmp",
-    store: createMemoryStore(),
+    store: selfTestStore(),
     runUpstream: () => ({
       stdout: prettyCiOnlyReady,
       stderr: "",
@@ -1676,7 +1707,7 @@ async function runMergeDispositionHarness() {
 
   /** @type {string[]} */
   const assertErr = [];
-  const emptyStore = createMemoryStore();
+  const emptyStore = selfTestStore();
   const assertNoAttest = await runEnrichedWatchPr({
     argv: [
       "--assert-merge",
@@ -1725,9 +1756,10 @@ async function runMergeDispositionHarness() {
   );
   console.log("ok  --assert-merge ci-only empty store → exit 2");
 
-  const matchStore = createMemoryStore();
-  matchStore.put({
-    schema: "hebmu.sealed-shipping.v1",
+  // Lander-mintable unsigned / forged JSON must not clear ci-only (#52).
+  const landerUnsignedStore = selfTestStore();
+  landerUnsignedStore.putRawForTest({
+    schema: "hebmu.sealed-shipping.v2",
     owner: "o",
     repo: "r",
     pr: 40,
@@ -1735,6 +1767,129 @@ async function runMergeDispositionHarness() {
     verdict: "PASS",
     sealedAt: "2026-11-08T00:00:00.000Z",
   });
+  assert(
+    landerUnsignedStore.get({ owner: "o", repo: "r", pr: 40 }) === null,
+    "lander-mintable unsigned JSON → null attestation at store.get",
+  );
+  /** @type {string[]} */
+  const landerUnsignedErr = [];
+  const assertLanderUnsigned = await runEnrichedWatchPr({
+    argv: [
+      "--assert-merge",
+      "--owner",
+      "o",
+      "--repo",
+      "r",
+      "--pr",
+      "40",
+      "--pretty",
+    ],
+    upstreamDir: "/tmp",
+    store: landerUnsignedStore,
+    runUpstream: () => ({
+      stdout: prettyCiOnlyReady,
+      stderr: "",
+      exitCode: 0,
+    }),
+    gh: {
+      api: () => ({
+        status: 404,
+        body: { message: "Branch not protected" },
+      }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: null,
+        headRefOid: tip,
+      }),
+    },
+    io: {
+      stdout: () => {},
+      stderr: (s) => landerUnsignedErr.push(s),
+    },
+  });
+  assert(
+    assertLanderUnsigned === 2,
+    `lander-mintable unsigned JSON → require-attestation exit ${assertLanderUnsigned}`,
+  );
+  assert(
+    landerUnsignedErr.join("").includes("missing=sealed-shipping-or-override"),
+    "lander-mintable unsigned → missing sealed-shipping-or-override",
+  );
+  console.log(
+    "ok  lander-mintable unsigned JSON → reject (require-attestation/2)",
+  );
+
+  const landerForgedStore = selfTestStore();
+  landerForgedStore.putRawForTest({
+    schema: "hebmu.sealed-shipping.v2",
+    owner: "o",
+    repo: "r",
+    pr: 40,
+    headRefOid: tip,
+    verdict: "PASS",
+    sealedAt: "2026-11-08T00:00:00.000Z",
+    mac: "00".repeat(32),
+  });
+  assert(
+    landerForgedStore.get({ owner: "o", repo: "r", pr: 40 }) === null,
+    "lander-mintable forged mac → null attestation at store.get",
+  );
+  const assertLanderForged = await runEnrichedWatchPr({
+    argv: [
+      "--assert-merge",
+      "--owner",
+      "o",
+      "--repo",
+      "r",
+      "--pr",
+      "40",
+      "--pretty",
+    ],
+    upstreamDir: "/tmp",
+    store: landerForgedStore,
+    runUpstream: () => ({
+      stdout: prettyCiOnlyReady,
+      stderr: "",
+      exitCode: 0,
+    }),
+    gh: {
+      api: () => ({
+        status: 404,
+        body: { message: "Branch not protected" },
+      }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: null,
+        headRefOid: tip,
+      }),
+    },
+    io: {
+      stdout: () => {},
+      stderr: () => {},
+    },
+  });
+  assert(
+    assertLanderForged === 2,
+    `lander-mintable forged mac → require-attestation exit ${assertLanderForged}`,
+  );
+  console.log(
+    "ok  lander-mintable forged JSON → reject (require-attestation/2)",
+  );
+
+  const matchStore = selfTestStore();
+  matchStore.put(
+    mintVerifierBoundAttestation(
+      {
+        owner: "o",
+        repo: "r",
+        pr: 40,
+        headRefOid: tip,
+        verdict: "PASS",
+        sealedAt: "2026-11-08T00:00:00.000Z",
+      },
+      SELF_TEST_SEAL_KEY,
+    ),
+  );
   const assertMatch = await runEnrichedWatchPr({
     argv: [
       "--assert-merge",
@@ -1770,18 +1925,24 @@ async function runMergeDispositionHarness() {
     },
   });
   assert(assertMatch === 0, `assert matching seal exit ${assertMatch}`);
-  console.log("ok  --assert-merge ci-only + matching sealed PASS → exit 0");
+  console.log(
+    "ok  verifier-signed matching OID → allow/0",
+  );
 
-  const staleStore = createMemoryStore();
-  staleStore.put({
-    schema: "hebmu.sealed-shipping.v1",
-    owner: "o",
-    repo: "r",
-    pr: 40,
-    headRefOid: tip,
-    verdict: "PASS",
-    sealedAt: "2026-11-08T00:00:00.000Z",
-  });
+  const staleStore = selfTestStore();
+  staleStore.put(
+    mintVerifierBoundAttestation(
+      {
+        owner: "o",
+        repo: "r",
+        pr: 40,
+        headRefOid: tip,
+        verdict: "PASS",
+        sealedAt: "2026-11-08T00:00:00.000Z",
+      },
+      SELF_TEST_SEAL_KEY,
+    ),
+  );
   const assertStale = await runEnrichedWatchPr({
     argv: [
       "--assert-merge",
@@ -1833,7 +1994,7 @@ async function runMergeDispositionHarness() {
       "--pretty",
     ],
     upstreamDir: "/tmp",
-    store: createMemoryStore(),
+    store: selfTestStore(),
     runUpstream: () => ({
       stdout: prettyCiOnlyReady,
       stderr: "",
@@ -1876,7 +2037,7 @@ async function runMergeDispositionHarness() {
       "--pretty",
     ],
     upstreamDir: "/tmp",
-    store: createMemoryStore(),
+    store: selfTestStore(),
     runUpstream: () => ({
       stdout: prettyCiOnlyReady,
       stderr: "",
@@ -1908,16 +2069,20 @@ async function runMergeDispositionHarness() {
     "isDraft=false",
     "",
   ].join("\n");
-  const reviewStore = createMemoryStore();
-  reviewStore.put({
-    schema: "hebmu.sealed-shipping.v1",
-    owner: "o",
-    repo: "r",
-    pr: 40,
-    headRefOid: tip,
-    verdict: "PASS",
-    sealedAt: "2026-11-08T00:00:00.000Z",
-  });
+  const reviewStore = selfTestStore();
+  reviewStore.put(
+    mintVerifierBoundAttestation(
+      {
+        owner: "o",
+        repo: "r",
+        pr: 40,
+        headRefOid: tip,
+        verdict: "PASS",
+        sealedAt: "2026-11-08T00:00:00.000Z",
+      },
+      SELF_TEST_SEAL_KEY,
+    ),
+  );
   const assertBlocked = await runEnrichedWatchPr({
     argv: [
       "--assert-merge",
@@ -2009,7 +2174,7 @@ async function runMergeDispositionHarness() {
       "--pretty",
     ],
     upstreamDir: "/tmp",
-    store: createMemoryStore(),
+    store: selfTestStore(),
     runUpstream: (_dir, argv) => {
       capturedUpstreamArgv = [...argv];
       return {

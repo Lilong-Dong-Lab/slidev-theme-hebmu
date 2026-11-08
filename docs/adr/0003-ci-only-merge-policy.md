@@ -10,10 +10,13 @@ missing or stale seal is `require-attestation` (exit 2), not a silent warn
 and not a permanent block. A sealed `FAIL` is `attestation-rejected` (exit 3).
 
 Honor-system `--shipping-verdict PASS` is removed (issue #47). Assert never
-treats that flag as a valid attestation. Verifiers write
-`hebmu.sealed-shipping.v1` under `.git/hebmu/sealed-shipping/` via
-`npm run seal-shipping`; assert re-resolves `headRefOid` and allows only when
-the seal OID matches.
+treats that flag as a valid attestation. Verifiers mint
+`hebmu.sealed-shipping.v2` (required `mac` over tip-bound claims) under
+`.git/hebmu/sealed-shipping/` via `npm run seal-shipping` with
+`HEBMU_SEAL_HMAC_KEY` (issue #52). Assert loads a verifying store: unsigned,
+v1, or forged MAC yields null (same as missing). A lander-writable JSON file
+alone is not proof. Allow requires verifier-bound PASS ∧ live `headRefOid`
+match (or `--merge-override`).
 
 The gate lives behind `--assert-merge`. The default observe path
 (`./scripts/watch-pr` without that flag) still returns upstream exit so

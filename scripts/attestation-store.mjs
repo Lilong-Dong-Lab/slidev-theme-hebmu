@@ -1,24 +1,23 @@
 #!/usr/bin/env node
 /**
- * Injectable sealed-shipping attestation store (#47).
+ * Verifying sealed-shipping store (#47 / #52).
+ *
+ * `get` verifies MAC at the store seam; unsigned / v1 / forged → null.
+ * `put` accepts VerifierBoundAttestation only — no unsigned JSON writer.
  *
  * Prod adapter: `.git/hebmu/sealed-shipping/{owner}__{repo}__{pr}.json`
- * Self-test adapter: in-memory Map.
+ * Self-test adapter: in-memory Map (+ putRawForTest for lander-forge proofs).
  */
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import {
+  sealedShippingWireFromBound,
+  verifySealedShippingWire,
+} from "./attestation-mac.mjs";
 
 /**
- * @typedef {{
- *   schema: "hebmu.sealed-shipping.v1";
- *   owner: string;
- *   repo: string;
- *   pr: number;
- *   headRefOid: string;
- *   verdict: "PASS" | "FAIL";
- *   sealedAt: string;
- *   by?: string;
- * }} SealedShippingArtifact
+ * @typedef {import("./attestation-mac.mjs").VerifierBoundAttestation} VerifierBoundAttestation
+ * @typedef {import("./attestation-mac.mjs").VerifierSigningKey} VerifierSigningKey
  *
  * @typedef {{
  *   owner: string;
@@ -27,9 +26,13 @@ import { join } from "node:path";
  * }} AttestationKey
  *
  * @typedef {{
- *   put: (artifact: SealedShippingArtifact) => void;
- *   get: (key: AttestationKey) => SealedShippingArtifact | null;
+ *   put: (artifact: VerifierBoundAttestation) => void;
+ *   get: (key: AttestationKey) => VerifierBoundAttestation | null;
  * }} AttestationStore
+ *
+ * @typedef {AttestationStore & {
+ *   putRawForTest: (raw: unknown) => void;
+ * }} MemoryAttestationStore
  */
 
 /**
@@ -49,103 +52,93 @@ export function attestationFilename(key) {
 }
 
 /**
- * Validate and normalize a store payload. Throws on put-path invalid input.
- *
- * @param {unknown} raw
- * @returns {SealedShippingArtifact}
+ * @param {VerifierBoundAttestation} artifact
  */
-export function parseSealedShippingArtifact(raw) {
-  if (!raw || typeof raw !== "object") {
-    throw new Error("attestation-store: artifact must be an object");
-  }
-  const rec = /** @type {Record<string, unknown>} */ (raw);
-  if (rec.schema !== "hebmu.sealed-shipping.v1") {
+function assertBoundAttestation(artifact) {
+  if (!artifact || artifact.__brand !== "VerifierBoundAttestation") {
     throw new Error(
-      `attestation-store: schema must be hebmu.sealed-shipping.v1, got ${String(rec.schema)}`,
+      "attestation-store: put requires VerifierBoundAttestation (mint via attestation-mac)",
     );
   }
-  if (typeof rec.owner !== "string" || !rec.owner) {
-    throw new Error("attestation-store: owner required");
-  }
-  if (typeof rec.repo !== "string" || !rec.repo) {
-    throw new Error("attestation-store: repo required");
-  }
-  const pr = Number(rec.pr);
-  if (!Number.isInteger(pr) || pr <= 0) {
-    throw new Error("attestation-store: pr must be a positive integer");
-  }
-  if (typeof rec.headRefOid !== "string" || !rec.headRefOid) {
-    throw new Error("attestation-store: headRefOid required");
-  }
-  if (rec.verdict !== "PASS" && rec.verdict !== "FAIL") {
-    throw new Error("attestation-store: verdict must be PASS or FAIL");
-  }
-  if (typeof rec.sealedAt !== "string" || !rec.sealedAt) {
-    throw new Error("attestation-store: sealedAt required");
-  }
-  /** @type {SealedShippingArtifact} */
-  const out = {
-    schema: "hebmu.sealed-shipping.v1",
-    owner: rec.owner,
-    repo: rec.repo,
-    pr,
-    headRefOid: rec.headRefOid,
-    verdict: rec.verdict,
-    sealedAt: rec.sealedAt,
-  };
-  if (typeof rec.by === "string" && rec.by) out.by = rec.by;
-  return out;
 }
 
 /**
- * @returns {AttestationStore}
+ * @param {VerifierSigningKey} signingKey
+ * @returns {MemoryAttestationStore}
  */
-export function createMemoryStore() {
-  /** @type {Map<string, SealedShippingArtifact>} */
+export function createVerifyingMemoryStore(signingKey) {
+  /** @type {Map<string, unknown>} */
   const map = new Map();
   return {
     put(artifact) {
-      const validated = parseSealedShippingArtifact(artifact);
+      assertBoundAttestation(artifact);
+      const wire = sealedShippingWireFromBound(artifact);
       map.set(
         attestationKeyString({
-          owner: validated.owner,
-          repo: validated.repo,
-          pr: validated.pr,
+          owner: artifact.claims.owner,
+          repo: artifact.claims.repo,
+          pr: artifact.claims.pr,
         }),
-        validated,
+        wire,
       );
     },
     get(key) {
-      return map.get(attestationKeyString(key)) ?? null;
+      const raw = map.get(attestationKeyString(key));
+      if (raw === undefined) return null;
+      return verifySealedShippingWire(raw, signingKey);
+    },
+    // Lander-mintable / forged wire for self-tests; get still verifies.
+    putRawForTest(raw) {
+      if (!raw || typeof raw !== "object") {
+        throw new Error("attestation-store: putRawForTest requires an object");
+      }
+      const rec = /** @type {Record<string, unknown>} */ (raw);
+      const pr = Number(rec.pr);
+      if (
+        typeof rec.owner !== "string" ||
+        typeof rec.repo !== "string" ||
+        !Number.isInteger(pr) ||
+        pr <= 0
+      ) {
+        throw new Error(
+          "attestation-store: putRawForTest needs owner, repo, positive pr",
+        );
+      }
+      map.set(
+        attestationKeyString({ owner: rec.owner, repo: rec.repo, pr }),
+        raw,
+      );
     },
   };
 }
 
 /**
  * @param {string} rootDir absolute or cwd-relative store root
+ * @param {VerifierSigningKey} signingKey
  * @returns {AttestationStore}
  */
-export function createFsStore(rootDir) {
+export function createVerifyingFsStore(rootDir, signingKey) {
   return {
     put(artifact) {
-      const validated = parseSealedShippingArtifact(artifact);
+      assertBoundAttestation(artifact);
+      const wire = sealedShippingWireFromBound(artifact);
       mkdirSync(rootDir, { recursive: true });
       const path = join(
         rootDir,
         attestationFilename({
-          owner: validated.owner,
-          repo: validated.repo,
-          pr: validated.pr,
+          owner: artifact.claims.owner,
+          repo: artifact.claims.repo,
+          pr: artifact.claims.pr,
         }),
       );
-      writeFileSync(path, JSON.stringify(validated, null, 2) + "\n", "utf8");
+      writeFileSync(path, JSON.stringify(wire, null, 2) + "\n", "utf8");
     },
     get(key) {
       const path = join(rootDir, attestationFilename(key));
       if (!existsSync(path)) return null;
       try {
         const raw = JSON.parse(readFileSync(path, "utf8"));
-        return parseSealedShippingArtifact(raw);
+        return verifySealedShippingWire(raw, signingKey);
       } catch {
         // Corrupt on disk → fail closed for assert (treat as missing).
         return null;
