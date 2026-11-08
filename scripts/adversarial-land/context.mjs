@@ -15,6 +15,10 @@ import {
 import { runEnrichedWatchPr } from "../watch-pr-clearance.mjs";
 import { evaluateMergeDisposition } from "../merge-policy.mjs";
 import { stdoutHasHebmuClearance } from "../clearance-presence.mjs";
+import {
+  buildLastObserveReceipt,
+  createMemoryLastObserveStore,
+} from "../last-observe-store.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_REPO_ROOT = join(SCRIPT_DIR, "..", "..");
@@ -76,6 +80,12 @@ export const STALE_OID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
  *     };
  *   };
  *   assertArgv: (extra?: readonly string[]) => string[];
+ *   clearedLastObserveDeps: () => {
+ *     readLastObserveReceipt: (
+ *       target: PrTarget,
+ *     ) => import("../last-observe-store.mjs").LastObserveReceipt | null;
+ *     resolveHeadRefOid: (target: PrTarget) => Promise<string | null>;
+ *   };
  * }} AttackContext
  */
 
@@ -194,6 +204,25 @@ export function createAttackContext(opts = {}) {
         "--pretty",
         ...extra,
       ];
+    },
+    clearedLastObserveDeps() {
+      const store = createMemoryLastObserveStore();
+      store.put(
+        buildLastObserveReceipt({
+          target,
+          presence: {
+            kind: "present",
+            verdictKind: "READY",
+          },
+          upstreamExit: 0,
+          headRefOid: LIVE_TIP_OID,
+          observedAt: "2026-11-08T00:00:00.000Z",
+        }),
+      );
+      return {
+        readLastObserveReceipt: (t) => store.get(t),
+        resolveHeadRefOid: async () => LIVE_TIP_OID,
+      };
     },
   };
 }
