@@ -157,5 +157,8 @@ review/protection clearance so CI-only green is not mistaken for review
 clearance. Bare personal/plugin `watch-pr` has no clearance; see the wrapper
 boundary in `docs/agents/babysit.md` and
 `docs/adr/0002-hebmu-watch-pr-clearance-boundary.md`.
-Merge is a separate gate: `--assert-merge` (plus `--shipping-verdict PASS`
-when clearance is `ci-only`); see `docs/adr/0003-ci-only-merge-policy.md`.
+Merge is a separate gate. Land with `npm run land-pr` /
+`node scripts/land-pr.mjs` (always injects `--assert-merge`; pass
+`--shipping-verdict PASS` when clearance is `ci-only`). Do not bare
+`gh pr merge` after observe READY. See `docs/adr/0003-ci-only-merge-policy.md`
+and `docs/agents/babysit.md`.
