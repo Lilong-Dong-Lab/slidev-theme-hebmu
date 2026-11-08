@@ -55,6 +55,7 @@
   "scripts": {
     "dev": "slidev example.md --open",
     "build": "slidev build example.md",
+    "check:adversarial-land": "node scripts/check-adversarial-land.mjs",
     "check:dist": "node scripts/check-dist.mjs",
     "check:release": "node scripts/check-release.mjs",
     "check:specs": "node scripts/check-specs.mjs",
