@@ -54,28 +54,49 @@ When the wrapper cannot run, measure merge-ready from `gh` mergeable / checks /
 unresolved threads, say the watcher was skipped, and do not treat a missing
 Bun runtime as a blocker. See the poteto-mode Babysit playbook.
 
-## Merge requires `--assert-merge`
+## Land through `land-pr` (not bare `gh pr merge`)
 
 Babysit observe (`./scripts/watch-pr` without `--assert-merge`) attaches
 clearance and keeps the upstream exit. That exit is **not** merge clearance.
-Before `gh pr merge`, run the assert path:
+Shipping land must use the fail-closed helper, which always injects
+`--assert-merge` and only then may call `gh pr merge`:
 
 ```bash
-./scripts/watch-pr --assert-merge --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --status-only --pretty
+npm run land-pr -- \
+  --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> \
+  --shipping-verdict PASS
 ```
 
-On `ci-only`, assert exits `2` (`require-attestation`) until you pass a
-Shipping attestation:
+Or:
 
 ```bash
-./scripts/watch-pr --assert-merge --shipping-verdict PASS \
-  --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --status-only --pretty
+node scripts/land-pr.mjs --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> \
+  --shipping-verdict PASS
+```
+
+Do not run bare `gh pr merge` after observe READY/STATUS. Do not treat
+`./scripts/watch-pr --assert-merge && gh pr merge` as the land path either.
+`land-pr` owns that sequence so disposition `2` / `3` cannot reach merge.
+
+On `ci-only`, assert (inside `land-pr`) exits `2` (`require-attestation`) until
+you pass a Shipping attestation (`--shipping-verdict PASS`). Dry-run checks
+allow without merging:
+
+```bash
+npm run land-pr -- --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> \
+  --shipping-verdict PASS --dry-run
 ```
 
 Disposition exits: `0` allow, `2` need attestation, `3` block
 (`review-required` / `changes-requested` / `unknown` / rejected attestation).
 Shipping PASS does not clear `review-required`. Policy record:
 `docs/adr/0003-ci-only-merge-policy.md`.
+
+Proof without live `gh`:
+
+```bash
+npm run land-pr:self-test
+```
 
 ## READY / STATUS is not review clearance
 
