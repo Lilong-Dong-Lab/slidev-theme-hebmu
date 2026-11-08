@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 /**
- * Verifier CLI: seal a Shipping verdict bound to the PR tip headRefOid (#47).
+ * Verifier CLI: mint a tip-bound, HMAC-signed Shipping seal (#47 / #52).
+ *
+ * Requires HEBMU_SEAL_HMAC_KEY. Never writes unsigned JSON.
  *
  * Usage:
+ *   export HEBMU_SEAL_HMAC_KEY='…'
  *   npm run seal-shipping -- --owner … --repo … --pr <n> --verdict PASS
  *   npm run seal-shipping -- --owner … --repo … --pr <n> --verdict PASS --head-ref-oid <sha>
  *   node scripts/seal-shipping.mjs --self-test
@@ -11,17 +14,23 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import {
-  createFsStore,
-  createMemoryStore,
+  loadVerifierSigningKeyFromEnv,
+  mintVerifierBoundAttestation,
+  signingKeyFromTestSecret,
+  verifySealedShippingWire,
+} from "./attestation-mac.mjs";
+import {
+  createVerifyingFsStore,
+  createVerifyingMemoryStore,
   defaultSealedShippingDir,
-  parseSealedShippingArtifact,
 } from "./attestation-store.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(SCRIPT_DIR, "..");
 
 /**
- * @typedef {import("./attestation-store.mjs").SealedShippingArtifact} SealedShippingArtifact
+ * @typedef {import("./attestation-mac.mjs").VerifierBoundAttestation} VerifierBoundAttestation
+ * @typedef {import("./attestation-mac.mjs").VerifierSigningKey} VerifierSigningKey
  * @typedef {import("./attestation-store.mjs").AttestationStore} AttestationStore
  *
  * @typedef {{
@@ -40,6 +49,7 @@ const REPO_ROOT = join(SCRIPT_DIR, "..");
  *     pr: number;
  *   }) => string;
  *   store: AttestationStore;
+ *   signingKey: VerifierSigningKey;
  *   nowIso?: () => string;
  *   io?: { stdout: (s: string) => void; stderr: (s: string) => void };
  * }} SealDeps
@@ -125,9 +135,12 @@ export function defaultResolveHeadRefOid(target) {
 /**
  * @param {SealRequest} request
  * @param {SealDeps} deps
- * @returns {SealedShippingArtifact}
+ * @returns {VerifierBoundAttestation}
  */
 export function sealShipping(request, deps) {
+  if (!deps.signingKey || deps.signingKey.__brand !== "VerifierSigningKey") {
+    throw new Error("seal-shipping: signingKey required (HEBMU_SEAL_HMAC_KEY)");
+  }
   const headRefOid =
     request.headRefOid ??
     deps.resolveHeadRefOid({
@@ -136,26 +149,27 @@ export function sealShipping(request, deps) {
       pr: request.pr,
     });
   const nowIso = deps.nowIso ?? (() => new Date().toISOString());
-  /** @type {SealedShippingArtifact} */
-  const artifact = parseSealedShippingArtifact({
-    schema: "hebmu.sealed-shipping.v1",
+  /** @type {import("./attestation-mac.mjs").ShippingClaims} */
+  const claims = {
     owner: request.owner,
     repo: request.repo,
     pr: request.pr,
     headRefOid,
     verdict: request.verdict,
     sealedAt: nowIso(),
-    ...(request.by ? { by: request.by } : {}),
-  });
-  deps.store.put(artifact);
+  };
+  if (request.by) claims.by = request.by;
+
+  const bound = mintVerifierBoundAttestation(claims, deps.signingKey);
+  deps.store.put(bound);
   const io = deps.io ?? {
     stdout: (s) => process.stdout.write(s),
     stderr: (s) => process.stderr.write(s),
   };
   io.stderr(
-    `seal-shipping: sealed ${artifact.verdict} for ${artifact.owner}/${artifact.repo}#${artifact.pr} @ ${artifact.headRefOid}\n`,
+    `seal-shipping: sealed ${bound.claims.verdict} for ${bound.claims.owner}/${bound.claims.repo}#${bound.claims.pr} @ ${bound.claims.headRefOid}\n`,
   );
-  return artifact;
+  return bound;
 }
 
 /**
@@ -171,7 +185,8 @@ function assertSelf(label, ok) {
  * @returns {void}
  */
 export function runSealSelfTest() {
-  const store = createMemoryStore();
+  const key = signingKeyFromTestSecret("hebmu-seal-self-test-key");
+  const store = createVerifyingMemoryStore(key);
   const oidA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
   const oidB = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
   const silent = { stdout: () => {}, stderr: () => {} };
@@ -191,20 +206,24 @@ export function runSealSelfTest() {
           return oidA;
         },
         store,
+        signingKey: key,
         nowIso: () => "2026-11-08T00:00:00.000Z",
         io: silent,
       },
     );
-    assertSelf("resolver returned oid used in artifact", artifact.headRefOid === oidA);
+    assertSelf("resolver returned oid used in artifact", artifact.claims.headRefOid === oidA);
     assertSelf("resolver was invoked when oid omitted", resolved === oidA);
+    assertSelf("minted schema is v2", artifact.schema === "hebmu.sealed-shipping.v2");
+    assertSelf("minted brand is verifier-bound", artifact.__brand === "VerifierBoundAttestation");
     const got = store.get({
       owner: "Lilong-Dong-Lab",
       repo: "slidev-theme-hebmu",
       pr: 47,
     });
-    assertSelf("memory get round-trip schema", got?.schema === "hebmu.sealed-shipping.v1");
-    assertSelf("memory get preserves headRefOid", got?.headRefOid === oidA);
-    assertSelf("memory get preserves PASS", got?.verdict === "PASS");
+    assertSelf("memory get round-trip schema", got?.schema === "hebmu.sealed-shipping.v2");
+    assertSelf("memory get preserves headRefOid", got?.claims.headRefOid === oidA);
+    assertSelf("memory get preserves PASS", got?.claims.verdict === "PASS");
+    assertSelf("memory get returns branded attestation", got?.__brand === "VerifierBoundAttestation");
   }
 
   {
@@ -221,6 +240,7 @@ export function runSealSelfTest() {
           throw new Error("should not resolve when --head-ref-oid given");
         },
         store,
+        signingKey: key,
         nowIso: () => "2026-11-08T01:00:00.000Z",
         io: silent,
       },
@@ -230,8 +250,8 @@ export function runSealSelfTest() {
       repo: "slidev-theme-hebmu",
       pr: 47,
     });
-    assertSelf("re-seal overwrites prior oid", got?.headRefOid === oidB);
-    assertSelf("old oid no longer stored", got?.headRefOid !== oidA);
+    assertSelf("re-seal overwrites prior oid", got?.claims.headRefOid === oidB);
+    assertSelf("old oid no longer stored", got?.claims.headRefOid !== oidA);
   }
 
   {
@@ -242,6 +262,113 @@ export function runSealSelfTest() {
       threw = true;
     }
     assertSelf("parse requires --verdict", threw);
+  }
+
+  {
+    let threw = false;
+    try {
+      sealShipping(
+        {
+          owner: "o",
+          repo: "r",
+          pr: 1,
+          verdict: "PASS",
+          headRefOid: oidA,
+        },
+        {
+          resolveHeadRefOid: () => oidA,
+          store,
+          signingKey: /** @type {any} */ (undefined),
+          nowIso: () => "2026-11-08T00:00:00.000Z",
+          io: silent,
+        },
+      );
+    } catch {
+      threw = true;
+    }
+    assertSelf("seal without signingKey throws (never unsigned write)", threw);
+  }
+
+  {
+    const forgeStore = createVerifyingMemoryStore(key);
+    forgeStore.putRawForTest({
+      schema: "hebmu.sealed-shipping.v2",
+      owner: "o",
+      repo: "r",
+      pr: 52,
+      headRefOid: oidA,
+      verdict: "PASS",
+      sealedAt: "2026-11-08T00:00:00.000Z",
+      // lander-mintable unsigned JSON — no mac
+    });
+    assertSelf(
+      "lander-mintable unsigned JSON → get null",
+      forgeStore.get({ owner: "o", repo: "r", pr: 52 }) === null,
+    );
+
+    forgeStore.putRawForTest({
+      schema: "hebmu.sealed-shipping.v1",
+      owner: "o",
+      repo: "r",
+      pr: 52,
+      headRefOid: oidA,
+      verdict: "PASS",
+      sealedAt: "2026-11-08T00:00:00.000Z",
+    });
+    assertSelf(
+      "lander-mintable v1 unsigned JSON → get null",
+      forgeStore.get({ owner: "o", repo: "r", pr: 52 }) === null,
+    );
+
+    forgeStore.putRawForTest({
+      schema: "hebmu.sealed-shipping.v2",
+      owner: "o",
+      repo: "r",
+      pr: 52,
+      headRefOid: oidA,
+      verdict: "PASS",
+      sealedAt: "2026-11-08T00:00:00.000Z",
+      mac: "deadbeef".repeat(8),
+    });
+    assertSelf(
+      "lander-mintable forged mac → get null",
+      forgeStore.get({ owner: "o", repo: "r", pr: 52 }) === null,
+    );
+
+    const bound = mintVerifierBoundAttestation(
+      {
+        owner: "o",
+        repo: "r",
+        pr: 52,
+        headRefOid: oidA,
+        verdict: "PASS",
+        sealedAt: "2026-11-08T00:00:00.000Z",
+      },
+      key,
+    );
+    forgeStore.put(bound);
+    const verified = forgeStore.get({ owner: "o", repo: "r", pr: 52 });
+    assertSelf(
+      "verifier-signed matching OID → get branded",
+      verified?.__brand === "VerifierBoundAttestation" &&
+        verified.claims.headRefOid === oidA,
+    );
+    assertSelf(
+      "verifySealedShippingWire accepts minted wire",
+      verifySealedShippingWire(
+        {
+          schema: "hebmu.sealed-shipping.v2",
+          owner: "o",
+          repo: "r",
+          pr: 52,
+          headRefOid: oidA,
+          verdict: "PASS",
+          sealedAt: "2026-11-08T00:00:00.000Z",
+          mac: bound.mac,
+        },
+        key,
+      ) !== null,
+    );
   }
 
   console.log("ok  seal-shipping self-test passed");
@@ -258,10 +385,15 @@ export function main(argv) {
   }
 
   const request = parseSealArgv(argv);
-  const store = createFsStore(defaultSealedShippingDir(REPO_ROOT));
+  const signingKey = loadVerifierSigningKeyFromEnv(process.env);
+  const store = createVerifyingFsStore(
+    defaultSealedShippingDir(REPO_ROOT),
+    signingKey,
+  );
   sealShipping(request, {
     resolveHeadRefOid: defaultResolveHeadRefOid,
     store,
+    signingKey,
   });
   return 0;
 }
