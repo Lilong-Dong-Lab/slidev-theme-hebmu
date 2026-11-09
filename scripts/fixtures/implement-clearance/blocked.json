@@ -1,0 +1,7 @@
+{
+  "number": 73,
+  "state": "OPEN",
+  "openBlockers": [
+    { "number": 72, "title": "reflect: pending Accepted approval (sess)", "state": "OPEN" }
+  ]
+}

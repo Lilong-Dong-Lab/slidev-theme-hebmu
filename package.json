@@ -57,6 +57,7 @@
     "build": "slidev build example.md",
     "check:adversarial-land": "node scripts/check-adversarial-land.mjs",
     "check:dist": "node scripts/check-dist.mjs",
+    "check:implement-clearance": "node scripts/check-implement-clearance.mjs",
     "check:release": "node scripts/check-release.mjs",
     "check:specs": "node scripts/check-specs.mjs",
     "check:surface": "node scripts/check-surface.mjs",

@@ -38,6 +38,34 @@ Create a GitHub issue.
 
 Read it as in **Read an issue** above.
 
+## Implement clearance
+
+Before Implement (Feature blocking-first, after fetch `#N`), run from the repo root:
+
+```bash
+npm run check:implement-clearance -- --issue N
+```
+
+Exit codes: `0` startable, `2` open blockers (script prints blocker ids/titles), `1` unavailable (forge/parse failure or the target issue is not `OPEN`). Non-zero means stop: do not design or code.
+
+The gate is the open-blocker snapshot only (`blockedBy` / body fallback). It does **not** read labels. Do not add a second gate via `blocked:accepted-pending` or any other label for this check.
+
+### Reflect pending-Accepted blocker
+
+When reflect files Backlog while Accepted skill rows still await approval or deferral:
+
+1. `ensurePendingAcceptedBlocker` — create or reuse **one** open issue for that reflect session. Title/body include `Tags: reflect-pending-accepted` and the session key (for example `reflect: pending Accepted approval (<sessionKey>)`).
+2. File each Backlog child with native `--blocked-by <blocker>` (else prepend `Blocked by: #<blocker>` at the top of the body). Keep `Tags: reflect-backlog` on the child.
+3. On Accepted apply or operator defer: `closePendingAcceptedBlocker` (idempotent). Closing that one issue clears the gate for every child linked to it.
+
+**Out-of-band clear.** If the reflect session dies, or Accepted is resolved in a later chat, the operator (or any agent) clears by closing the open issue tagged/titled `reflect-pending-accepted` for that session. Close **is** the clear. Search: `gh issue list --state open --search 'reflect-pending-accepted'`. Never reopen a closed same-session blocker; start a new one only if a later reflect pass needs it. If Accepted is empty, do not create a blocker.
+
+### Body fallback
+
+When native `blockedBy.nodes` are empty or unavailable, the clearance script parses the top-of-body `Blocked by: #a, #b` line and **resolves each cited issue's state**, counting only `OPEN`. A body line that still cites a **CLOSED** issue does not block. Unresolvable cited state is unavailable (exit `1`), not startable.
+
+Offline proof: `npm run check:implement-clearance -- --self-test` and `--fixture <json>`.
+
 ## Wayfinding operations
 
 Used by `/wayfinder`. The **map** is a single issue with **child** issues as tickets.
