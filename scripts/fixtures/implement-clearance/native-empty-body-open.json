@@ -1,0 +1,9 @@
+{
+  "wire": {
+    "number": 82,
+    "state": "OPEN",
+    "body": "Blocked by: #99\n\nhello\n",
+    "blockedBy": { "nodes": [] }
+  },
+  "resolvedStates": { "99": "OPEN" }
+}

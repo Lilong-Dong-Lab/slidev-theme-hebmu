@@ -1,0 +1,9 @@
+{
+  "wire": {
+    "number": 80,
+    "state": "OPEN",
+    "body": "Blocked by: #72\n\nTags: reflect-backlog\n",
+    "blockedBy": { "nodes": [] }
+  },
+  "resolvedStates": { "72": "CLOSED" }
+}
