@@ -1,5 +1,5 @@
 /**
- * AttackContext factory + shared fixtures for #53 / #58 adversarial suite.
+ * AttackContext factory + shared fixtures for #53 / #58 / #59 adversarial suite.
  */
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -10,6 +10,10 @@ import {
 } from "../attestation-crypto.mjs";
 import { createVerifyingMemoryStore } from "../attestation-store.mjs";
 import {
+  generateObserveKeyPairForTest,
+  mintObserveBoundReceipt,
+} from "../observe-crypto.mjs";
+import {
   landPr,
   parseLandArgv,
   mintPermitFromAssertSession,
@@ -19,17 +23,22 @@ import { runEnrichedWatchPr } from "../watch-pr-clearance.mjs";
 import { evaluateMergeDisposition } from "../merge-policy.mjs";
 import { stdoutHasHebmuClearance } from "../clearance-presence.mjs";
 import {
-  buildLastObserveReceipt,
-  createMemoryLastObserveStore,
+  buildLastObserveClaims,
+  createVerifyingMemoryLastObserveStore,
 } from "../last-observe-store.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_REPO_ROOT = join(SCRIPT_DIR, "..", "..");
 
-/** Adversarial-suite Ed25519 pair — never production env. */
+/** Adversarial-suite Ed25519 seal pair — never production env. */
 const ADVERSARIAL_KEYS = generateSealKeyPairForTest();
 export const ADVERSARIAL_MINT_KEY = ADVERSARIAL_KEYS.mintKey;
 export const ADVERSARIAL_VERIFY_KEY = ADVERSARIAL_KEYS.verifyKey;
+
+/** Adversarial-suite Ed25519 observe pair — never production env. */
+const ADVERSARIAL_OBSERVE_KEYS = generateObserveKeyPairForTest();
+export const ADVERSARIAL_OBSERVE_MINT_KEY = ADVERSARIAL_OBSERVE_KEYS.mintKey;
+export const ADVERSARIAL_OBSERVE_VERIFY_KEY = ADVERSARIAL_OBSERVE_KEYS.verifyKey;
 
 export const LIVE_TIP_OID = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 export const STALE_OID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -44,6 +53,7 @@ export const STALE_OID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
  * }} PrTarget
  *
  * @typedef {import("../attestation-store.mjs").MemoryAttestationStore} MemoryAttestationStore
+ * @typedef {import("../last-observe-store.mjs").MemoryLastObserveStore} MemoryLastObserveStore
  *
  * @typedef {{
  *   bareReadyUpstreamStdout: () => string;
@@ -63,7 +73,10 @@ export const STALE_OID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
  *   repoRoot: string;
  *   mintKey: import("../attestation-crypto.mjs").SealMintKey;
  *   verifyKey: import("../attestation-crypto.mjs").SealVerifyKey;
+ *   observeMintKey: import("../observe-crypto.mjs").ObserveMintKey;
+ *   observeVerifyKey: import("../observe-crypto.mjs").ObserveVerifyKey;
  *   freshStore: () => MemoryAttestationStore;
+ *   freshObserveStore: () => MemoryLastObserveStore;
  *   tip: {
  *     landPr: typeof landPr;
  *     parseLandArgv: typeof parseLandArgv;
@@ -110,6 +123,8 @@ export function createAttackContext(opts = {}) {
   };
   const mintKey = ADVERSARIAL_MINT_KEY;
   const verifyKey = ADVERSARIAL_VERIFY_KEY;
+  const observeMintKey = ADVERSARIAL_OBSERVE_MINT_KEY;
+  const observeVerifyKey = ADVERSARIAL_OBSERVE_VERIFY_KEY;
 
   /** @type {AttackFixtures} */
   const fixtures = {
@@ -192,7 +207,11 @@ export function createAttackContext(opts = {}) {
     repoRoot,
     mintKey,
     verifyKey,
+    observeMintKey,
+    observeVerifyKey,
     freshStore: () => createVerifyingMemoryStore(verifyKey),
+    freshObserveStore: () =>
+      createVerifyingMemoryLastObserveStore(observeVerifyKey),
     tip: {
       landPr,
       parseLandArgv,
@@ -232,18 +251,21 @@ export function createAttackContext(opts = {}) {
       ];
     },
     clearedLastObserveDeps() {
-      const store = createMemoryLastObserveStore();
+      const store = createVerifyingMemoryLastObserveStore(observeVerifyKey);
       store.put(
-        buildLastObserveReceipt({
-          target,
-          presence: {
-            kind: "present",
-            verdictKind: "READY",
-          },
-          upstreamExit: 0,
-          headRefOid: LIVE_TIP_OID,
-          observedAt: "2026-11-08T00:00:00.000Z",
-        }),
+        mintObserveBoundReceipt(
+          buildLastObserveClaims({
+            target,
+            presence: {
+              kind: "present",
+              verdictKind: "READY",
+            },
+            upstreamExit: 0,
+            headRefOid: LIVE_TIP_OID,
+            observedAt: "2026-11-08T00:00:00.000Z",
+          }),
+          observeMintKey,
+        ),
       );
       return {
         readLastObserveReceipt: (t) => store.get(t),
