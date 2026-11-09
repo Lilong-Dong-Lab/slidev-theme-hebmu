@@ -160,7 +160,6 @@ export function runSelfTest() {
     results.push({ name, ok: Boolean(cond), detail });
   }
 
-  // 1. OPEN + open blocker → blocked/2
   {
     const v = evaluateImplementClearance({
       number: 73,
@@ -180,7 +179,6 @@ export function runSelfTest() {
     );
   }
 
-  // 2. OPEN + no open blockers → startable/0
   {
     const v = evaluateImplementClearance({
       number: 73,
@@ -194,7 +192,6 @@ export function runSelfTest() {
     );
   }
 
-  // 3. CLOSED target → unavailable/1
   {
     const v = evaluateImplementClearance({
       number: 73,
