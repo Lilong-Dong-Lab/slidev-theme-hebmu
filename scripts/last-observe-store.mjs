@@ -1,38 +1,42 @@
 #!/usr/bin/env node
 /**
- * Durable last-observe receipt store (#54).
+ * Verifying last-observe receipt store (#54 / #59).
  *
- * Trust-on-write local provenance under `.git/hebmu/last-observe/`.
- * Not MAC-bound (unlike sealed-shipping). Observe always puts positive
- * and negative receipts; land fails closed on missing/corrupt/wrong schema.
+ * Schema hebmu.last-observe.v2 + required Ed25519 sig. `get` verifies at the
+ * store seam; unsigned / v1 / bad sig → null. `put` accepts ObserveBoundReceipt
+ * only — no unsigned JSON writer.
  */
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import {
+  LAST_OBSERVE_SCHEMA_V2,
+  observeBoundWireFromReceipt,
+  verifyObserveBoundWire,
+} from "./observe-crypto.mjs";
 
-/** @type {"hebmu.last-observe.v1"} */
-export const LAST_OBSERVE_SCHEMA = "hebmu.last-observe.v1";
+/** @type {"hebmu.last-observe.v2"} */
+export const LAST_OBSERVE_SCHEMA = LAST_OBSERVE_SCHEMA_V2;
+
+/** @deprecated Forge-for-reject / migration errors only. */
+export { LAST_OBSERVE_SCHEMA_V1 } from "./observe-crypto.mjs";
 
 /**
- * @typedef {{
- *   owner: string;
- *   repo: string;
- *   pr: number;
- * }} PrTarget
+ * @typedef {import("./observe-crypto.mjs").PrTarget} PrTarget
+ * @typedef {import("./observe-crypto.mjs").LastObserveClaims} LastObserveClaims
+ * @typedef {import("./observe-crypto.mjs").ObserveBoundReceipt} ObserveBoundReceipt
+ * @typedef {import("./observe-crypto.mjs").ObserveVerifyKey} ObserveVerifyKey
+ *
+ * Authenticated domain receipt after observe mint / verifying get.
+ * @typedef {ObserveBoundReceipt} LastObserveReceipt
  *
  * @typedef {{
- *   readonly schema: "hebmu.last-observe.v1";
- *   readonly target: PrTarget;
- *   readonly observedAt: string;
- *   readonly headRefOid: string | null;
- *   readonly verdictKind: "READY" | "STATUS" | null;
- *   readonly markersPresent: boolean;
- *   readonly upstreamExit: number;
- * }} LastObserveReceipt
- *
- * @typedef {{
- *   put: (receipt: LastObserveReceipt) => void;
- *   get: (key: PrTarget) => LastObserveReceipt | null;
+ *   put: (receipt: ObserveBoundReceipt) => void;
+ *   get: (key: PrTarget) => ObserveBoundReceipt | null;
  * }} LastObserveStore
+ *
+ * @typedef {LastObserveStore & {
+ *   putRawForTest: (raw: unknown) => void;
+ * }} MemoryLastObserveStore
  */
 
 /**
@@ -61,6 +65,7 @@ export function defaultLastObserveDir(repoRoot) {
 
 /**
  * Derive markersPresent only from parseClearancePresence kind === "present".
+ * Claims only — no sig. Callers mint via mintObserveBoundReceipt.
  *
  * @param {{
  *   target: PrTarget;
@@ -70,9 +75,9 @@ export function defaultLastObserveDir(repoRoot) {
  *   observedAt?: string;
  *   verdictKind?: "READY" | "STATUS" | null;
  * }} args
- * @returns {LastObserveReceipt}
+ * @returns {LastObserveClaims}
  */
-export function buildLastObserveReceipt(args) {
+export function buildLastObserveClaims(args) {
   const markersPresent = args.presence.kind === "present";
   /** @type {"READY" | "STATUS" | null} */
   let verdictKind = null;
@@ -86,7 +91,6 @@ export function buildLastObserveReceipt(args) {
   }
 
   return {
-    schema: LAST_OBSERVE_SCHEMA,
     target: {
       owner: args.target.owner,
       repo: args.target.repo,
@@ -104,118 +108,106 @@ export function buildLastObserveReceipt(args) {
 }
 
 /**
- * Wire → domain. Missing / corrupt / wrong schema → null (fail closed).
- *
- * @param {unknown} raw
- * @returns {LastObserveReceipt | null}
+ * @param {ObserveBoundReceipt} receipt
  */
-function parseLastObserveWire(raw) {
-  if (!raw || typeof raw !== "object") return null;
-  const rec = /** @type {Record<string, unknown>} */ (raw);
-  if (rec.schema !== LAST_OBSERVE_SCHEMA) return null;
-  if (typeof rec.owner !== "string" || typeof rec.repo !== "string") return null;
-  const pr = Number(rec.pr);
-  if (!Number.isInteger(pr) || pr <= 0) return null;
-  if (typeof rec.observedAt !== "string") return null;
-  if (typeof rec.markersPresent !== "boolean") return null;
-  if (typeof rec.upstreamExit !== "number") return null;
-  if (rec.headRefOid !== null && typeof rec.headRefOid !== "string") {
-    return null;
+function assertBoundReceipt(receipt) {
+  if (!receipt || receipt.__brand !== "ObserveBoundReceipt") {
+    throw new Error(
+      "last-observe-store: put requires ObserveBoundReceipt (mint via observe-crypto)",
+    );
   }
-  if (
-    rec.verdictKind !== undefined &&
-    rec.verdictKind !== null &&
-    rec.verdictKind !== "READY" &&
-    rec.verdictKind !== "STATUS"
-  ) {
-    return null;
-  }
-  const headRefOid =
-    typeof rec.headRefOid === "string" && rec.headRefOid.length > 0
-      ? rec.headRefOid
-      : null;
-  /** @type {"READY" | "STATUS" | null} */
-  const verdictKind =
-    rec.verdictKind === "READY" || rec.verdictKind === "STATUS"
-      ? rec.verdictKind
-      : null;
-  return {
-    schema: LAST_OBSERVE_SCHEMA,
-    target: { owner: rec.owner, repo: rec.repo, pr },
-    observedAt: rec.observedAt,
-    headRefOid,
-    verdictKind,
-    markersPresent: rec.markersPresent,
-    upstreamExit: rec.upstreamExit,
-  };
 }
 
 /**
- * @param {LastObserveReceipt} receipt
- * @returns {Record<string, unknown>}
+ * Brand-only write; no key material.
+ *
+ * @param {string} rootDir
+ * @param {ObserveBoundReceipt} receipt
  */
-function serializeLastObserveWire(receipt) {
+export function putObserveBoundReceipt(rootDir, receipt) {
+  assertBoundReceipt(receipt);
+  const wire = observeBoundWireFromReceipt(receipt);
+  mkdirSync(rootDir, { recursive: true });
+  const path = join(rootDir, lastObserveFilename(receipt.target));
+  writeFileSync(path, JSON.stringify(wire, null, 2) + "\n", "utf8");
+}
+
+/**
+ * Assert/land/self-test: get always verifies with ObserveVerifyKey.
+ *
+ * @param {ObserveVerifyKey} verifyKey
+ * @returns {MemoryLastObserveStore}
+ */
+export function createVerifyingMemoryLastObserveStore(verifyKey) {
+  if (!verifyKey || verifyKey.__brand !== "ObserveVerifyKey") {
+    throw new Error(
+      "last-observe-store: createVerifyingMemoryLastObserveStore requires ObserveVerifyKey",
+    );
+  }
+  /** @type {Map<string, unknown>} */
+  const map = new Map();
   return {
-    schema: receipt.schema,
-    owner: receipt.target.owner,
-    repo: receipt.target.repo,
-    pr: receipt.target.pr,
-    observedAt: receipt.observedAt,
-    headRefOid: receipt.headRefOid,
-    verdictKind: receipt.verdictKind,
-    markersPresent: receipt.markersPresent,
-    upstreamExit: receipt.upstreamExit,
+    put(receipt) {
+      assertBoundReceipt(receipt);
+      const wire = observeBoundWireFromReceipt(receipt);
+      map.set(lastObserveKeyString(receipt.target), wire);
+    },
+    get(key) {
+      const raw = map.get(lastObserveKeyString(key));
+      if (raw === undefined) return null;
+      return verifyObserveBoundWire(raw, verifyKey);
+    },
+    // Forged / unsigned wire for self-tests; get still verifies.
+    putRawForTest(raw) {
+      if (!raw || typeof raw !== "object") {
+        throw new Error(
+          "last-observe-store: putRawForTest requires an object",
+        );
+      }
+      const rec = /** @type {Record<string, unknown>} */ (raw);
+      const pr = Number(rec.pr);
+      if (
+        typeof rec.owner !== "string" ||
+        typeof rec.repo !== "string" ||
+        !Number.isInteger(pr) ||
+        pr <= 0
+      ) {
+        throw new Error(
+          "last-observe-store: putRawForTest needs owner, repo, positive pr",
+        );
+      }
+      map.set(
+        lastObserveKeyString({ owner: rec.owner, repo: rec.repo, pr }),
+        raw,
+      );
+    },
   };
 }
 
 /**
  * @param {string} rootDir
+ * @param {ObserveVerifyKey} verifyKey
  * @returns {LastObserveStore}
  */
-export function createFsLastObserveStore(rootDir) {
+export function createVerifyingFsLastObserveStore(rootDir, verifyKey) {
+  if (!verifyKey || verifyKey.__brand !== "ObserveVerifyKey") {
+    throw new Error(
+      "last-observe-store: createVerifyingFsLastObserveStore requires ObserveVerifyKey",
+    );
+  }
   return {
     put(receipt) {
-      mkdirSync(rootDir, { recursive: true });
-      const path = join(rootDir, lastObserveFilename(receipt.target));
-      writeFileSync(
-        path,
-        JSON.stringify(serializeLastObserveWire(receipt), null, 2) + "\n",
-        "utf8",
-      );
+      putObserveBoundReceipt(rootDir, receipt);
     },
     get(key) {
       const path = join(rootDir, lastObserveFilename(key));
       if (!existsSync(path)) return null;
       try {
         const raw = JSON.parse(readFileSync(path, "utf8"));
-        return parseLastObserveWire(raw);
+        return verifyObserveBoundWire(raw, verifyKey);
       } catch {
         return null;
       }
-    },
-  };
-}
-
-/**
- * @returns {LastObserveStore}
- */
-export function createMemoryLastObserveStore() {
-  /** @type {Map<string, LastObserveReceipt>} */
-  const map = new Map();
-  return {
-    put(receipt) {
-      map.set(lastObserveKeyString(receipt.target), {
-        schema: receipt.schema,
-        target: { ...receipt.target },
-        observedAt: receipt.observedAt,
-        headRefOid: receipt.headRefOid,
-        verdictKind: receipt.verdictKind,
-        markersPresent: receipt.markersPresent,
-        upstreamExit: receipt.upstreamExit,
-      });
-    },
-    get(key) {
-      return map.get(lastObserveKeyString(key)) ?? null;
     },
   };
 }
