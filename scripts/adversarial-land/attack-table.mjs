@@ -33,7 +33,6 @@ import { TRUNK_FIXTURES } from "./trunk-fixtures.mjs";
  */
 
 /**
- * Fail fast if ATTACKS ⊄ HOLE_IDS or missing/duplicate ids.
  * @param {readonly Attack[]} [attacks]
  */
 export function assertAttackTableComplete(attacks = ATTACKS) {
@@ -119,9 +118,6 @@ export const ATTACKS = Object.freeze([
       const parseDenied =
         threw === ctx.tip.LAND_SHIPPING_VERDICT_REMOVED;
 
-      // Enrich path: bare flag soft-fails → ci-only require-attestation/2.
-      // Feed enriched-looking upstream; clearance attaches; empty store +
-      // bare PASS argv → exit 2 (never honor PASS).
       const exitCode = await assertWithUpstream(
         ctx,
         ctx.fixtures.bareReadyUpstreamStdout(),
@@ -167,8 +163,6 @@ export const ATTACKS = Object.freeze([
         {
           io: ctx.silentIo,
           nowMs: () => 1_700_000_000_000,
-          // Cleared observe receipt so preflight allows; assert-session bare
-          // still denies (#48). soft-lure-observe covers missing/bare observe.
           ...ctx.clearedLastObserveDeps(),
           runAssert: async () => ({
             exitCode: 0,
@@ -327,21 +321,26 @@ export const ATTACKS = Object.freeze([
         parts.push("missing→4 assertSkipped");
       }
 
-      // Negative receipt (wrapper observe with attachClearance false).
       const {
-        buildLastObserveReceipt,
-        createMemoryLastObserveStore,
+        buildLastObserveClaims,
+        createVerifyingMemoryLastObserveStore,
       } = await import("../last-observe-store.mjs");
-      const bareStore = createMemoryLastObserveStore();
+      const { mintObserveBoundReceipt } = await import("../observe-crypto.mjs");
+      const bareStore = createVerifyingMemoryLastObserveStore(
+        ctx.observeVerifyKey,
+      );
       bareStore.put(
-        buildLastObserveReceipt({
-          target: ctx.target,
-          presence: { kind: "absent" },
-          upstreamExit: 0,
-          headRefOid: ctx.fixtures.liveTipOid,
-          observedAt: "2026-11-08T00:00:00.000Z",
-          verdictKind: "READY",
-        }),
+        mintObserveBoundReceipt(
+          buildLastObserveClaims({
+            target: ctx.target,
+            presence: { kind: "absent" },
+            upstreamExit: 0,
+            headRefOid: ctx.fixtures.liveTipOid,
+            observedAt: "2026-11-08T00:00:00.000Z",
+            verdictKind: "READY",
+          }),
+          ctx.observeMintKey,
+        ),
       );
       let bareAssertCalls = 0;
       const bareExit = await ctx.tip.landPr(
@@ -388,6 +387,141 @@ export const ATTACKS = Object.freeze([
   },
 
   {
+    id: "forged-positive-last-observe",
+    title:
+      "unsigned tip-bound markersPresent:true last-observe → land exit 4 (#59)",
+    async run(ctx) {
+      const store = ctx.freshObserveStore();
+      store.putRawForTest({
+        schema: "hebmu.last-observe.v2",
+        owner: ctx.target.owner,
+        repo: ctx.target.repo,
+        pr: ctx.target.pr,
+        observedAt: "2026-11-08T00:00:00.000Z",
+        headRefOid: ctx.fixtures.liveTipOid,
+        verdictKind: "READY",
+        markersPresent: true,
+        upstreamExit: 0,
+      });
+      if (
+        store.get({
+          owner: ctx.target.owner,
+          repo: ctx.target.repo,
+          pr: ctx.target.pr,
+        }) !== null
+      ) {
+        return {
+          id: "forged-positive-last-observe",
+          outcome: "allowed",
+          detail: "unsigned v2 tip-bound positive accepted at store.get",
+          evidence: {},
+        };
+      }
+
+      store.putRawForTest({
+        schema: "hebmu.last-observe.v1",
+        owner: ctx.target.owner,
+        repo: ctx.target.repo,
+        pr: ctx.target.pr,
+        observedAt: "2026-11-08T00:00:00.000Z",
+        headRefOid: ctx.fixtures.liveTipOid,
+        verdictKind: "READY",
+        markersPresent: true,
+        upstreamExit: 0,
+      });
+      if (
+        store.get({
+          owner: ctx.target.owner,
+          repo: ctx.target.repo,
+          pr: ctx.target.pr,
+        }) !== null
+      ) {
+        return {
+          id: "forged-positive-last-observe",
+          outcome: "allowed",
+          detail: "v1 tip-bound positive accepted at store.get",
+          evidence: {},
+        };
+      }
+
+      let assertCalls = 0;
+      const landExit = await ctx.tip.landPr(
+        {
+          target: ctx.target,
+          passthrough: { argvTail: [] },
+          dryRun: false,
+          mergeArgs: [],
+        },
+        {
+          io: ctx.silentIo,
+          nowMs: () => 1_700_000_000_000,
+          readLastObserveReceipt: (t) => store.get(t),
+          resolveHeadRefOid: async () => ctx.fixtures.liveTipOid,
+          runAssert: async () => {
+            assertCalls += 1;
+            return {
+              exitCode: 0,
+              stdout: ctx.fixtures.enrichedCiOnlyStdout(),
+              stderr: "",
+            };
+          },
+          runMerge: async () => ({ exitCode: 0, stdout: "", stderr: "" }),
+        },
+      );
+
+      const denied = landExit === 4 && assertCalls === 0;
+      return {
+        id: "forged-positive-last-observe",
+        outcome: denied ? "denied" : "allowed",
+        detail: denied
+          ? "unsigned/v1 tip-bound positive → exit 4; assert skipped"
+          : `landExit=${landExit} assertCalls=${assertCalls}`,
+        evidence: { exitCode: landExit, mergeCalls: 0 },
+      };
+    },
+  },
+
+  {
+    id: "lander-with-key",
+    title:
+      "lander-visible seal secrets (VERIFY + legacy HMAC) after VERDICT cannot clear assert (#59)",
+    async run(ctx) {
+      // Tip-matching legacy-HMAC PASS must not clear (overlaps forged-seal;
+      // named HoleId still required for #59 inventory).
+      const store = ctx.freshStore();
+      ctx.fixtures.putLegacyHmacPass(store, ctx.fixtures.liveTipOid);
+      const got = store.get({
+        owner: ctx.target.owner,
+        repo: ctx.target.repo,
+        pr: ctx.target.pr,
+      });
+      if (got !== null) {
+        return {
+          id: "lander-with-key",
+          outcome: "allowed",
+          detail: "legacy-HMAC tip-matching PASS accepted at store.get",
+          evidence: {},
+        };
+      }
+      const exitCode = await assertWithUpstream(
+        ctx,
+        ctx.fixtures.bareReadyUpstreamStdout(),
+        ctx.fixtures.liveTipOid,
+        store,
+      );
+      const denied = exitCode === 2;
+      return {
+        id: "lander-with-key",
+        outcome: denied ? "denied" : "allowed",
+        detail: denied
+          ? "VERIFY+legacy-HMAC tip-matching PASS → assert exit 2"
+          : `assertExit=${exitCode}`,
+        evidence: { exitCode },
+      };
+    },
+  },
+
+  {
     id: "trunk-helper-on-gate-pr",
     title: "trunk fixtures would-allow; tip helpers deny same scenarios",
     async run(ctx) {
@@ -396,7 +530,6 @@ export const ATTACKS = Object.freeze([
       let trunkWouldAllow = true;
       let tipDenied = true;
 
-      // --- pre-#47 honor PASS ---
       const f47 = TRUNK_FIXTURES.find((f) => f.id === "pre-47-honor-pass");
       if (!f47 || !f47.wouldAllow()) {
         return {
@@ -435,7 +568,6 @@ export const ATTACKS = Object.freeze([
         parts.push("pre-47 tip denies");
       }
 
-      // --- pre-#48 bare READY ---
       const f48 = TRUNK_FIXTURES.find((f) => f.id === "pre-48-bare-ready-allow");
       if (!f48 || !f48.wouldAllow()) {
         return {
@@ -460,7 +592,6 @@ export const ATTACKS = Object.freeze([
         parts.push("pre-48 tip denies");
       }
 
-      // --- pre-#52 lander JSON ---
       const f52 = TRUNK_FIXTURES.find((f) => f.id === "pre-52-lander-json-pass");
       if (!f52 || !f52.wouldAllow()) {
         return {

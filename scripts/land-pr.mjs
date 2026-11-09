@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * Fail-closed land helper (#46 / #47).
+ * Fail-closed land helper (#46 / #47 / #59).
  *
  * Always runs ./scripts/watch-pr --assert-merge before gh pr merge.
  * Observe READY/STATUS exit 0 is never merge clearance.
  * On ci-only, assert reads a verifier-bound sealed-shipping artifact
  * (seal-shipping mint + HEBMU_SEAL_VERIFY_KEY on land); bare --shipping-verdict
- * is rejected at parse. Assert child env never inherits HEBMU_SEAL_MINT_KEY.
+ * is rejected at parse. Last-observe reads verify under HEBMU_OBSERVE_VERIFY_KEY.
+ * Assert child env never inherits HEBMU_SEAL_MINT_KEY or HEBMU_OBSERVE_MINT_KEY.
  *
  * Usage:
  *   npm run land-pr -- --owner … --repo … --pr <n> [--dry-run]
@@ -16,15 +17,29 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { HEBMU_SEAL_MINT_KEY_ENV } from "./attestation-crypto.mjs";
+import {
+  HEBMU_SEAL_MINT_KEY_ENV,
+} from "./attestation-crypto.mjs";
+import {
+  HEBMU_OBSERVE_MINT_KEY_ENV,
+  generateObserveKeyPairForTest,
+  loadObserveVerifyKeyFromEnv,
+  mintObserveBoundReceipt,
+  refuseObserveMintKeyInLandEnv,
+} from "./observe-crypto.mjs";
 import { stdoutHasHebmuClearance } from "./clearance-presence.mjs";
 import { evaluateLastObservePreflight } from "./last-observe-preflight.mjs";
 import {
-  buildLastObserveReceipt,
-  createFsLastObserveStore,
-  createMemoryLastObserveStore,
+  buildLastObserveClaims,
+  createVerifyingFsLastObserveStore,
+  createVerifyingMemoryLastObserveStore,
   defaultLastObserveDir,
 } from "./last-observe-store.mjs";
+
+/** Self-test observe pair — not production secrets. */
+const SELF_TEST_OBSERVE_KEYS = generateObserveKeyPairForTest();
+const SELF_TEST_OBSERVE_MINT_KEY = SELF_TEST_OBSERVE_KEYS.mintKey;
+const SELF_TEST_OBSERVE_VERIFY_KEY = SELF_TEST_OBSERVE_KEYS.verifyKey;
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(SCRIPT_DIR, "..");
@@ -241,8 +256,8 @@ export function mintPermitFromAssertSession(args) {
 }
 
 /**
- * Assert child must be verify-only: scrub mint even if the land shell still
- * has HEBMU_SEAL_MINT_KEY exported after seal-then-land in one session.
+ * Assert child must be verify-only: scrub seal + observe mint even if the
+ * land shell still has them after seal/observe-then-land in one session.
  *
  * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env
  * @returns {NodeJS.ProcessEnv}
@@ -251,6 +266,7 @@ export function scrubMintKeyFromAssertEnv(env) {
   /** @type {NodeJS.ProcessEnv} */
   const out = { ...env };
   delete out[HEBMU_SEAL_MINT_KEY_ENV];
+  delete out[HEBMU_OBSERVE_MINT_KEY_ENV];
   return out;
 }
 
@@ -336,7 +352,11 @@ export async function defaultLandResolveHeadRefOid(target) {
  * @returns {import("./last-observe-store.mjs").LastObserveReceipt | null}
  */
 export function defaultReadLastObserveReceipt(target) {
-  return createFsLastObserveStore(defaultLastObserveDir(REPO_ROOT)).get(target);
+  refuseObserveMintKeyInLandEnv(process.env);
+  return createVerifyingFsLastObserveStore(
+    defaultLastObserveDir(REPO_ROOT),
+    loadObserveVerifyKeyFromEnv(process.env),
+  ).get(target);
 }
 
 /**
@@ -351,7 +371,6 @@ export async function landPr(request, deps) {
   };
   const nowMs = deps.nowMs ?? Date.now;
 
-  // #54: refuse before assert when last observe lacked markers / tip match.
   const tipOid = await deps.resolveHeadRefOid(request.target);
   const receipt = deps.readLastObserveReceipt(request.target);
   const pre = evaluateLastObservePreflight({ receipt, tipOid });
@@ -415,20 +434,24 @@ export async function runLandSelfTest() {
   const clock = { nowMs: () => 1_700_000_000_000 };
   const TIP = "cccccccccccccccccccccccccccccccccccccccc";
 
-  /** Cleared tip-bound receipt so preflight allows assert/mint paths. */
   function clearedObserveDeps() {
-    const store = createMemoryLastObserveStore();
+    const store = createVerifyingMemoryLastObserveStore(
+      SELF_TEST_OBSERVE_VERIFY_KEY,
+    );
     store.put(
-      buildLastObserveReceipt({
-        target,
-        presence: {
-          kind: "present",
-          verdictKind: "READY",
-        },
-        upstreamExit: 0,
-        headRefOid: TIP,
-        observedAt: "2026-11-08T13:00:00.000Z",
-      }),
+      mintObserveBoundReceipt(
+        buildLastObserveClaims({
+          target,
+          presence: {
+            kind: "present",
+            verdictKind: "READY",
+          },
+          upstreamExit: 0,
+          headRefOid: TIP,
+          observedAt: "2026-11-08T13:00:00.000Z",
+        }),
+        SELF_TEST_OBSERVE_MINT_KEY,
+      ),
     );
     return {
       readLastObserveReceipt: (t) => store.get(t),
@@ -703,7 +726,6 @@ export async function runLandSelfTest() {
     );
   }
 
-  // --- #54 last-observe preflight (before runAssert) ---
   {
     let assertCalls = 0;
     /** @type {string[]} */
@@ -742,16 +764,21 @@ export async function runLandSelfTest() {
 
   {
     let assertCalls = 0;
-    const store = createMemoryLastObserveStore();
+    const store = createVerifyingMemoryLastObserveStore(
+      SELF_TEST_OBSERVE_VERIFY_KEY,
+    );
     store.put(
-      buildLastObserveReceipt({
-        target,
-        presence: { kind: "absent" },
-        upstreamExit: 0,
-        headRefOid: TIP,
-        observedAt: "2026-11-08T13:00:00.000Z",
-        verdictKind: "READY",
-      }),
+      mintObserveBoundReceipt(
+        buildLastObserveClaims({
+          target,
+          presence: { kind: "absent" },
+          upstreamExit: 0,
+          headRefOid: TIP,
+          observedAt: "2026-11-08T13:00:00.000Z",
+          verdictKind: "READY",
+        }),
+        SELF_TEST_OBSERVE_MINT_KEY,
+      ),
     );
     const exitBare = await landPr(
       {
@@ -790,18 +817,23 @@ export async function runLandSelfTest() {
   }
 
   {
-    const store = createMemoryLastObserveStore();
+    const store = createVerifyingMemoryLastObserveStore(
+      SELF_TEST_OBSERVE_VERIFY_KEY,
+    );
     store.put(
-      buildLastObserveReceipt({
-        target,
-        presence: {
-          kind: "present",
-          verdictKind: "READY",
-        },
-        upstreamExit: 0,
-        headRefOid: null,
-        observedAt: "2026-11-08T13:00:00.000Z",
-      }),
+      mintObserveBoundReceipt(
+        buildLastObserveClaims({
+          target,
+          presence: {
+            kind: "present",
+            verdictKind: "READY",
+          },
+          upstreamExit: 0,
+          headRefOid: null,
+          observedAt: "2026-11-08T13:00:00.000Z",
+        }),
+        SELF_TEST_OBSERVE_MINT_KEY,
+      ),
     );
     const preUnbound = evaluateLastObservePreflight({
       receipt: store.get(target),
@@ -814,16 +846,19 @@ export async function runLandSelfTest() {
     );
 
     store.put(
-      buildLastObserveReceipt({
-        target,
-        presence: {
-          kind: "present",
-          verdictKind: "READY",
-        },
-        upstreamExit: 0,
-        headRefOid: TIP,
-        observedAt: "2026-11-08T13:00:00.000Z",
-      }),
+      mintObserveBoundReceipt(
+        buildLastObserveClaims({
+          target,
+          presence: {
+            kind: "present",
+            verdictKind: "READY",
+          },
+          upstreamExit: 0,
+          headRefOid: TIP,
+          observedAt: "2026-11-08T13:00:00.000Z",
+        }),
+        SELF_TEST_OBSERVE_MINT_KEY,
+      ),
     );
     const preStale = evaluateLastObservePreflight({
       receipt: store.get(target),
@@ -838,18 +873,23 @@ export async function runLandSelfTest() {
 
   {
     let assertCalls = 0;
-    const store = createMemoryLastObserveStore();
+    const store = createVerifyingMemoryLastObserveStore(
+      SELF_TEST_OBSERVE_VERIFY_KEY,
+    );
     store.put(
-      buildLastObserveReceipt({
-        target,
-        presence: {
-          kind: "present",
-          verdictKind: "READY",
-        },
-        upstreamExit: 0,
-        headRefOid: TIP,
-        observedAt: "2026-11-08T13:00:00.000Z",
-      }),
+      mintObserveBoundReceipt(
+        buildLastObserveClaims({
+          target,
+          presence: {
+            kind: "present",
+            verdictKind: "READY",
+          },
+          upstreamExit: 0,
+          headRefOid: TIP,
+          observedAt: "2026-11-08T13:00:00.000Z",
+        }),
+        SELF_TEST_OBSERVE_MINT_KEY,
+      ),
     );
     const exitOk = await landPr(
       {
@@ -877,6 +917,17 @@ export async function runLandSelfTest() {
     assertSelf(
       "good receipt + tip match → continues to assert (dry-run 0)",
       exitOk === 0 && assertCalls === 1,
+    );
+  }
+
+  {
+    const scrubbedObs = scrubMintKeyFromAssertEnv({
+      HEBMU_OBSERVE_MINT_KEY: "must-not-forward-observe",
+      HEBMU_SEAL_VERIFY_KEY: "keep-verify",
+    });
+    assertSelf(
+      "#59 scrubMintKeyFromAssertEnv drops observe mint",
+      scrubbedObs.HEBMU_OBSERVE_MINT_KEY === undefined,
     );
   }
 

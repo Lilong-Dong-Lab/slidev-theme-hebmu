@@ -45,15 +45,26 @@ import {
   stdoutHasHebmuClearance,
 } from "./clearance-presence.mjs";
 import {
-  buildLastObserveReceipt,
-  createFsLastObserveStore,
+  generateObserveKeyPairForTest,
+  loadObserveMintKeyFromEnv,
+  mintObserveBoundReceipt,
+} from "./observe-crypto.mjs";
+import {
+  buildLastObserveClaims,
+  createVerifyingMemoryLastObserveStore,
   defaultLastObserveDir,
+  putObserveBoundReceipt,
 } from "./last-observe-store.mjs";
 
 /** Self-test Ed25519 pair — not production secrets. */
 const SELF_TEST_KEYS = generateSealKeyPairForTest();
 const SELF_TEST_MINT_KEY = SELF_TEST_KEYS.mintKey;
 const SELF_TEST_VERIFY_KEY = SELF_TEST_KEYS.verifyKey;
+
+/** Self-test observe Ed25519 pair — not production secrets. */
+const SELF_TEST_OBSERVE_KEYS = generateObserveKeyPairForTest();
+const SELF_TEST_OBSERVE_MINT_KEY = SELF_TEST_OBSERVE_KEYS.mintKey;
+const SELF_TEST_OBSERVE_VERIFY_KEY = SELF_TEST_OBSERVE_KEYS.verifyKey;
 
 /**
  * @returns {import("./attestation-store.mjs").MemoryAttestationStore}
@@ -870,19 +881,26 @@ export async function runEnrichedWatchPr(args) {
       return ensureStore().get(key);
     },
   };
-  const lastObserveStore =
-    args.lastObserveStore ??
-    (!assertMerge
-      ? createFsLastObserveStore(defaultLastObserveDir(REPO_ROOT))
-      : null);
+  // Assert path never writes last-observe.
+  const lastObserveStore = args.lastObserveStore ?? null;
+  /** @type {import("./observe-crypto.mjs").ObserveMintKey | null} */
+  let cachedObserveMint = null;
+  /**
+   * @returns {import("./observe-crypto.mjs").ObserveMintKey}
+   */
+  function ensureObserveMint() {
+    if (cachedObserveMint) return cachedObserveMint;
+    cachedObserveMint = loadObserveMintKeyFromEnv(process.env);
+    return cachedObserveMint;
+  }
 
   /**
-   * Observe side-write (#54). Positive + negative. Never remaps exit.
+   * Never remaps exit (ADR 0003).
    * @param {string} stdoutForPresence
    * @param {number} upstreamExit
    */
   function putLastObserveReceipt(stdoutForPresence, upstreamExit) {
-    if (assertMerge || !lastObserveStore) return;
+    if (assertMerge) return;
     try {
       const presence = parseClearancePresence(stdoutForPresence);
       const headRefOid = resolveHeadRefOid(
@@ -890,14 +908,24 @@ export async function runEnrichedWatchPr(args) {
         { owner: repoPr.owner, repo: repoPr.repo },
         repoPr.pr,
       );
-      const receipt = buildLastObserveReceipt({
+      const claims = buildLastObserveClaims({
         target: { owner: repoPr.owner, repo: repoPr.repo, pr: repoPr.pr },
         presence,
         upstreamExit,
         headRefOid,
         observedAt: new Date().toISOString(),
       });
-      lastObserveStore.put(receipt);
+      const bound = mintObserveBoundReceipt(
+        claims,
+        lastObserveStore
+          ? SELF_TEST_OBSERVE_MINT_KEY
+          : ensureObserveMint(),
+      );
+      if (lastObserveStore) {
+        lastObserveStore.put(bound);
+      } else {
+        putObserveBoundReceipt(defaultLastObserveDir(REPO_ROOT), bound);
+      }
     } catch (err) {
       io.stderr(
         `hebmu: last-observe receipt write failed: ${
@@ -1775,12 +1803,10 @@ async function runMergeDispositionHarness() {
   );
   console.log("ok  observe path keeps upstream exit 0 for ci-only READY");
 
-  // --- #54 last-observe receipt side-write (exit unchanged) ---
   {
-    const {
-      createMemoryLastObserveStore,
-    } = await import("./last-observe-store.mjs");
-    const observeStore = createMemoryLastObserveStore();
+    const observeStore = createVerifyingMemoryLastObserveStore(
+      SELF_TEST_OBSERVE_VERIFY_KEY,
+    );
     /** @type {string[]} */
     const out = [];
     const code = await runEnrichedWatchPr({
@@ -1821,12 +1847,18 @@ async function runMergeDispositionHarness() {
       "observe enriched receipt binds tip when gh resolves",
     );
     assert(
+      typeof receipt.sig === "string" && receipt.sig.length > 0,
+      "observe enriched receipt is observe-minted (sig)",
+    );
+    assert(
       out.join("").includes("reviewClearance=ci-only"),
       "observe enriched still prints clearance",
     );
     console.log("ok  observe enriched writes markersPresent:true receipt");
 
-    const bareStore = createMemoryLastObserveStore();
+    const bareStore = createVerifyingMemoryLastObserveStore(
+      SELF_TEST_OBSERVE_VERIFY_KEY,
+    );
     const bareCode = await runEnrichedWatchPr({
       argv: ["--owner", "o", "--repo", "r", "--pr", "54", "--pretty"],
       upstreamDir: "/tmp",
@@ -1860,6 +1892,10 @@ async function runMergeDispositionHarness() {
     assert(
       bareReceipt.markersPresent === false,
       "observe bare receipt markersPresent false",
+    );
+    assert(
+      typeof bareReceipt.sig === "string" && bareReceipt.sig.length > 0,
+      "observe bare receipt is observe-minted (sig)",
     );
     console.log("ok  observe bare writes markersPresent:false receipt; exit 0");
   }

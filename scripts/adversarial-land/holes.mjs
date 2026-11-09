@@ -10,7 +10,9 @@
  *   | "forged-seal"
  *   | "bare-merge"
  *   | "trunk-helper-on-gate-pr"
- *   | "soft-lure-observe"} HoleId
+ *   | "soft-lure-observe"
+ *   | "forged-positive-last-observe"
+ *   | "lander-with-key"} HoleId
  */
 
 /** @type {readonly HoleId[]} */
@@ -22,4 +24,6 @@ export const HOLE_IDS = Object.freeze([
   "bare-merge",
   "trunk-helper-on-gate-pr",
   "soft-lure-observe",
+  "forged-positive-last-observe",
+  "lander-with-key",
 ]);

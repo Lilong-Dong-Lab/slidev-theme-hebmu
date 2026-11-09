@@ -58,34 +58,50 @@ Bun runtime as a blocker. See the poteto-mode Babysit playbook.
 
 Babysit observe (`./scripts/watch-pr` without `--assert-merge`) attaches
 clearance and keeps the upstream exit. That exit is **not** merge clearance.
-The wrapper also side-writes a local last-observe receipt under
-`.git/hebmu/last-observe/` (`markersPresent` + tip when resolvable). Observe
-exit stays upstream (READY → `0`) even when markers are absent. `land-pr`
-refuses **before** assert when that receipt is missing, lacked clearance
-markers, or the tip does not match — bare personal/plugin observe never
-writes a receipt, so land fails closed on that soft lure. Shipping land is
-seal-then-land: the verifier mints a tip-bound Ed25519 seal with
-`HEBMU_SEAL_MINT_KEY` (verifier-only). The lander / assert process exports
-**verify-only** `HEBMU_SEAL_VERIFY_KEY` — never the mint key. `land-pr` also
-scrubs `HEBMU_SEAL_MINT_KEY` from the assert child env. Local JSON under
-`.git/hebmu/sealed-shipping/` is a receipt on disk — it is not merge proof
-unless the Ed25519 sig verifies under the verify key. Shared
-`HEBMU_SEAL_HMAC_KEY` is retired (#58); loaders reject it.
+The wrapper also side-writes a **signed** last-observe receipt under
+`.git/hebmu/last-observe/` (`hebmu.last-observe.v2` + Ed25519 `sig`, with
+`markersPresent` + tip when resolvable). Observe exit stays upstream
+(READY → `0`) even when markers are absent (ADR 0003). `land-pr` refuses
+**before** assert when that receipt is missing, unsigned/forged, lacked
+clearance markers, or the tip does not match — bare personal/plugin observe
+never writes a receipt, so land fails closed on that soft lure. Hand-edited
+tip-bound `markersPresent: true` JSON does **not** clear land.
+
+Observe and seal are **two keypairs** (do not reuse seal mint for observe):
+
+| Role | Env | Who holds it |
+| --- | --- | --- |
+| Observe mint | `HEBMU_OBSERVE_MINT_KEY` | Observe / babysit wrapper only |
+| Observe verify | `HEBMU_OBSERVE_VERIFY_KEY` | Land / assert (verify-only) |
+| Seal mint | `HEBMU_SEAL_MINT_KEY` | Verifier seal-shipping only |
+| Seal verify | `HEBMU_SEAL_VERIFY_KEY` | Land / assert (verify-only) |
+
+Shipping land is seal-then-land: the verifier mints a tip-bound Ed25519 seal
+with `HEBMU_SEAL_MINT_KEY`. The lander / assert process exports **verify-only**
+`HEBMU_SEAL_VERIFY_KEY` and `HEBMU_OBSERVE_VERIFY_KEY` — never either mint.
+`land-pr` also scrubs both mint envs from the assert child. Local JSON under
+`.git/hebmu/sealed-shipping/` or `.git/hebmu/last-observe/` is a receipt on
+disk — not proof unless the matching verify key accepts the sig. Shared
+`HEBMU_SEAL_HMAC_KEY` is retired (#58); loaders reject it. Stolen
+`HEBMU_SEAL_MINT_KEY` remains a named residual (not a must-deny HoleId).
 
 ```bash
-# One-time (verifier workstation):
-# npm run seal-shipping -- --gen-keys
+# Observe wrapper — observe mint only (no seal mint required)
+export HEBMU_OBSERVE_MINT_KEY='…ed25519 PKCS8 private (base64)…'
+npm run watch-pr -- \
+  --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --status-only --pretty
 
-# Verifier only — mint capability
+# Verifier only — seal mint capability (after Shipping VERDICT PASS)
 export HEBMU_SEAL_MINT_KEY='…ed25519 PKCS8 private (base64)…'
-
 npm run seal-shipping -- \
   --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> \
   --verdict PASS
 
-# Unset mint before land. Lander holds verify-only.
+# Unset both mints before land. Lander holds verify-only for both domains.
 unset HEBMU_SEAL_MINT_KEY
+unset HEBMU_OBSERVE_MINT_KEY
 export HEBMU_SEAL_VERIFY_KEY='…ed25519 SPKI public (base64)…'
+export HEBMU_OBSERVE_VERIFY_KEY='…ed25519 SPKI public (base64)…'
 
 npm run land-pr -- \
   --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n>
@@ -94,10 +110,14 @@ npm run land-pr -- \
 Or:
 
 ```bash
+export HEBMU_OBSERVE_MINT_KEY='…'
+# …observe via watch-pr…
 export HEBMU_SEAL_MINT_KEY='…'
 node scripts/seal-shipping.mjs --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --verdict PASS
 unset HEBMU_SEAL_MINT_KEY
+unset HEBMU_OBSERVE_MINT_KEY
 export HEBMU_SEAL_VERIFY_KEY='…'
+export HEBMU_OBSERVE_VERIFY_KEY='…'
 node scripts/land-pr.mjs --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n>
 ```
 
@@ -121,7 +141,8 @@ Disposition exits: `0` allow, `2` need attestation, `3` block
 Assert/land hard-fail with exit `4` (`missing-clearance`) when READY/STATUS
 lacks hebmu clearance markers — bare personal/plugin READY cannot mint a
 permit. Land also exits `4` with `hebmu-last-observe-*` details when the
-last wrapper observe lacked markers or tip binding (assert skipped). A
+last wrapper observe lacked markers, tip binding, or authenticity
+(unsigned / bad observe sig → same missing family; assert skipped). A
 sealed PASS does not clear `review-required`. Policy record:
 `docs/adr/0003-ci-only-merge-policy.md`.
 
