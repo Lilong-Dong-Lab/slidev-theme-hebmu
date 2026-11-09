@@ -202,8 +202,6 @@ export function loadObserveMintKeyFromEnv(env) {
 }
 
 /**
- * SPKI Ed25519 public only.
- *
  * @param {NodeJS.ProcessEnv | Record<string, string | undefined>} env
  * @returns {ObserveVerifyKey}
  */
@@ -329,8 +327,6 @@ export function mintObserveBoundReceipt(claims, mintKey) {
 }
 
 /**
- * Flatten branded domain value to on-disk wire shape.
- *
  * @param {ObserveBoundReceipt} receipt
  * @returns {Record<string, string | number | boolean | null>}
  */

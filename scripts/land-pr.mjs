@@ -371,7 +371,6 @@ export async function landPr(request, deps) {
   };
   const nowMs = deps.nowMs ?? Date.now;
 
-  // #54: refuse before assert when last observe lacked markers / tip match.
   const tipOid = await deps.resolveHeadRefOid(request.target);
   const receipt = deps.readLastObserveReceipt(request.target);
   const pre = evaluateLastObservePreflight({ receipt, tipOid });
@@ -435,7 +434,6 @@ export async function runLandSelfTest() {
   const clock = { nowMs: () => 1_700_000_000_000 };
   const TIP = "cccccccccccccccccccccccccccccccccccccccc";
 
-  /** Cleared tip-bound observe-minted receipt so preflight allows assert. */
   function clearedObserveDeps() {
     const store = createVerifyingMemoryLastObserveStore(
       SELF_TEST_OBSERVE_VERIFY_KEY,
@@ -728,7 +726,6 @@ export async function runLandSelfTest() {
     );
   }
 
-  // --- #54 last-observe preflight (before runAssert) ---
   {
     let assertCalls = 0;
     /** @type {string[]} */

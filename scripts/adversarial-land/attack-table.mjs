@@ -33,7 +33,6 @@ import { TRUNK_FIXTURES } from "./trunk-fixtures.mjs";
  */
 
 /**
- * Fail fast if ATTACKS ⊄ HOLE_IDS or missing/duplicate ids.
  * @param {readonly Attack[]} [attacks]
  */
 export function assertAttackTableComplete(attacks = ATTACKS) {
@@ -119,9 +118,6 @@ export const ATTACKS = Object.freeze([
       const parseDenied =
         threw === ctx.tip.LAND_SHIPPING_VERDICT_REMOVED;
 
-      // Enrich path: bare flag soft-fails → ci-only require-attestation/2.
-      // Feed enriched-looking upstream; clearance attaches; empty store +
-      // bare PASS argv → exit 2 (never honor PASS).
       const exitCode = await assertWithUpstream(
         ctx,
         ctx.fixtures.bareReadyUpstreamStdout(),
@@ -167,8 +163,6 @@ export const ATTACKS = Object.freeze([
         {
           io: ctx.silentIo,
           nowMs: () => 1_700_000_000_000,
-          // Cleared observe receipt so preflight allows; assert-session bare
-          // still denies (#48). soft-lure-observe covers missing/bare observe.
           ...ctx.clearedLastObserveDeps(),
           runAssert: async () => ({
             exitCode: 0,
@@ -327,7 +321,6 @@ export const ATTACKS = Object.freeze([
         parts.push("missing→4 assertSkipped");
       }
 
-      // Negative receipt (wrapper observe with attachClearance false) — signed.
       const {
         buildLastObserveClaims,
         createVerifyingMemoryLastObserveStore,
@@ -409,7 +402,6 @@ export const ATTACKS = Object.freeze([
         verdictKind: "READY",
         markersPresent: true,
         upstreamExit: 0,
-        // no sig / hand-forged positive
       });
       if (
         store.get({
@@ -426,7 +418,6 @@ export const ATTACKS = Object.freeze([
         };
       }
 
-      // Also deny unsigned v1 tip-bound positive (schema gate).
       store.putRawForTest({
         schema: "hebmu.last-observe.v1",
         owner: ctx.target.owner,
@@ -495,7 +486,6 @@ export const ATTACKS = Object.freeze([
     title:
       "lander-visible seal secrets (VERIFY + legacy HMAC) after VERDICT cannot clear assert (#59)",
     async run(ctx) {
-      // Lander-visible after VERDICT: VERIFY public + retired HMAC — no mint.
       // Tip-matching legacy-HMAC PASS must not clear (overlaps forged-seal;
       // named HoleId still required for #59 inventory).
       const store = ctx.freshStore();
@@ -540,7 +530,6 @@ export const ATTACKS = Object.freeze([
       let trunkWouldAllow = true;
       let tipDenied = true;
 
-      // --- pre-#47 honor PASS ---
       const f47 = TRUNK_FIXTURES.find((f) => f.id === "pre-47-honor-pass");
       if (!f47 || !f47.wouldAllow()) {
         return {
@@ -579,7 +568,6 @@ export const ATTACKS = Object.freeze([
         parts.push("pre-47 tip denies");
       }
 
-      // --- pre-#48 bare READY ---
       const f48 = TRUNK_FIXTURES.find((f) => f.id === "pre-48-bare-ready-allow");
       if (!f48 || !f48.wouldAllow()) {
         return {
@@ -604,7 +592,6 @@ export const ATTACKS = Object.freeze([
         parts.push("pre-48 tip denies");
       }
 
-      // --- pre-#52 lander JSON ---
       const f52 = TRUNK_FIXTURES.find((f) => f.id === "pre-52-lander-json-pass");
       if (!f52 || !f52.wouldAllow()) {
         return {

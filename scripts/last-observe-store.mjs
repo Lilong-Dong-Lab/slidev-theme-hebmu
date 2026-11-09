@@ -26,7 +26,6 @@ export { LAST_OBSERVE_SCHEMA_V1 } from "./observe-crypto.mjs";
  * @typedef {import("./observe-crypto.mjs").ObserveBoundReceipt} ObserveBoundReceipt
  * @typedef {import("./observe-crypto.mjs").ObserveVerifyKey} ObserveVerifyKey
  *
- * Authenticated domain receipt after observe mint / verifying get.
  * @typedef {ObserveBoundReceipt} LastObserveReceipt
  *
  * @typedef {{
@@ -64,7 +63,6 @@ export function defaultLastObserveDir(repoRoot) {
 }
 
 /**
- * Derive markersPresent only from parseClearancePresence kind === "present".
  * Claims only — no sig. Callers mint via mintObserveBoundReceipt.
  *
  * @param {{

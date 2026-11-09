@@ -1,6 +1,3 @@
-/**
- * AttackContext factory + shared fixtures for #53 / #58 / #59 adversarial suite.
- */
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import {

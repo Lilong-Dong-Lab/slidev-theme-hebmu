@@ -881,7 +881,6 @@ export async function runEnrichedWatchPr(args) {
       return ensureStore().get(key);
     },
   };
-  // Observe path: inject store OR mint with ObserveMintKey and putBound.
   // Assert path never writes last-observe.
   const lastObserveStore = args.lastObserveStore ?? null;
   /** @type {import("./observe-crypto.mjs").ObserveMintKey | null} */
@@ -896,7 +895,6 @@ export async function runEnrichedWatchPr(args) {
   }
 
   /**
-   * Observe side-write (#54 / #59). Positive + negative, observe-minted.
    * Never remaps exit (ADR 0003).
    * @param {string} stdoutForPresence
    * @param {number} upstreamExit
@@ -1805,7 +1803,6 @@ async function runMergeDispositionHarness() {
   );
   console.log("ok  observe path keeps upstream exit 0 for ci-only READY");
 
-  // --- #54/#59 last-observe signed receipt side-write (exit unchanged) ---
   {
     const observeStore = createVerifyingMemoryLastObserveStore(
       SELF_TEST_OBSERVE_VERIFY_KEY,
