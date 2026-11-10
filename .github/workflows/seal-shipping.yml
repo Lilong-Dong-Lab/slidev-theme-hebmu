@@ -1,0 +1,117 @@
+name: seal-shipping
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: PR number
+        required: true
+        type: string
+      verdict:
+        description: PASS or FAIL
+        required: true
+        type: string
+
+permissions:
+  checks: write
+  id-token: write
+  contents: read
+
+jobs:
+  seal:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate verdict
+        run: |
+          case "${{ inputs.verdict }}" in
+            PASS|FAIL) ;;
+            *)
+              echo "verdict must be PASS or FAIL" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Resolve PR head SHA
+        id: head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          oid="$(gh api "repos/${{ github.repository }}/pulls/${{ inputs.pr }}" --jq .head.sha)"
+          if [ -z "$oid" ] || [ "$oid" = "null" ]; then
+            echo "failed to resolve PR head sha" >&2
+            exit 1
+          fi
+          echo "sha=$oid" >> "$GITHUB_OUTPUT"
+
+      - name: Request OIDC JWT
+        id: oidc
+        run: |
+          if [ -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ] || [ -z "${ACTIONS_ID_TOKEN_REQUEST_TOKEN:-}" ]; then
+            echo "ACTIONS_ID_TOKEN_REQUEST_* missing" >&2
+            exit 1
+          fi
+          token="$(curl -sS \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=hebmu-seal" \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["value"])')"
+          if [ -z "$token" ]; then
+            echo "OIDC token empty" >&2
+            exit 1
+          fi
+          echo "::add-mask::$token"
+          echo "jwt=$token" >> "$GITHUB_OUTPUT"
+
+      - name: Assemble v4 seal wire
+        id: wire
+        env:
+          SEAL_JWT: ${{ steps.oidc.outputs.jwt }}
+          HEAD_SHA: ${{ steps.head.outputs.sha }}
+          VERDICT: ${{ inputs.verdict }}
+          PR: ${{ inputs.pr }}
+        run: |
+          python3 <<'PY'
+          import json, os, pathlib, datetime
+          owner, repo = os.environ["GITHUB_REPOSITORY"].split("/", 1)
+          wire = {
+            "schema": "hebmu.sealed-shipping.v4",
+            "owner": owner,
+            "repo": repo,
+            "pr": int(os.environ["PR"]),
+            "headRefOid": os.environ["HEAD_SHA"],
+            "verdict": os.environ["VERDICT"],
+            "sealedAt": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "mint": {"kind": "check-run", "jwt": os.environ["SEAL_JWT"]},
+          }
+          path = pathlib.Path("sealed-shipping-" + os.environ["PR"] + ".json")
+          path.write_text(json.dumps(wire, indent=2) + "\n", encoding="utf-8")
+          print(f"wrote {path}")
+          PY
+
+      - name: Create hebmu-seal check-run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.head.outputs.sha }}
+          VERDICT: ${{ inputs.verdict }}
+        run: |
+          if [ "$VERDICT" = "PASS" ]; then
+            conclusion=success
+          else
+            conclusion=failure
+          fi
+          gh api \
+            --method POST \
+            "repos/${{ github.repository }}/check-runs" \
+            -f name='hebmu-seal' \
+            -f head_sha="$HEAD_SHA" \
+            -f status='completed' \
+            -f conclusion="$conclusion" \
+            -f external_id="${{ github.run_id }}" \
+            -f 'output[title]=hebmu sealed shipping' \
+            -f "output[summary]=verdict=${VERDICT} pr=${{ inputs.pr }}"
+
+      - name: Upload seal artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sealed-shipping-${{ inputs.pr }}
+          path: sealed-shipping-${{ inputs.pr }}.json
+          if-no-files-found: error
