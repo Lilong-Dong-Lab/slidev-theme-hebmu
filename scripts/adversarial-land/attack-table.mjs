@@ -96,7 +96,6 @@ async function assertWithUpstream(
       exitCode: 0,
     }),
     gh: opts.gh ?? ctx.ciOnlyGh(headRefOid),
-    // Tip ignores until product wires fetchCheckRun; after close it binds tip.
     fetchCheckRun: opts.fetchCheckRun,
     io: ctx.silentIo,
   });
@@ -543,7 +542,6 @@ export const ATTACKS = Object.freeze([
         ctx.fixtures.liveTipOid,
         store,
       );
-      // After close: valid local sig + tip match → provenance reject → exit 3.
       const denied = exitCode === 3;
       return {
         id: "stolen-mint-local-clears",

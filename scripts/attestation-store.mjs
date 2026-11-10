@@ -142,11 +142,10 @@ async function verifyRaw(raw, verifyKey, identity) {
 
 /**
  * @param {unknown} raw
- * @param {SealVerifyKey} verifyKey
  * @param {SealIdentityVerifier | undefined} identity
  * @returns {Promise<AttestationClass>}
  */
-async function classifyRaw(raw, verifyKey, identity) {
+async function classifyRaw(raw, identity) {
   if (raw === undefined) return "missing";
   if (!raw || typeof raw !== "object") return "unusable";
   const schema = /** @type {Record<string, unknown>} */ (raw).schema;
@@ -155,14 +154,10 @@ async function classifyRaw(raw, verifyKey, identity) {
     return classifyCheckRunSealRaw(raw, { identity });
   }
   // v3 / legacy: forged or undecodable → unusable (exit-2 family; not provenance-forged).
-  const got = verifySealedShippingWire(raw, verifyKey);
-  if (got) return "unusable";
   return "unusable";
 }
 
 /**
- * Assert/self-test store: get always verifies.
- *
  * @param {SealVerifyKey} verifyKey
  * @param {SealIdentityVerifier} [identity]
  * @returns {MemoryAttestationStore}
@@ -189,7 +184,7 @@ export function createVerifyingMemoryStore(verifyKey, identity) {
     async classify(key) {
       const raw = map.get(attestationKeyString(key));
       if (raw === undefined) return "missing";
-      return classifyRaw(raw, verifyKey, identity);
+      return classifyRaw(raw, identity);
     },
     // Lander-mintable / forged wire for self-tests; get still verifies.
     putRawForTest(raw) {
@@ -248,7 +243,7 @@ export function createVerifyingFsStore(rootDir, verifyKey, identity) {
       if (!existsSync(path)) return "missing";
       try {
         const raw = JSON.parse(readFileSync(path, "utf8"));
-        return classifyRaw(raw, verifyKey, identity);
+        return classifyRaw(raw, identity);
       } catch {
         return "unusable";
       }

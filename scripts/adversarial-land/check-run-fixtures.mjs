@@ -3,18 +3,19 @@
  * Stand-in for GitHub Actions OIDC; never production material.
  */
 import { createSign, generateKeyPairSync } from "node:crypto";
+import {
+  HEBMU_SEAL_CHECK_RUN_NAME,
+  HEBMU_SEAL_OIDC_AUD,
+  HEBMU_SEAL_OIDC_ISS,
+  SEALED_SHIPPING_SCHEMA_V4,
+} from "../check-run-crypto.mjs";
 
-/** @type {string} */
-export const SEALED_SHIPPING_SCHEMA_V4 = "hebmu.sealed-shipping.v4";
-
-/** @type {string} */
-export const HEBMU_SEAL_CHECK_RUN_NAME = "hebmu-seal";
-
-/** @type {string} */
-export const HEBMU_SEAL_OIDC_AUD = "hebmu-seal";
-
-/** @type {string} */
-export const HEBMU_SEAL_OIDC_ISS = "https://token.actions.githubusercontent.com";
+export {
+  HEBMU_SEAL_CHECK_RUN_NAME,
+  HEBMU_SEAL_OIDC_AUD,
+  HEBMU_SEAL_OIDC_ISS,
+  SEALED_SHIPPING_SCHEMA_V4,
+};
 
 /** @type {string} */
 export const SUITE_JWT_KID = "hebmu-adversarial-oidc-kid";
@@ -60,7 +61,6 @@ function jwksFromPublic(publicKey, kid) {
   };
 }
 
-/** Suite JWKS: pins SUITE_RSA public half. */
 export const SUITE_JWKS = jwksFromPublic(SUITE_RSA.publicKey, SUITE_JWT_KID);
 
 /**
@@ -77,7 +77,7 @@ function b64urlJson(value) {
  * @param {string} [kid]
  * @returns {string}
  */
-export function forgeRs256Jwt(privateKey, claims, kid = SUITE_JWT_KID) {
+function forgeRs256Jwt(privateKey, claims, kid = SUITE_JWT_KID) {
   const header = { alg: "RS256", typ: "JWT", kid };
   const signingInput = `${b64urlJson(header)}.${b64urlJson(claims)}`;
   const sig = createSign("RSA-SHA256")
@@ -102,8 +102,6 @@ export function forgeRs256Jwt(privateKey, claims, kid = SUITE_JWT_KID) {
  */
 
 /**
- * Deterministic Actions-shaped OIDC JWT signed by the suite RSA key.
- *
  * @param {ForgeJwtOpts} opts
  * @returns {string}
  */
@@ -222,8 +220,6 @@ export function stubCheckRunEvidence(opts = {}) {
 }
 
 /**
- * Path-aware gh.api body for commits/.../check-runs (protection stays 404).
- *
  * @param {{
  *   name?: string;
  *   externalId?: string | null;
@@ -261,6 +257,3 @@ export function stubCheckRunsApiResponse(opts = {}) {
     },
   };
 }
-
-export const SUITE_RSA_PRIVATE_KEY = SUITE_RSA.privateKey;
-export const SUITE_RSA_PUBLIC_KEY = SUITE_RSA.publicKey;

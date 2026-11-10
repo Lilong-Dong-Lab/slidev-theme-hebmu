@@ -175,7 +175,7 @@ export function wireFromCheckRunSeal(attestation) {
  * @param {unknown} raw
  * @returns {CheckRunSealWire | null}
  */
-export function parseCheckRunSealWireShape(raw) {
+function parseCheckRunSealWireShape(raw) {
   if (!raw || typeof raw !== "object") return null;
   const rec = /** @type {Record<string, unknown>} */ (raw);
   if (rec.schema !== SEALED_SHIPPING_SCHEMA_V4) return null;
@@ -385,7 +385,7 @@ export function createGhIdentityVerifier(opts = {}) {
 }
 
 /**
- * Verify v4 wire: shape → identity → brand claims from wire (not JWT mirrors).
+ * Brand claims from the wire fields, not JWT payload mirrors.
  *
  * @param {unknown} raw
  * @param {{
@@ -432,8 +432,6 @@ export async function verifyCheckRunSealWire(raw, deps) {
 }
 
 /**
- * Classify raw bytes for denial taxonomy (same read as get).
- *
  * @param {unknown} raw
  * @param {{ identity: SealIdentityVerifier }} deps
  * @returns {Promise<"missing" | "unusable" | "forged">}
@@ -441,17 +439,14 @@ export async function verifyCheckRunSealWire(raw, deps) {
 export async function classifyCheckRunSealRaw(raw, deps) {
   if (raw === undefined || raw === null) return "missing";
   const result = await verifyCheckRunSealWire(raw, deps);
-  if (result.status === "verified") {
-    // Should not reach classify after a successful get; treat as unusable.
-    return "unusable";
-  }
+  if (result.status === "verified") return "unusable";
   return result.status;
 }
 
 /**
  * @returns {Promise<{ keys: Array<Record<string, unknown>> }>}
  */
-export function defaultFetchTokenJwks() {
+function defaultFetchTokenJwks() {
   return new Promise((resolve, reject) => {
     const req = httpsGet(HEBMU_SEAL_OIDC_JWKS_URL, (res) => {
       /** @type {Buffer[]} */
@@ -488,8 +483,6 @@ export function defaultFetchTokenJwks() {
 }
 
 /**
- * Default check-run evidence fetch via gh.api adapter.
- *
  * @param {{
  *   api: (path: string) => { status: number; body: unknown };
  * }} gh
@@ -566,8 +559,6 @@ export function createFetchCheckRun(gh) {
 }
 
 /**
- * Offline RS256 JWT for suites / --self-test.
- *
  * @param {import("node:crypto").KeyObject} signingPrivateKey
  * @param {Record<string, unknown>} claimsOut
  * @param {string} [kid]

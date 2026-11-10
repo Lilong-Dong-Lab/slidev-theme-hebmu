@@ -2219,7 +2219,6 @@ async function runMergeDispositionHarness() {
     "ok  #58 lander-with-shared-key → reject (require-attestation/2)",
   );
 
-  // #66: tip-matching local (Ed25519) PASS demoted — cannot clear ci-only.
   const matchStore = selfTestStore();
   matchStore.put(
     mintVerifierBoundAttestation(
@@ -2274,7 +2273,6 @@ async function runMergeDispositionHarness() {
   );
   console.log("ok  #66 local tip-matching PASS → attestation-rejected/3");
 
-  // #66: check-run PASS + live evidence → allow/0
   const {
     forgeCheckRunJwtForTest,
     mintCheckRunSealWire,

@@ -315,7 +315,7 @@ export async function sealShippingViaActions(request, deps) {
           }
         }
       } catch {
-        // keep polling
+        // transient gh list failure; retry until timeout
       }
     }
     await sleep(intervalMs);
@@ -405,7 +405,7 @@ export async function sealShippingViaActions(request, deps) {
     try {
       rmSync(tmp, { recursive: true, force: true });
     } catch {
-      // best-effort cleanup
+      // temp dir may already be gone
     }
   }
 }

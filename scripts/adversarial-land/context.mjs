@@ -334,7 +334,6 @@ export function createAttackContext(opts = {}) {
           evidence: stubCheckRunEvidence({ kind: "absent" }),
         };
       }
-      // check-run-api-unavailable
       const { runId } = fixtures.putCheckRunPass(store);
       return {
         runId,

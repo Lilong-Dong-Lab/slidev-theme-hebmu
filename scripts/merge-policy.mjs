@@ -240,7 +240,6 @@ export function evaluateMergeDisposition(args) {
           reason: "attestation-rejected",
         };
       }
-      // Structurally valid check-run PASS at tip — require live evidence.
       if (
         attestation.kind === "verifier-bound-shipping" &&
         attestation.mint === "check-run"
@@ -269,7 +268,6 @@ export function evaluateMergeDisposition(args) {
           reason: "attestation-rejected",
         };
       }
-      // explicit-override (isValidAttestation already true)
       return {
         disposition: "allow",
         exitCode: 0,
