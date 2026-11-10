@@ -23,6 +23,17 @@ import {
   buildLastObserveClaims,
   createVerifyingMemoryLastObserveStore,
 } from "../last-observe-store.mjs";
+import {
+  HEBMU_SEAL_CHECK_RUN_NAME,
+  SUITE_JWKS,
+  SUITE_NOW_SEC,
+  SUITE_RUN_ID,
+  assembleCheckRunSealWire,
+  forgeForeignCheckRunJwt,
+  forgeSuiteCheckRunJwt,
+  stubCheckRunEvidence,
+  stubCheckRunsApiResponse,
+} from "./check-run-fixtures.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_REPO_ROOT = join(SCRIPT_DIR, "..", "..");
@@ -52,6 +63,8 @@ export const STALE_OID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
  * @typedef {import("../attestation-store.mjs").MemoryAttestationStore} MemoryAttestationStore
  * @typedef {import("../last-observe-store.mjs").MemoryLastObserveStore} MemoryLastObserveStore
  *
+ * @typedef {import("./check-run-fixtures.mjs").CheckRunEvidence} CheckRunEvidence
+ *
  * @typedef {{
  *   bareReadyUpstreamStdout: () => string;
  *   enrichedCiOnlyStdout: () => string;
@@ -63,6 +76,28 @@ export const STALE_OID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
  *     kind: "unsigned" | "forged-mac" | "legacy-hmac",
  *   ) => void;
  *   putLegacyHmacPass: (store: MemoryAttestationStore, oid: string) => void;
+ *   putCheckRunPass: (
+ *     store: MemoryAttestationStore,
+ *     opts?: {
+ *       headRefOid?: string;
+ *       runId?: number;
+ *       repository?: string;
+ *       jwt?: string;
+ *     },
+ *   ) => { runId: number; jwt: string };
+ *   putForgedCheckRun: (
+ *     store: MemoryAttestationStore,
+ *     kind:
+ *       | "forged-jwt-sig"
+ *       | "jwt-wrong-repository"
+ *       | "sha-chain-mismatch"
+ *       | "pat-check-run-only"
+ *       | "absent-check-run"
+ *       | "check-run-api-unavailable",
+ *   ) => {
+ *     runId: number;
+ *     evidence: CheckRunEvidence;
+ *   };
  * }} AttackFixtures
  *
  * @typedef {{
@@ -74,6 +109,8 @@ export const STALE_OID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
  *   observeVerifyKey: import("../observe-crypto.mjs").ObserveVerifyKey;
  *   freshStore: () => MemoryAttestationStore;
  *   freshObserveStore: () => MemoryLastObserveStore;
+ *   suiteJwks: typeof SUITE_JWKS;
+ *   suiteNowSec: number;
  *   tip: {
  *     landPr: typeof landPr;
  *     parseLandArgv: typeof parseLandArgv;
@@ -86,14 +123,23 @@ export const STALE_OID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
  *   };
  *   fixtures: AttackFixtures;
  *   silentIo: { stdout: (s: string) => void; stderr: (s: string) => void };
- *   ciOnlyGh: (headRefOid: string) => {
- *     api: () => { status: number; body: { message: string } };
+ *   ciOnlyGh: (
+ *     headRefOid: string,
+ *     checkRuns?: ReturnType<typeof stubCheckRunsApiResponse>,
+ *   ) => {
+ *     api: (path: string) => { status: number; body: unknown };
  *     prView: () => {
  *       baseRefName: string;
  *       reviewDecision: null;
  *       headRefOid: string;
  *     };
  *   };
+ *   fetchCheckRunFromEvidence: (
+ *     evidence: CheckRunEvidence,
+ *   ) => (
+ *     target: { owner: string; repo: string },
+ *     headRefOid: string,
+ *   ) => Promise<CheckRunEvidence>;
  *   assertArgv: (extra?: readonly string[]) => string[];
  *   clearedLastObserveDeps: () => {
  *     readLastObserveReceipt: (
@@ -197,6 +243,103 @@ export function createAttackContext(opts = {}) {
       }
       store.putRawForTest(raw);
     },
+    putCheckRunPass(store, opts = {}) {
+      const headRefOid = opts.headRefOid ?? LIVE_TIP_OID;
+      const runId = opts.runId ?? SUITE_RUN_ID;
+      const repository =
+        opts.repository ?? `${target.owner}/${target.repo}`;
+      const jwt =
+        opts.jwt ??
+        forgeSuiteCheckRunJwt({
+          repository,
+          run_id: runId,
+        });
+      store.putRawForTest(
+        assembleCheckRunSealWire({
+          owner: target.owner,
+          repo: target.repo,
+          pr: target.pr,
+          headRefOid,
+          jwt,
+        }),
+      );
+      return { runId, jwt };
+    },
+    putForgedCheckRun(store, kind) {
+      const repository = `${target.owner}/${target.repo}`;
+      if (kind === "forged-jwt-sig") {
+        const jwt = forgeForeignCheckRunJwt({ repository });
+        store.putRawForTest(
+          assembleCheckRunSealWire({
+            owner: target.owner,
+            repo: target.repo,
+            pr: target.pr,
+            headRefOid: LIVE_TIP_OID,
+            jwt,
+          }),
+        );
+        return {
+          runId: SUITE_RUN_ID,
+          evidence: stubCheckRunEvidence({
+            headSha: LIVE_TIP_OID,
+          }),
+        };
+      }
+      if (kind === "jwt-wrong-repository") {
+        const jwt = forgeSuiteCheckRunJwt({
+          repository: "Evil-Org/not-hebmu",
+        });
+        store.putRawForTest(
+          assembleCheckRunSealWire({
+            owner: target.owner,
+            repo: target.repo,
+            pr: target.pr,
+            headRefOid: LIVE_TIP_OID,
+            jwt,
+          }),
+        );
+        return {
+          runId: SUITE_RUN_ID,
+          evidence: stubCheckRunEvidence({
+            headSha: LIVE_TIP_OID,
+          }),
+        };
+      }
+      if (kind === "sha-chain-mismatch") {
+        // Tip-matching claims + JWT, but live check-run headSha ≠ tip.
+        const { runId } = fixtures.putCheckRunPass(store);
+        return {
+          runId,
+          evidence: stubCheckRunEvidence({
+            runId,
+            headSha: STALE_OID,
+          }),
+        };
+      }
+      if (kind === "pat-check-run-only") {
+        const { runId } = fixtures.putCheckRunPass(store);
+        return {
+          runId,
+          evidence: stubCheckRunEvidence({
+            runId: runId + 777,
+            headSha: LIVE_TIP_OID,
+          }),
+        };
+      }
+      if (kind === "absent-check-run") {
+        const { runId } = fixtures.putCheckRunPass(store);
+        return {
+          runId,
+          evidence: stubCheckRunEvidence({ kind: "absent" }),
+        };
+      }
+      // check-run-api-unavailable
+      const { runId } = fixtures.putCheckRunPass(store);
+      return {
+        runId,
+        evidence: stubCheckRunEvidence({ kind: "unavailable" }),
+      };
+    },
   };
 
   return {
@@ -206,9 +349,12 @@ export function createAttackContext(opts = {}) {
     verifyKey,
     observeMintKey,
     observeVerifyKey,
+    // Product close injects SealIdentityVerifier as 2nd arg; tip ignores it.
     freshStore: () => createVerifyingMemoryStore(verifyKey),
     freshObserveStore: () =>
       createVerifyingMemoryLastObserveStore(observeVerifyKey),
+    suiteJwks: SUITE_JWKS,
+    suiteNowSec: SUITE_NOW_SEC,
     tip: {
       landPr,
       parseLandArgv,
@@ -221,18 +367,32 @@ export function createAttackContext(opts = {}) {
     },
     fixtures,
     silentIo: { stdout: () => {}, stderr: () => {} },
-    ciOnlyGh(headRefOid) {
+    ciOnlyGh(headRefOid, checkRuns) {
       return {
-        api: () => ({
-          status: 404,
-          body: { message: "Branch not protected" },
-        }),
+        api(path) {
+          if (typeof path === "string" && path.includes("/check-runs")) {
+            return (
+              checkRuns ??
+              stubCheckRunsApiResponse({
+                name: HEBMU_SEAL_CHECK_RUN_NAME,
+                headSha: headRefOid,
+              })
+            );
+          }
+          return {
+            status: 404,
+            body: { message: "Branch not protected" },
+          };
+        },
         prView: () => ({
           baseRefName: "main",
           reviewDecision: null,
           headRefOid,
         }),
       };
+    },
+    fetchCheckRunFromEvidence(evidence) {
+      return async () => evidence;
     },
     assertArgv(extra = []) {
       return [
