@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Fail-closed land helper (#46 / #47 / #59).
+ * Fail-closed land helper (#46 / #47 / #59 / #66).
  *
  * Always runs ./scripts/watch-pr --assert-merge before gh pr merge.
  * Observe READY/STATUS exit 0 is never merge clearance.
- * On ci-only, assert reads a verifier-bound sealed-shipping artifact
- * (seal-shipping mint + HEBMU_SEAL_VERIFY_KEY on land); bare --shipping-verdict
+ * On ci-only, assert requires check-run provenance (v4 Actions OIDC seal);
+ * local Ed25519 seals are demoted and cannot clear. Bare --shipping-verdict
  * is rejected at parse. Last-observe reads verify under HEBMU_OBSERVE_VERIFY_KEY.
  * Assert child env never inherits HEBMU_SEAL_MINT_KEY or HEBMU_OBSERVE_MINT_KEY.
  *

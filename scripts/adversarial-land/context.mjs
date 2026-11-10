@@ -23,6 +23,7 @@ import {
   buildLastObserveClaims,
   createVerifyingMemoryLastObserveStore,
 } from "../last-observe-store.mjs";
+import { createGhIdentityVerifier } from "../check-run-crypto.mjs";
 import {
   HEBMU_SEAL_CHECK_RUN_NAME,
   SUITE_JWKS,
@@ -349,8 +350,14 @@ export function createAttackContext(opts = {}) {
     verifyKey,
     observeMintKey,
     observeVerifyKey,
-    // Product close injects SealIdentityVerifier as 2nd arg; tip ignores it.
-    freshStore: () => createVerifyingMemoryStore(verifyKey),
+    freshStore: () =>
+      createVerifyingMemoryStore(
+        verifyKey,
+        createGhIdentityVerifier({
+          fetchJwks: async () => SUITE_JWKS,
+          nowSec: () => SUITE_NOW_SEC,
+        }),
+      ),
     freshObserveStore: () =>
       createVerifyingMemoryLastObserveStore(observeVerifyKey),
     suiteJwks: SUITE_JWKS,

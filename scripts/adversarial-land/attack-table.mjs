@@ -234,7 +234,7 @@ export const ATTACKS = Object.freeze([
       ])) {
         const store = ctx.freshStore();
         ctx.fixtures.putForgedOrUnsigned(store, kind);
-        const got = store.get({
+        const got = await store.get({
           owner: ctx.target.owner,
           repo: ctx.target.repo,
           pr: ctx.target.pr,
@@ -499,7 +499,7 @@ export const ATTACKS = Object.freeze([
       // named HoleId still required for #59 inventory).
       const store = ctx.freshStore();
       ctx.fixtures.putLegacyHmacPass(store, ctx.fixtures.liveTipOid);
-      const got = store.get({
+      const got = await store.get({
         owner: ctx.target.owner,
         repo: ctx.target.repo,
         pr: ctx.target.pr,
