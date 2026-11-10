@@ -13,11 +13,25 @@
  *   headRefOid: string;
  *   sealedAt: string;
  *   by?: string;
+ *   mint: "local" | "check-run";
+ *   runId?: number;
  * } | {
  *   kind: "explicit-override";
  *   by: string;
  *   reason: string;
  * }} MergeAttestation
+ *
+ * @typedef {{
+ *   status: "ok";
+ *   runId: number;
+ *   conclusion: string;
+ *   headSha: string;
+ * } | {
+ *   status: "absent";
+ * } | {
+ *   status: "unavailable";
+ *   detail: string;
+ * }} CheckRunEvidenceArg
  *
  * @typedef {{
  *   disposition: "allow";
@@ -40,6 +54,8 @@
  *   clearance: ReviewClearance;
  *   attestation: MergeAttestation | null;
  *   headRefOid: string | null;
+ *   attestationClass?: "missing" | "unusable" | "forged";
+ *   checkRun?: CheckRunEvidenceArg | null;
  * }} EvaluateMergeArgs
  */
 
@@ -57,27 +73,50 @@ export function oidsMatch(a, b) {
 
 /**
  * Map a verifying-store domain value into a policy attestation.
- * Store already verified sig; unsigned wire never reaches here as branded.
+ * Store already verified authenticity; unsigned wire never reaches here as branded.
  *
- * @param {import("./attestation-crypto.mjs").VerifierBoundAttestation | null | undefined} artifact
+ * @param {import("./attestation-store.mjs").BoundShippingAttestation | null | undefined} artifact
  * @returns {MergeAttestation | null}
  */
 export function artifactToAttestation(artifact) {
-  if (!artifact || artifact.__brand !== "VerifierBoundAttestation") return null;
-  if (artifact.schema !== "hebmu.sealed-shipping.v3") return null;
-  const { claims } = artifact;
-  if (claims.verdict !== "PASS" && claims.verdict !== "FAIL") return null;
-  if (typeof claims.headRefOid !== "string" || !claims.headRefOid) return null;
-  if (typeof claims.sealedAt !== "string" || !claims.sealedAt) return null;
-  /** @type {MergeAttestation} */
-  const att = {
-    kind: "verifier-bound-shipping",
-    verdict: claims.verdict,
-    headRefOid: claims.headRefOid,
-    sealedAt: claims.sealedAt,
-  };
-  if (typeof claims.by === "string" && claims.by) att.by = claims.by;
-  return att;
+  if (!artifact) return null;
+  if (artifact.__brand === "VerifierBoundAttestation") {
+    if (artifact.schema !== "hebmu.sealed-shipping.v3") return null;
+    const { claims } = artifact;
+    if (claims.verdict !== "PASS" && claims.verdict !== "FAIL") return null;
+    if (typeof claims.headRefOid !== "string" || !claims.headRefOid) return null;
+    if (typeof claims.sealedAt !== "string" || !claims.sealedAt) return null;
+    /** @type {MergeAttestation} */
+    const att = {
+      kind: "verifier-bound-shipping",
+      verdict: claims.verdict,
+      headRefOid: claims.headRefOid,
+      sealedAt: claims.sealedAt,
+      mint: "local",
+    };
+    if (typeof claims.by === "string" && claims.by) att.by = claims.by;
+    return att;
+  }
+  if (artifact.__brand === "CheckRunSealAttestation") {
+    if (artifact.schema !== "hebmu.sealed-shipping.v4") return null;
+    const { claims } = artifact;
+    if (claims.verdict !== "PASS" && claims.verdict !== "FAIL") return null;
+    if (typeof claims.headRefOid !== "string" || !claims.headRefOid) return null;
+    if (typeof claims.sealedAt !== "string" || !claims.sealedAt) return null;
+    if (!Number.isInteger(artifact.runId) || artifact.runId <= 0) return null;
+    /** @type {MergeAttestation} */
+    const att = {
+      kind: "verifier-bound-shipping",
+      verdict: claims.verdict,
+      headRefOid: claims.headRefOid,
+      sealedAt: claims.sealedAt,
+      mint: "check-run",
+      runId: artifact.runId,
+    };
+    if (typeof claims.by === "string" && claims.by) att.by = claims.by;
+    return att;
+  }
+  return null;
 }
 
 /**
@@ -96,6 +135,8 @@ function isStaleOrUnboundSeal(attestation, headRefOid) {
 }
 
 /**
+ * Structural validity for ci-only allow. Check-run evidence is a separate gate.
+ *
  * @param {MergeAttestation | null} attestation
  * @param {string | null | undefined} headRefOid
  * @returns {boolean}
@@ -105,7 +146,8 @@ export function isValidAttestation(attestation, headRefOid) {
   if (attestation.kind === "verifier-bound-shipping") {
     return (
       attestation.verdict === "PASS" &&
-      oidsMatch(attestation.headRefOid, headRefOid)
+      oidsMatch(attestation.headRefOid, headRefOid) &&
+      attestation.mint === "check-run"
     );
   }
   if (attestation.kind === "explicit-override") {
@@ -115,11 +157,47 @@ export function isValidAttestation(attestation, headRefOid) {
 }
 
 /**
+ * Check-run provenance gate for a structurally valid check-run attestation.
+ *
+ * @param {MergeAttestation} attestation
+ * @param {string | null | undefined} headRefOid
+ * @param {CheckRunEvidenceArg | null | undefined} checkRun
+ * @returns {"allow" | "block" | "require"}
+ */
+function checkRunProvenanceGate(attestation, headRefOid, checkRun) {
+  if (
+    attestation.kind !== "verifier-bound-shipping" ||
+    attestation.mint !== "check-run"
+  ) {
+    return "block";
+  }
+  if (checkRun == null) return "require";
+  if (checkRun.status === "unavailable") return "require";
+  if (checkRun.status === "absent") return "block";
+  if (
+    checkRun.status === "ok" &&
+    checkRun.runId === attestation.runId &&
+    checkRun.conclusion === "success" &&
+    oidsMatch(checkRun.headSha, headRefOid) &&
+    attestation.verdict === "PASS"
+  ) {
+    return "allow";
+  }
+  return "block";
+}
+
+/**
  * @param {EvaluateMergeArgs} args
  * @returns {MergeDisposition}
  */
 export function evaluateMergeDisposition(args) {
-  const { clearance, attestation, headRefOid = null } = args;
+  const {
+    clearance,
+    attestation,
+    headRefOid = null,
+    attestationClass,
+    checkRun = null,
+  } = args;
 
   switch (clearance.kind) {
     case "approved":
@@ -129,8 +207,24 @@ export function evaluateMergeDisposition(args) {
         clearance,
         attestation,
       };
-    case "ci-only":
-      if (attestation && !isValidAttestation(attestation, headRefOid)) {
+    case "ci-only": {
+      if (!attestation) {
+        if (attestationClass === "forged") {
+          return {
+            disposition: "block",
+            exitCode: 3,
+            clearance,
+            reason: "attestation-rejected",
+          };
+        }
+        return {
+          disposition: "require-attestation",
+          exitCode: 2,
+          clearance,
+          missing: "sealed-shipping-or-override",
+        };
+      }
+      if (!isValidAttestation(attestation, headRefOid)) {
         if (isStaleOrUnboundSeal(attestation, headRefOid)) {
           return {
             disposition: "require-attestation",
@@ -146,20 +240,43 @@ export function evaluateMergeDisposition(args) {
           reason: "attestation-rejected",
         };
       }
-      if (isValidAttestation(attestation, headRefOid)) {
+      // Structurally valid check-run PASS at tip — require live evidence.
+      if (
+        attestation.kind === "verifier-bound-shipping" &&
+        attestation.mint === "check-run"
+      ) {
+        const gate = checkRunProvenanceGate(attestation, headRefOid, checkRun);
+        if (gate === "allow") {
+          return {
+            disposition: "allow",
+            exitCode: 0,
+            clearance,
+            attestation,
+          };
+        }
+        if (gate === "require") {
+          return {
+            disposition: "require-attestation",
+            exitCode: 2,
+            clearance,
+            missing: "sealed-shipping-or-override",
+          };
+        }
         return {
-          disposition: "allow",
-          exitCode: 0,
+          disposition: "block",
+          exitCode: 3,
           clearance,
-          attestation,
+          reason: "attestation-rejected",
         };
       }
+      // explicit-override (isValidAttestation already true)
       return {
-        disposition: "require-attestation",
-        exitCode: 2,
+        disposition: "allow",
+        exitCode: 0,
         clearance,
-        missing: "sealed-shipping-or-override",
+        attestation,
       };
+    }
     case "review-required":
       return {
         disposition: "block",
@@ -268,7 +385,7 @@ export function formatDispositionPretty(decision) {
   if (decision.disposition === "require-attestation") {
     lines.push(`missing=${decision.missing}`);
     lines.push(
-      "hint=run seal-shipping after Shipping VERDICT PASS, then land-pr (no --shipping-verdict)",
+      "hint=run seal-shipping --via-actions after Shipping VERDICT PASS, then land-pr (no --shipping-verdict)",
     );
   }
   if (decision.disposition === "block") {
@@ -276,32 +393,12 @@ export function formatDispositionPretty(decision) {
   }
   if (decision.disposition === "allow" && decision.attestation) {
     lines.push(`attestation=${decision.attestation.kind}`);
+    if (
+      decision.attestation.kind === "verifier-bound-shipping" &&
+      decision.attestation.mint
+    ) {
+      lines.push(`mint=${decision.attestation.mint}`);
+    }
   }
   return lines.join("\n") + "\n";
-}
-
-/**
- * @param {{ pr: number; decision: MergeDisposition }} args
- * @returns {Record<string, unknown>}
- */
-export function buildDispositionSidecar(args) {
-  const { pr, decision } = args;
-  /** @type {Record<string, unknown>} */
-  const out = {
-    schema: "hebmu.merge-disposition.v1",
-    pr,
-    disposition: decision.disposition,
-    exitCode: decision.exitCode,
-    clearance: decision.clearance,
-  };
-  if (decision.disposition === "require-attestation") {
-    out.missing = decision.missing;
-  }
-  if (decision.disposition === "block") {
-    out.reason = decision.reason;
-  }
-  if (decision.disposition === "allow") {
-    out.attestation = decision.attestation;
-  }
-  return out;
 }
