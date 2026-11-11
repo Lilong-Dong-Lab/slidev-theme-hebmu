@@ -150,7 +150,7 @@ Repeated patterns use these stage classes. Do not recolor them with Tailwind bac
 | Class | Treatment |
 |---|---|
 | `hebmu-card` | Neutral card. One peer among parallel items, or one definition sentence. One muted surface. |
-| `hebmu-columns` | Two equal columns, one gap. Add `is-centered` when a figure should sit on the vertical center. |
+| `hebmu-columns` | Two equal columns, one gap. Add `is-centered` when a figure should sit on the vertical center. Stacked items: first card/callout flush (`margin-top: 0`), adjacent siblings 12px (compact 10px); `pre` bottom margin inside column wrappers 12px (compact 10px), wrapper zeroed. |
 | `hebmu-callout hebmu-callout-warning` | Warning. Gold. |
 | `hebmu-callout hebmu-callout-key` | Key point, including a criteria list, a one-line summary, and an 直觉 line. Purple. |
 | `hebmu-callout hebmu-callout-check` | Check. Blue. |
