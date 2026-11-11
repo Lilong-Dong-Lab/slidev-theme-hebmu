@@ -617,6 +617,9 @@
   margin-top: 10px;
 }
 
+/* Code pane → first stacked item: same token as the sibling gap (#72).
+   The wrapper margin is zeroed so collapsing and non-collapsing wrappers
+   both resolve to the pre margin. */
 .slidev-layout.keynote-density-compact .keynote-stage .hebmu-columns :not(.hebmu-columns) > pre {
   margin-bottom: 10px;
 }
