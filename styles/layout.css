@@ -604,7 +604,7 @@
 }
 
 /* Compact columns: first item flush, peers 10px (#72). Same :not(.hebmu-columns)
-   scoping as the default-density block above. */
+   scoping as the default-density block below. */
 .slidev-layout.keynote-density-compact .keynote-stage .hebmu-columns .hebmu-card,
 .slidev-layout.keynote-density-compact .keynote-stage .hebmu-columns .hebmu-callout {
   margin-top: 0;
