@@ -319,6 +319,8 @@ export function mintClearedVerdict(args) {
  *   clearance?: ReviewClearance | null;
  *   attestation: import("./merge-policy.mjs").MergeAttestation | null;
  *   headRefOid: string | null;
+ *   attestationClass?: "missing" | "unusable" | "forged";
+ *   checkRun?: import("./merge-policy.mjs").CheckRunEvidenceArg | null;
  * }} args
  * @returns {AssertOutcome}
  */
@@ -342,6 +344,8 @@ export function advanceAssertPhase(args) {
     clearance,
     attestation: args.attestation,
     headRefOid: args.headRefOid,
+    attestationClass: args.attestationClass,
+    checkRun: args.checkRun ?? null,
   });
   return { kind: "disposition", decision };
 }
@@ -357,6 +361,8 @@ export function advanceAssertPhase(args) {
  *   clearance?: ReviewClearance | null;
  *   attestation: import("./merge-policy.mjs").MergeAttestation | null;
  *   headRefOid: string | null;
+ *   attestationClass?: "missing" | "unusable" | "forged";
+ *   checkRun?: import("./merge-policy.mjs").CheckRunEvidenceArg | null;
  * }} args
  * @returns {number}
  */
@@ -373,6 +379,8 @@ export function resolveAssertProcessExit(args) {
     clearance: args.clearance ?? null,
     attestation: args.attestation,
     headRefOid: args.headRefOid,
+    attestationClass: args.attestationClass,
+    checkRun: args.checkRun ?? null,
   });
   if (outcome.kind === "missing-clearance") return outcome.exitCode;
   return outcome.decision.exitCode;

@@ -73,17 +73,21 @@ Observe and seal are **two keypairs** (do not reuse seal mint for observe):
 | --- | --- | --- |
 | Observe mint | `HEBMU_OBSERVE_MINT_KEY` | Observe / babysit wrapper only |
 | Observe verify | `HEBMU_OBSERVE_VERIFY_KEY` | Land / assert (verify-only) |
-| Seal mint | `HEBMU_SEAL_MINT_KEY` | Verifier seal-shipping only |
-| Seal verify | `HEBMU_SEAL_VERIFY_KEY` | Land / assert (verify-only) |
+| Seal mint (local / FAIL / tests) | `HEBMU_SEAL_MINT_KEY` | Optional; demoted — cannot clear ci-only |
+| Seal verify | `HEBMU_SEAL_VERIFY_KEY` | Land / assert (verify-only; legacy v3) |
 
-Shipping land is seal-then-land: the verifier mints a tip-bound Ed25519 seal
-with `HEBMU_SEAL_MINT_KEY`. The lander / assert process exports **verify-only**
-`HEBMU_SEAL_VERIFY_KEY` and `HEBMU_OBSERVE_VERIFY_KEY` — never either mint.
-`land-pr` also scrubs both mint envs from the assert child. Local JSON under
-`.git/hebmu/sealed-shipping/` or `.git/hebmu/last-observe/` is a receipt on
-disk — not proof unless the matching verify key accepts the sig. Shared
-`HEBMU_SEAL_HMAC_KEY` is retired (#58); loaders reject it. Stolen
-`HEBMU_SEAL_MINT_KEY` remains a named residual (not a must-deny HoleId).
+Shipping land is seal-then-land. **PASS seals** use Actions check-run
+provenance (`npm run seal-shipping -- … --via-actions`). No
+`HEBMU_SEAL_MINT_KEY` is required for that path. The lander / assert process
+exports **verify-only** `HEBMU_SEAL_VERIFY_KEY` and `HEBMU_OBSERVE_VERIFY_KEY`
+— never either mint. `land-pr` scrubs both mint envs from the assert child.
+Local JSON under `.git/hebmu/` is a receipt on disk — not proof until the
+store verifies (Ed25519 for v3; GitHub JWKS + live `hebmu-seal` check-run for
+v4). Shared `HEBMU_SEAL_HMAC_KEY` is retired (#58). Stolen local mint keys are
+a must-deny HoleId (`stolen-mint-local-clears`, #66): tip-matching local PASS
+yields assert exit 3. Remaining residual: an operator `gh` token that can
+already merge unprotected main can also dispatch the seal workflow (see
+ADR 0003).
 
 ```bash
 # Observe wrapper — observe mint only (no seal mint required)
@@ -91,13 +95,12 @@ export HEBMU_OBSERVE_MINT_KEY='…ed25519 PKCS8 private (base64)…'
 npm run watch-pr -- \
   --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --status-only --pretty
 
-# Verifier only — seal mint capability (after Shipping VERDICT PASS)
-export HEBMU_SEAL_MINT_KEY='…ed25519 PKCS8 private (base64)…'
+# Verifier — Actions mint after Shipping VERDICT PASS (no HEBMU_SEAL_MINT_KEY)
 npm run seal-shipping -- \
   --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> \
-  --verdict PASS
+  --verdict PASS --via-actions
 
-# Unset both mints before land. Lander holds verify-only for both domains.
+# Unset observe mint before land. Lander holds verify-only for both domains.
 unset HEBMU_SEAL_MINT_KEY
 unset HEBMU_OBSERVE_MINT_KEY
 export HEBMU_SEAL_VERIFY_KEY='…ed25519 SPKI public (base64)…'
@@ -112,8 +115,8 @@ Or:
 ```bash
 export HEBMU_OBSERVE_MINT_KEY='…'
 # …observe via watch-pr…
-export HEBMU_SEAL_MINT_KEY='…'
-node scripts/seal-shipping.mjs --owner Lilong-Dong-Lab --repo slidev-theme-hebmu --pr <n> --verdict PASS
+node scripts/seal-shipping.mjs --owner Lilong-Dong-Lab --repo slidev-theme-hebmu \
+  --pr <n> --verdict PASS --via-actions
 unset HEBMU_SEAL_MINT_KEY
 unset HEBMU_OBSERVE_MINT_KEY
 export HEBMU_SEAL_VERIFY_KEY='…'
@@ -127,8 +130,9 @@ Do not run bare `gh pr merge` after observe READY/STATUS. Do not treat
 Do not pass `--shipping-verdict` (removed; land-pr rejects it).
 
 On `ci-only`, assert (inside `land-pr`) exits `2` (`require-attestation`) until
-a sealed PASS matches the live `headRefOid` (or you use emergency
-`--merge-override`). Stale tip after new commits also exits `2` — re-seal.
+a check-run PASS matches the live `headRefOid` with live `hebmu-seal` evidence
+(or you use emergency `--merge-override`). Local Ed25519 PASS is exit `3`.
+Stale tip after new commits exits `2` — re-seal via `--via-actions`.
 Dry-run checks allow without merging:
 
 ```bash

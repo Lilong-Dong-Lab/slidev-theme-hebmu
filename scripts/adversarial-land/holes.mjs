@@ -12,7 +12,9 @@
  *   | "trunk-helper-on-gate-pr"
  *   | "soft-lure-observe"
  *   | "forged-positive-last-observe"
- *   | "lander-with-key"} HoleId
+ *   | "lander-with-key"
+ *   | "stolen-mint-local-clears"
+ *   | "forged-check-run-provenance"} HoleId
  */
 
 /** @type {readonly HoleId[]} */
@@ -26,4 +28,6 @@ export const HOLE_IDS = Object.freeze([
   "soft-lure-observe",
   "forged-positive-last-observe",
   "lander-with-key",
+  "stolen-mint-local-clears",
+  "forged-check-run-provenance",
 ]);

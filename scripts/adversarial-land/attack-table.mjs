@@ -68,7 +68,14 @@ export function assertAttackTableComplete(attacks = ATTACKS) {
  * @param {string} headRefOid
  * @param {import("../attestation-store.mjs").AttestationStore} store
  * @param {readonly string[]} [extraArgv]
- * @param {{ attachClearance?: boolean }} [opts]
+ * @param {{
+ *   attachClearance?: boolean;
+ *   fetchCheckRun?: (
+ *     target: { owner: string; repo: string },
+ *     headRefOid: string,
+ *   ) => Promise<import("./check-run-fixtures.mjs").CheckRunEvidence>;
+ *   gh?: ReturnType<AttackContext["ciOnlyGh"]>;
+ * }} [opts]
  */
 async function assertWithUpstream(
   ctx,
@@ -88,7 +95,8 @@ async function assertWithUpstream(
       stderr: "",
       exitCode: 0,
     }),
-    gh: ctx.ciOnlyGh(headRefOid),
+    gh: opts.gh ?? ctx.ciOnlyGh(headRefOid),
+    fetchCheckRun: opts.fetchCheckRun,
     io: ctx.silentIo,
   });
 }
@@ -225,7 +233,7 @@ export const ATTACKS = Object.freeze([
       ])) {
         const store = ctx.freshStore();
         ctx.fixtures.putForgedOrUnsigned(store, kind);
-        const got = store.get({
+        const got = await store.get({
           owner: ctx.target.owner,
           repo: ctx.target.repo,
           pr: ctx.target.pr,
@@ -490,7 +498,7 @@ export const ATTACKS = Object.freeze([
       // named HoleId still required for #59 inventory).
       const store = ctx.freshStore();
       ctx.fixtures.putLegacyHmacPass(store, ctx.fixtures.liveTipOid);
-      const got = store.get({
+      const got = await store.get({
         owner: ctx.target.owner,
         repo: ctx.target.repo,
         pr: ctx.target.pr,
@@ -517,6 +525,103 @@ export const ATTACKS = Object.freeze([
           ? "VERIFY+legacy-HMAC tip-matching PASS → assert exit 2"
           : `assertExit=${exitCode}`,
         evidence: { exitCode },
+      };
+    },
+  },
+
+  {
+    id: "stolen-mint-local-clears",
+    title:
+      "tip-matching PASS minted with plain seal mint key must not clear ci-only (#66)",
+    async run(ctx) {
+      const store = ctx.freshStore();
+      ctx.fixtures.putValidPass(store, ctx.fixtures.liveTipOid);
+      const exitCode = await assertWithUpstream(
+        ctx,
+        ctx.fixtures.bareReadyUpstreamStdout(),
+        ctx.fixtures.liveTipOid,
+        store,
+      );
+      const denied = exitCode === 3;
+      return {
+        id: "stolen-mint-local-clears",
+        outcome: denied ? "denied" : "allowed",
+        detail: denied
+          ? "local tip-matching PASS → assert exit 3"
+          : `assertExit=${exitCode}`,
+        evidence: { exitCode },
+      };
+    },
+  },
+
+  {
+    id: "forged-check-run-provenance",
+    title:
+      "check-run-class acceptance without GitHub-signed evidence must fail (#66)",
+    async run(ctx) {
+      /** @type {ReadonlyArray<{
+       *   kind:
+       *     | "local-mint-with-real-check-run"
+       *     | "forged-jwt-sig"
+       *     | "jwt-wrong-repository"
+       *     | "sha-chain-mismatch"
+       *     | "pat-check-run-only"
+       *     | "absent-check-run"
+       *     | "check-run-api-unavailable";
+       *   expect: number;
+       * }>} */
+      const kinds = [
+        { kind: "local-mint-with-real-check-run", expect: 3 },
+        { kind: "forged-jwt-sig", expect: 3 },
+        { kind: "jwt-wrong-repository", expect: 3 },
+        { kind: "sha-chain-mismatch", expect: 3 },
+        { kind: "pat-check-run-only", expect: 3 },
+        { kind: "absent-check-run", expect: 3 },
+        { kind: "check-run-api-unavailable", expect: 2 },
+      ];
+      /** @type {number[]} */
+      const exits = [];
+      for (const row of kinds) {
+        const store = ctx.freshStore();
+        /** @type {import("./check-run-fixtures.mjs").CheckRunEvidence} */
+        let evidence;
+        if (row.kind === "local-mint-with-real-check-run") {
+          ctx.fixtures.putValidPass(store, ctx.fixtures.liveTipOid);
+          evidence = {
+            status: "ok",
+            runId: 900001,
+            conclusion: "success",
+            headSha: ctx.fixtures.liveTipOid,
+          };
+        } else {
+          const forged = ctx.fixtures.putForgedCheckRun(store, row.kind);
+          evidence = forged.evidence;
+        }
+        const exitCode = await assertWithUpstream(
+          ctx,
+          ctx.fixtures.bareReadyUpstreamStdout(),
+          ctx.fixtures.liveTipOid,
+          store,
+          [],
+          {
+            fetchCheckRun: ctx.fetchCheckRunFromEvidence(evidence),
+          },
+        );
+        exits.push(exitCode);
+        if (exitCode !== row.expect) {
+          return {
+            id: "forged-check-run-provenance",
+            outcome: "allowed",
+            detail: `${row.kind} assertExit=${exitCode} want=${row.expect}`,
+            evidence: { exitCode },
+          };
+        }
+      }
+      return {
+        id: "forged-check-run-provenance",
+        outcome: "denied",
+        detail: `all 7 kinds denied (exits=${exits.join(",")})`,
+        evidence: { exitCode: exits[0] },
       };
     },
   },

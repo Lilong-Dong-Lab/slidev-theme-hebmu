@@ -36,6 +36,10 @@ import {
   defaultSealedShippingDir,
 } from "./attestation-store.mjs";
 import {
+  createFetchCheckRun,
+  createGhIdentityVerifier,
+} from "./check-run-crypto.mjs";
+import {
   CLEARANCE_PRETTY_HEADER,
   CLEARANCE_SCHEMA,
   advanceAssertPhase,
@@ -78,8 +82,11 @@ const OBSERVE_STORE_STUB = {
   put() {
     throw new Error("watch-pr-clearance: observe path must not write seals");
   },
-  get() {
+  async get() {
     return null;
+  },
+  async classify() {
+    throw new Error("watch-pr-clearance: observe path must not classify seals");
   },
 };
 
@@ -779,9 +786,12 @@ export function resolveHeadRefOid(gh, repo, pr) {
  *   repo: string;
  *   pr: number;
  * }} args
- * @returns {import("./merge-policy.mjs").MergeAttestation | null}
+ * @returns {Promise<{
+ *   attestation: import("./merge-policy.mjs").MergeAttestation | null;
+ *   attestationClass?: "missing" | "unusable" | "forged";
+ * }>}
  */
-export function resolveMergeAttestation(args) {
+export async function resolveMergeAttestation(args) {
   let argvAttestation = null;
   try {
     argvAttestation = parseAttestationFromArgv(args.argv);
@@ -792,14 +802,24 @@ export function resolveMergeAttestation(args) {
       throw err;
     }
   }
-  if (argvAttestation) return argvAttestation;
-  return artifactToAttestation(
-    args.store.get({
-      owner: args.owner,
-      repo: args.repo,
-      pr: args.pr,
-    }),
-  );
+  if (argvAttestation) {
+    return { attestation: argvAttestation };
+  }
+  const key = {
+    owner: args.owner,
+    repo: args.repo,
+    pr: args.pr,
+  };
+  const artifact = await args.store.get(key);
+  if (artifact) {
+    return { attestation: artifactToAttestation(artifact) };
+  }
+  /** @type {"missing" | "unusable" | "forged"} */
+  let attestationClass = "missing";
+  if (typeof args.store.classify === "function") {
+    attestationClass = await args.store.classify(key);
+  }
+  return { attestation: null, attestationClass };
 }
 
 /**
@@ -817,6 +837,8 @@ export function resolveMergeAttestation(args) {
  *   };
  *   store?: import("./attestation-store.mjs").AttestationStore;
  *   lastObserveStore?: import("./last-observe-store.mjs").LastObserveStore;
+ *   fetchCheckRun?: import("./check-run-crypto.mjs").FetchCheckRun;
+ *   identity?: import("./check-run-crypto.mjs").SealIdentityVerifier;
  *   io?: { stdout: (s: string) => void; stderr: (s: string) => void };
  *   attachClearance?: boolean;
  * }} args
@@ -870,6 +892,7 @@ export async function runEnrichedWatchPr(args) {
     cachedStore = createVerifyingFsStore(
       defaultSealedShippingDir(REPO_ROOT),
       loadSealVerifyKeyFromEnv(process.env),
+      args.identity ?? createGhIdentityVerifier(),
     );
     return cachedStore;
   }
@@ -879,6 +902,9 @@ export async function runEnrichedWatchPr(args) {
     },
     get(key) {
       return ensureStore().get(key);
+    },
+    classify(key) {
+      return ensureStore().classify(key);
     },
   };
   // Assert path never writes last-observe.
@@ -1026,13 +1052,29 @@ export async function runEnrichedWatchPr(args) {
     { owner: evidence.owner, repo: evidence.repo },
     evidence.pr,
   );
-  const attestation = resolveMergeAttestation({
+  const resolved = await resolveMergeAttestation({
     argv: args.argv,
     store,
     owner: evidence.owner,
     repo: evidence.repo,
     pr: evidence.pr,
   });
+  const attestation = resolved.attestation;
+  const attestationClass = resolved.attestationClass;
+
+  /** @type {import("./merge-policy.mjs").CheckRunEvidenceArg | null} */
+  let checkRun = null;
+  if (
+    attestation &&
+    attestation.kind === "verifier-bound-shipping" &&
+    attestation.mint === "check-run"
+  ) {
+    const fetch = args.fetchCheckRun ?? createFetchCheckRun(gh);
+    checkRun = await fetch(
+      { owner: evidence.owner, repo: evidence.repo },
+      headRefOid ?? "",
+    );
+  }
 
   const presence = parseClearancePresence(finalStdout);
   if (
@@ -1047,6 +1089,8 @@ export async function runEnrichedWatchPr(args) {
     clearance,
     attestation,
     headRefOid,
+    attestationClass,
+    checkRun,
   });
   if (outcome.kind === "missing-clearance") {
     io.stderr(
@@ -1576,24 +1620,43 @@ async function runWrapperOnlyPresenceHarness() {
 async function runMergeDispositionHarness() {
   const tip = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
   const other = "cccccccccccccccccccccccccccccccccccccccc";
-  const sealedPass = /** @type {const} */ ({
+  const sealedPassLocal = /** @type {const} */ ({
     kind: "verifier-bound-shipping",
     verdict: "PASS",
     headRefOid: tip,
     sealedAt: "2026-11-08T00:00:00.000Z",
+    mint: "local",
+  });
+  const sealedPassCheckRun = /** @type {const} */ ({
+    kind: "verifier-bound-shipping",
+    verdict: "PASS",
+    headRefOid: tip,
+    sealedAt: "2026-11-08T00:00:00.000Z",
+    mint: "check-run",
+    runId: 4242,
   });
   const sealedFail = /** @type {const} */ ({
     kind: "verifier-bound-shipping",
     verdict: "FAIL",
     headRefOid: tip,
     sealedAt: "2026-11-08T00:00:00.000Z",
+    mint: "local",
   });
+  /** @type {import("./merge-policy.mjs").CheckRunEvidenceArg} */
+  const checkRunOk = {
+    status: "ok",
+    runId: 4242,
+    conclusion: "success",
+    headSha: tip,
+  };
 
   /** @type {ReadonlyArray<{
    *   name: string;
    *   clearance: ReviewClearance;
    *   attestation: import("./merge-policy.mjs").MergeAttestation | null;
    *   headRefOid: string | null;
+   *   checkRun?: import("./merge-policy.mjs").CheckRunEvidenceArg | null;
+   *   attestationClass?: "missing" | "unusable" | "forged";
    *   wantDisposition: string;
    *   wantExit: number;
    *   wantReason?: string;
@@ -1618,17 +1681,27 @@ async function runMergeDispositionHarness() {
       wantMissing: "sealed-shipping-or-override",
     },
     {
-      name: "ci-only + verifier-bound PASS matching oid → allow/0",
+      name: "ci-only + local PASS matching oid → block/3",
       clearance: { kind: "ci-only", reason: "unprotected-base" },
-      attestation: sealedPass,
+      attestation: sealedPassLocal,
       headRefOid: tip,
+      wantDisposition: "block",
+      wantExit: 3,
+      wantReason: "attestation-rejected",
+    },
+    {
+      name: "ci-only + check-run PASS + evidence ok → allow/0",
+      clearance: { kind: "ci-only", reason: "unprotected-base" },
+      attestation: sealedPassCheckRun,
+      headRefOid: tip,
+      checkRun: checkRunOk,
       wantDisposition: "allow",
       wantExit: 0,
     },
     {
       name: "ci-only + verifier-bound PASS mismatched oid → require-attestation/2",
       clearance: { kind: "ci-only", reason: "unprotected-base" },
-      attestation: sealedPass,
+      attestation: sealedPassLocal,
       headRefOid: other,
       wantDisposition: "require-attestation",
       wantExit: 2,
@@ -1637,7 +1710,7 @@ async function runMergeDispositionHarness() {
     {
       name: "ci-only + verifier-bound PASS + null headRefOid → require-attestation/2",
       clearance: { kind: "ci-only", reason: "unprotected-base" },
-      attestation: sealedPass,
+      attestation: sealedPassLocal,
       headRefOid: null,
       wantDisposition: "require-attestation",
       wantExit: 2,
@@ -1667,7 +1740,7 @@ async function runMergeDispositionHarness() {
     {
       name: "review-required + sealed matching PASS → block/3",
       clearance: { kind: "review-required" },
-      attestation: sealedPass,
+      attestation: sealedPassLocal,
       headRefOid: tip,
       wantDisposition: "block",
       wantExit: 3,
@@ -1685,11 +1758,21 @@ async function runMergeDispositionHarness() {
     {
       name: "unknown + sealed PASS → block/3",
       clearance: { kind: "unknown", detail: "HTTP 403" },
-      attestation: sealedPass,
+      attestation: sealedPassLocal,
       headRefOid: tip,
       wantDisposition: "block",
       wantExit: 3,
       wantReason: "unknown",
+    },
+    {
+      name: "ci-only + forged class null → block/3",
+      clearance: { kind: "ci-only", reason: "unprotected-base" },
+      attestation: null,
+      headRefOid: tip,
+      attestationClass: "forged",
+      wantDisposition: "block",
+      wantExit: 3,
+      wantReason: "attestation-rejected",
     },
   ];
 
@@ -1697,6 +1780,8 @@ async function runMergeDispositionHarness() {
     const decision = evaluateMergeDisposition({
       clearance: row.clearance,
       attestation: row.attestation,
+      checkRun: row.checkRun ?? null,
+      attestationClass: row.attestationClass,
       headRefOid: row.headRefOid,
     });
     assert(
@@ -1724,6 +1809,8 @@ async function runMergeDispositionHarness() {
       clearance: row.clearance,
       attestation: row.attestation,
       headRefOid: row.headRefOid,
+      checkRun: row.checkRun ?? null,
+      attestationClass: row.attestationClass,
     });
     assert(
       JSON.stringify(again) === JSON.stringify(decision),
@@ -1963,7 +2050,7 @@ async function runMergeDispositionHarness() {
     sealedAt: "2026-11-08T00:00:00.000Z",
   });
   assert(
-    landerUnsignedStore.get({ owner: "o", repo: "r", pr: 40 }) === null,
+    (await landerUnsignedStore.get({ owner: "o", repo: "r", pr: 40 })) === null,
     "lander-mintable unsigned JSON → null attestation at store.get",
   );
   /** @type {string[]} */
@@ -2026,7 +2113,7 @@ async function runMergeDispositionHarness() {
     mac: "00".repeat(32),
   });
   assert(
-    landerForgedStore.get({ owner: "o", repo: "r", pr: 40 }) === null,
+    (await landerForgedStore.get({ owner: "o", repo: "r", pr: 40 })) === null,
     "lander-mintable forged mac → null attestation at store.get",
   );
   const assertLanderForged = await runEnrichedWatchPr({
@@ -2087,7 +2174,7 @@ async function runMergeDispositionHarness() {
     ),
   );
   assert(
-    landerSharedKeyStore.get({ owner: "o", repo: "r", pr: 40 }) === null,
+    (await landerSharedKeyStore.get({ owner: "o", repo: "r", pr: 40 })) === null,
     "#58 lander-with-shared-key → null at store.get",
   );
   const assertLanderSharedKey = await runEnrichedWatchPr({
@@ -2146,7 +2233,7 @@ async function runMergeDispositionHarness() {
       SELF_TEST_MINT_KEY,
     ),
   );
-  const assertMatch = await runEnrichedWatchPr({
+  const assertMatchLocal = await runEnrichedWatchPr({
     argv: [
       "--assert-merge",
       "--owner",
@@ -2180,10 +2267,120 @@ async function runMergeDispositionHarness() {
       stderr: () => {},
     },
   });
-  assert(assertMatch === 0, `assert matching seal exit ${assertMatch}`);
-  console.log(
-    "ok  verifier-signed matching OID → allow/0",
+  assert(
+    assertMatchLocal === 3,
+    `assert local matching seal exit ${assertMatchLocal}`,
   );
+  console.log("ok  #66 local tip-matching PASS → attestation-rejected/3");
+
+  const {
+    forgeCheckRunJwtForTest,
+    mintCheckRunSealWire,
+    verifyCheckRunSealWire,
+    SEALED_SHIPPING_SCHEMA_V4: V4,
+  } = await import("./check-run-crypto.mjs");
+  const { generateKeyPairSync } = await import("node:crypto");
+  const oidcKeys = generateKeyPairSync("rsa", {
+    modulusLength: 2048,
+    publicExponent: 0x10001,
+  });
+  const oidcKid = "watch-pr-self-test-kid";
+  const oidcJwk = {
+    ...oidcKeys.publicKey.export({ format: "jwk" }),
+    kid: oidcKid,
+    use: "sig",
+    alg: "RS256",
+  };
+  const oidcNow = 1_783_627_200;
+  const oidcJwt = forgeCheckRunJwtForTest(
+    oidcKeys.privateKey,
+    {
+      iss: "https://token.actions.githubusercontent.com",
+      aud: "hebmu-seal",
+      repository: "o/r",
+      event_name: "workflow_dispatch",
+      workflow: "seal-shipping",
+      run_id: "4242",
+      run_attempt: "1",
+      actor: "self-test",
+      exp: oidcNow + 3600,
+      iat: oidcNow,
+    },
+    oidcKid,
+  );
+  const checkRunIdentity = createGhIdentityVerifier({
+    fetchJwks: async () => ({ keys: [oidcJwk] }),
+    nowSec: () => oidcNow,
+  });
+  const checkRunStore = createVerifyingMemoryStore(
+    SELF_TEST_VERIFY_KEY,
+    checkRunIdentity,
+  );
+  const v4Wire = mintCheckRunSealWire(
+    {
+      owner: "o",
+      repo: "r",
+      pr: 40,
+      headRefOid: tip,
+      verdict: "PASS",
+      sealedAt: "2026-11-08T00:00:00.000Z",
+    },
+    oidcJwt,
+  );
+  assert(v4Wire.schema === V4, "self-test v4 wire schema");
+  const verifiedV4 = await verifyCheckRunSealWire(v4Wire, {
+    identity: checkRunIdentity,
+  });
+  assert(verifiedV4.status === "verified", "self-test v4 verify");
+  if (verifiedV4.status !== "verified") {
+    throw new Error("unreachable");
+  }
+  checkRunStore.put(verifiedV4.attestation);
+  const assertMatchCheckRun = await runEnrichedWatchPr({
+    argv: [
+      "--assert-merge",
+      "--owner",
+      "o",
+      "--repo",
+      "r",
+      "--pr",
+      "40",
+      "--pretty",
+    ],
+    upstreamDir: "/tmp",
+    store: checkRunStore,
+    fetchCheckRun: async () => ({
+      status: "ok",
+      runId: 4242,
+      conclusion: "success",
+      headSha: tip,
+    }),
+    runUpstream: () => ({
+      stdout: prettyCiOnlyReady,
+      stderr: "",
+      exitCode: 0,
+    }),
+    gh: {
+      api: () => ({
+        status: 404,
+        body: { message: "Branch not protected" },
+      }),
+      prView: () => ({
+        baseRefName: "main",
+        reviewDecision: null,
+        headRefOid: tip,
+      }),
+    },
+    io: {
+      stdout: () => {},
+      stderr: () => {},
+    },
+  });
+  assert(
+    assertMatchCheckRun === 0,
+    `assert check-run matching seal exit ${assertMatchCheckRun}`,
+  );
+  console.log("ok  #66 check-run tip-matching PASS + evidence → allow/0");
 
   const staleStore = selfTestStore();
   staleStore.put(

@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 /**
- * Verifying sealed-shipping store (#47 / #52 / #58).
+ * Verifying sealed-shipping store (#47 / #52 / #58 / #66).
  *
- * `get` verifies Ed25519 sig at the store seam; v2/HMAC / unsigned / forged → null.
- * `put` accepts VerifierBoundAttestation only — no unsigned JSON writer.
+ * `get` verifies at the store seam:
+ *   v3 → Ed25519 (attestation-crypto)
+ *   v4 → Actions OIDC identity (check-run-crypto); needs SealIdentityVerifier
+ * Unsigned / forged / wrong-key / no-identity-v4 → null.
+ * `classify` answers denial taxonomy for null gets (missing | unusable | forged).
  *
  * Prod adapter: `.git/hebmu/sealed-shipping/{owner}__{repo}__{pr}.json`
  * Self-test adapter: in-memory Map (+ putRawForTest for lander-forge proofs).
@@ -11,13 +14,24 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import {
+  SEALED_SHIPPING_SCHEMA_V3,
   sealedShippingWireFromBound,
   verifySealedShippingWire,
 } from "./attestation-crypto.mjs";
+import {
+  SEALED_SHIPPING_SCHEMA_V4,
+  classifyCheckRunSealRaw,
+  verifyCheckRunSealWire,
+  wireFromCheckRunSeal,
+} from "./check-run-crypto.mjs";
 
 /**
  * @typedef {import("./attestation-crypto.mjs").VerifierBoundAttestation} VerifierBoundAttestation
  * @typedef {import("./attestation-crypto.mjs").SealVerifyKey} SealVerifyKey
+ * @typedef {import("./check-run-crypto.mjs").CheckRunSealAttestation} CheckRunSealAttestation
+ * @typedef {import("./check-run-crypto.mjs").SealIdentityVerifier} SealIdentityVerifier
+ *
+ * @typedef {VerifierBoundAttestation | CheckRunSealAttestation} BoundShippingAttestation
  *
  * @typedef {{
  *   owner: string;
@@ -25,9 +39,12 @@ import {
  *   pr: number;
  * }} AttestationKey
  *
+ * @typedef {"missing" | "unusable" | "forged"} AttestationClass
+ *
  * @typedef {{
- *   put: (artifact: VerifierBoundAttestation) => void;
- *   get: (key: AttestationKey) => VerifierBoundAttestation | null;
+ *   put: (artifact: BoundShippingAttestation) => void;
+ *   get: (key: AttestationKey) => Promise<BoundShippingAttestation | null>;
+ *   classify: (key: AttestationKey) => Promise<AttestationClass>;
  * }} AttestationStore
  *
  * @typedef {AttestationStore & {
@@ -52,44 +69,100 @@ export function attestationFilename(key) {
 }
 
 /**
- * @param {VerifierBoundAttestation} artifact
+ * @param {BoundShippingAttestation} artifact
  */
 function assertBoundAttestation(artifact) {
-  if (!artifact || artifact.__brand !== "VerifierBoundAttestation") {
+  if (
+    !artifact ||
+    (artifact.__brand !== "VerifierBoundAttestation" &&
+      artifact.__brand !== "CheckRunSealAttestation")
+  ) {
     throw new Error(
-      "attestation-store: put requires VerifierBoundAttestation (mint via attestation-crypto)",
+      "attestation-store: put requires VerifierBoundAttestation or CheckRunSealAttestation",
     );
   }
+}
+
+/**
+ * @param {BoundShippingAttestation} artifact
+ * @returns {Record<string, unknown>}
+ */
+function wireFromBound(artifact) {
+  if (artifact.__brand === "CheckRunSealAttestation") {
+    return wireFromCheckRunSeal(artifact);
+  }
+  return sealedShippingWireFromBound(artifact);
+}
+
+/**
+ * @param {BoundShippingAttestation} artifact
+ * @returns {AttestationKey}
+ */
+function keyFromBound(artifact) {
+  return {
+    owner: artifact.claims.owner,
+    repo: artifact.claims.repo,
+    pr: artifact.claims.pr,
+  };
 }
 
 /**
  * Mint/CLI write path: brand check + wire flush. No key material.
  *
  * @param {string} rootDir
- * @param {VerifierBoundAttestation} artifact
+ * @param {BoundShippingAttestation} artifact
  */
 export function putBoundAttestation(rootDir, artifact) {
   assertBoundAttestation(artifact);
-  const wire = sealedShippingWireFromBound(artifact);
+  const wire = wireFromBound(artifact);
   mkdirSync(rootDir, { recursive: true });
-  const path = join(
-    rootDir,
-    attestationFilename({
-      owner: artifact.claims.owner,
-      repo: artifact.claims.repo,
-      pr: artifact.claims.pr,
-    }),
-  );
+  const path = join(rootDir, attestationFilename(keyFromBound(artifact)));
   writeFileSync(path, JSON.stringify(wire, null, 2) + "\n", "utf8");
 }
 
 /**
- * Assert/self-test store: get always verifies with SealVerifyKey.
- *
+ * @param {unknown} raw
  * @param {SealVerifyKey} verifyKey
+ * @param {SealIdentityVerifier | undefined} identity
+ * @returns {Promise<BoundShippingAttestation | null>}
+ */
+async function verifyRaw(raw, verifyKey, identity) {
+  if (!raw || typeof raw !== "object") return null;
+  const schema = /** @type {Record<string, unknown>} */ (raw).schema;
+  if (schema === SEALED_SHIPPING_SCHEMA_V3) {
+    return verifySealedShippingWire(raw, verifyKey);
+  }
+  if (schema === SEALED_SHIPPING_SCHEMA_V4) {
+    if (!identity) return null;
+    const result = await verifyCheckRunSealWire(raw, { identity });
+    return result.status === "verified" ? result.attestation : null;
+  }
+  return null;
+}
+
+/**
+ * @param {unknown} raw
+ * @param {SealIdentityVerifier | undefined} identity
+ * @returns {Promise<AttestationClass>}
+ */
+async function classifyRaw(raw, identity) {
+  if (raw === undefined) return "missing";
+  if (!raw || typeof raw !== "object") return "unusable";
+  const schema = /** @type {Record<string, unknown>} */ (raw).schema;
+  if (schema === SEALED_SHIPPING_SCHEMA_V4) {
+    if (!identity) return "unusable";
+    return classifyCheckRunSealRaw(raw, { identity });
+  }
+  // v3 / legacy: forged or undecodable → unusable (exit-2 family; not provenance-forged).
+  return "unusable";
+}
+
+/**
+ * @param {SealVerifyKey} verifyKey
+ * @param {SealIdentityVerifier} [identity]
  * @returns {MemoryAttestationStore}
  */
-export function createVerifyingMemoryStore(verifyKey) {
+export function createVerifyingMemoryStore(verifyKey, identity) {
   if (!verifyKey || verifyKey.__brand !== "SealVerifyKey") {
     throw new Error(
       "attestation-store: createVerifyingMemoryStore requires SealVerifyKey",
@@ -100,20 +173,18 @@ export function createVerifyingMemoryStore(verifyKey) {
   return {
     put(artifact) {
       assertBoundAttestation(artifact);
-      const wire = sealedShippingWireFromBound(artifact);
-      map.set(
-        attestationKeyString({
-          owner: artifact.claims.owner,
-          repo: artifact.claims.repo,
-          pr: artifact.claims.pr,
-        }),
-        wire,
-      );
+      const wire = wireFromBound(artifact);
+      map.set(attestationKeyString(keyFromBound(artifact)), wire);
     },
-    get(key) {
+    async get(key) {
       const raw = map.get(attestationKeyString(key));
       if (raw === undefined) return null;
-      return verifySealedShippingWire(raw, verifyKey);
+      return verifyRaw(raw, verifyKey, identity);
+    },
+    async classify(key) {
+      const raw = map.get(attestationKeyString(key));
+      if (raw === undefined) return "missing";
+      return classifyRaw(raw, identity);
     },
     // Lander-mintable / forged wire for self-tests; get still verifies.
     putRawForTest(raw) {
@@ -143,9 +214,10 @@ export function createVerifyingMemoryStore(verifyKey) {
 /**
  * @param {string} rootDir absolute or cwd-relative store root
  * @param {SealVerifyKey} verifyKey
+ * @param {SealIdentityVerifier} [identity]
  * @returns {AttestationStore}
  */
-export function createVerifyingFsStore(rootDir, verifyKey) {
+export function createVerifyingFsStore(rootDir, verifyKey, identity) {
   if (!verifyKey || verifyKey.__brand !== "SealVerifyKey") {
     throw new Error(
       "attestation-store: createVerifyingFsStore requires SealVerifyKey",
@@ -155,15 +227,25 @@ export function createVerifyingFsStore(rootDir, verifyKey) {
     put(artifact) {
       putBoundAttestation(rootDir, artifact);
     },
-    get(key) {
+    async get(key) {
       const path = join(rootDir, attestationFilename(key));
       if (!existsSync(path)) return null;
       try {
         const raw = JSON.parse(readFileSync(path, "utf8"));
-        return verifySealedShippingWire(raw, verifyKey);
+        return verifyRaw(raw, verifyKey, identity);
       } catch {
         // Corrupt on disk → fail closed for assert (treat as missing).
         return null;
+      }
+    },
+    async classify(key) {
+      const path = join(rootDir, attestationFilename(key));
+      if (!existsSync(path)) return "missing";
+      try {
+        const raw = JSON.parse(readFileSync(path, "utf8"));
+        return classifyRaw(raw, identity);
+      } catch {
+        return "unusable";
       }
     },
   };

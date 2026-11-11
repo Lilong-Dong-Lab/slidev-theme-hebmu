@@ -1,17 +1,21 @@
 #!/usr/bin/env node
 /**
- * Verifier CLI: mint a tip-bound, Ed25519-signed Shipping seal (#47 / #58).
+ * Verifier CLI: mint tip-bound Shipping seals (#47 / #58 / #66).
  *
- * Requires HEBMU_SEAL_MINT_KEY. Never writes unsigned JSON.
- * Assert/land use HEBMU_SEAL_VERIFY_KEY only — never this mint material.
+ * PASS seals: prefer --via-actions (Actions OIDC + check-run; no host mint key).
+ * Local Ed25519 mint (HEBMU_SEAL_MINT_KEY) remains for tests / FAIL seals and
+ * is demoted by policy (cannot clear ci-only).
  *
  * Usage:
  *   node scripts/seal-shipping.mjs --gen-keys
- *   export HEBMU_SEAL_MINT_KEY='…'
- *   npm run seal-shipping -- --owner … --repo … --pr <n> --verdict PASS
+ *   npm run seal-shipping -- --owner … --repo … --pr <n> --verdict PASS --via-actions
+ *   export HEBMU_SEAL_MINT_KEY='…'   # local / FAIL path
+ *   npm run seal-shipping -- --owner … --repo … --pr <n> --verdict FAIL
  *   node scripts/seal-shipping.mjs --self-test
  */
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import {
@@ -35,6 +39,10 @@ import {
   defaultSealedShippingDir,
   putBoundAttestation,
 } from "./attestation-store.mjs";
+import {
+  createGhIdentityVerifier,
+  verifyCheckRunSealWire,
+} from "./check-run-crypto.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(SCRIPT_DIR, "..");
@@ -51,6 +59,7 @@ const REPO_ROOT = join(SCRIPT_DIR, "..");
  *   verdict: "PASS" | "FAIL";
  *   headRefOid?: string;
  *   by?: string;
+ *   viaActions?: boolean;
  * }} SealRequest
  *
  * @typedef {{
@@ -90,6 +99,7 @@ export function parseSealArgv(argv) {
   const verdict = flagValue(argv, "--verdict");
   const headRefOid = flagValue(argv, "--head-ref-oid");
   const by = flagValue(argv, "--by");
+  const viaActions = argv.includes("--via-actions");
 
   if (!owner || !repo || prRaw === undefined) {
     throw new Error(
@@ -110,6 +120,7 @@ export function parseSealArgv(argv) {
   const req = { owner, repo, pr, verdict };
   if (headRefOid) req.headRefOid = headRefOid;
   if (by) req.by = by;
+  if (viaActions) req.viaActions = true;
   return req;
 }
 
@@ -195,10 +206,208 @@ function createMintFsStore(rootDir) {
     put(artifact) {
       putBoundAttestation(rootDir, artifact);
     },
-    get() {
+    async get() {
+      throw new Error("seal-shipping: mint store is write-only");
+    },
+    async classify() {
       throw new Error("seal-shipping: mint store is write-only");
     },
   };
+}
+
+/**
+ * @param {string[]} args
+ * @param {{ cwd?: string; env?: NodeJS.ProcessEnv }} [opts]
+ * @returns {{ status: number; stdout: string; stderr: string }}
+ */
+function runGh(args, opts = {}) {
+  const r = spawnSync("gh", args, {
+    encoding: "utf8",
+    cwd: opts.cwd ?? REPO_ROOT,
+    env: opts.env ?? process.env,
+    maxBuffer: 20 * 1024 * 1024,
+  });
+  return {
+    status: r.status ?? 1,
+    stdout: r.stdout || "",
+    stderr: r.stderr || "",
+  };
+}
+
+/**
+ * Dispatch seal-shipping workflow, download artifact, self-verify, put store.
+ *
+ * @param {SealRequest} request
+ * @param {{
+ *   resolveHeadRefOid?: (target: { owner: string; repo: string; pr: number }) => string;
+ *   storeRoot: string;
+ *   io?: { stdout: (s: string) => void; stderr: (s: string) => void };
+ *   sleepMs?: (ms: number) => Promise<void>;
+ *   identity?: import("./check-run-crypto.mjs").SealIdentityVerifier;
+ *   pollAttempts?: number;
+ *   pollIntervalMs?: number;
+ * }} deps
+ * @returns {Promise<import("./check-run-crypto.mjs").CheckRunSealAttestation>}
+ */
+export async function sealShippingViaActions(request, deps) {
+  const io = deps.io ?? {
+    stdout: (s) => process.stdout.write(s),
+    stderr: (s) => process.stderr.write(s),
+  };
+  const repoSlug = `${request.owner}/${request.repo}`;
+  const dispatch = runGh([
+    "workflow",
+    "run",
+    "seal-shipping.yml",
+    "--repo",
+    repoSlug,
+    "-f",
+    `pr=${request.pr}`,
+    "-f",
+    `verdict=${request.verdict}`,
+  ]);
+  if (dispatch.status !== 0) {
+    throw new Error(
+      `seal-shipping: workflow dispatch failed: ${(dispatch.stderr || dispatch.stdout).trim()}`,
+    );
+  }
+  io.stderr(
+    `seal-shipping: dispatched seal-shipping for ${repoSlug}#${request.pr} (${request.verdict})\n`,
+  );
+
+  const sleep =
+    deps.sleepMs ??
+    ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const attempts = deps.pollAttempts ?? 60;
+  const intervalMs = deps.pollIntervalMs ?? 5000;
+
+  /** @type {number | null} */
+  let runId = null;
+  for (let i = 0; i < attempts; i++) {
+    const list = runGh([
+      "run",
+      "list",
+      "--repo",
+      repoSlug,
+      "--workflow",
+      "seal-shipping.yml",
+      "--json",
+      "databaseId,status,conclusion,event,displayTitle,createdAt",
+      "--limit",
+      "5",
+    ]);
+    if (list.status === 0) {
+      try {
+        const rows = JSON.parse(list.stdout);
+        if (Array.isArray(rows)) {
+          const hit = rows.find(
+            (row) =>
+              row &&
+              typeof row === "object" &&
+              row.event === "workflow_dispatch" &&
+              (row.status === "completed" ||
+                row.status === "in_progress" ||
+                row.status === "queued"),
+          );
+          if (hit && typeof hit.databaseId === "number") {
+            runId = hit.databaseId;
+            if (hit.status === "completed") break;
+          }
+        }
+      } catch {
+        // transient gh list failure; retry until timeout
+      }
+    }
+    await sleep(intervalMs);
+  }
+  if (runId === null) {
+    throw new Error("seal-shipping: timed out waiting for workflow run id");
+  }
+
+  for (let i = 0; i < attempts; i++) {
+    const view = runGh([
+      "run",
+      "view",
+      String(runId),
+      "--repo",
+      repoSlug,
+      "--json",
+      "status,conclusion",
+    ]);
+    if (view.status === 0) {
+      try {
+        const parsed = JSON.parse(view.stdout);
+        if (parsed.status === "completed") {
+          if (parsed.conclusion !== "success") {
+            throw new Error(
+              `seal-shipping: workflow run ${runId} conclusion=${parsed.conclusion}`,
+            );
+          }
+          break;
+        }
+      } catch (err) {
+        if (
+          err instanceof Error &&
+          err.message.startsWith("seal-shipping: workflow run")
+        ) {
+          throw err;
+        }
+      }
+    }
+    if (i === attempts - 1) {
+      throw new Error(
+        `seal-shipping: timed out waiting for workflow run ${runId}`,
+      );
+    }
+    await sleep(intervalMs);
+  }
+
+  const tmp = mkdtempSync(join(tmpdir(), "hebmu-seal-"));
+  try {
+    const dl = runGh([
+      "run",
+      "download",
+      String(runId),
+      "--repo",
+      repoSlug,
+      "--name",
+      `sealed-shipping-${request.pr}`,
+      "--dir",
+      tmp,
+    ]);
+    if (dl.status !== 0) {
+      throw new Error(
+        `seal-shipping: artifact download failed: ${(dl.stderr || dl.stdout).trim()}`,
+      );
+    }
+    const wirePath = join(tmp, `sealed-shipping-${request.pr}.json`);
+    let raw;
+    try {
+      raw = JSON.parse(readFileSync(wirePath, "utf8"));
+    } catch {
+      throw new Error(
+        `seal-shipping: missing artifact JSON at ${wirePath}`,
+      );
+    }
+    const identity = deps.identity ?? createGhIdentityVerifier();
+    const verified = await verifyCheckRunSealWire(raw, { identity });
+    if (verified.status !== "verified") {
+      throw new Error(
+        `seal-shipping: downloaded seal failed identity verify (${verified.status})`,
+      );
+    }
+    putBoundAttestation(deps.storeRoot, verified.attestation);
+    io.stderr(
+      `seal-shipping: placed check-run seal for ${repoSlug}#${request.pr} @ ${verified.attestation.claims.headRefOid} (run ${verified.attestation.runId})\n`,
+    );
+    return verified.attestation;
+  } finally {
+    try {
+      rmSync(tmp, { recursive: true, force: true });
+    } catch {
+      // temp dir may already be gone
+    }
+  }
 }
 
 /**
@@ -211,9 +420,9 @@ function assertSelf(label, ok) {
 }
 
 /**
- * @returns {void}
+ * @returns {Promise<void>}
  */
-export function runSealSelfTest() {
+export async function runSealSelfTest() {
   const { mintKey, verifyKey } = generateSealKeyPairForTest();
   const store = createVerifyingMemoryStore(verifyKey);
   const oidA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -244,7 +453,7 @@ export function runSealSelfTest() {
     assertSelf("resolver was invoked when oid omitted", resolved === oidA);
     assertSelf("minted schema is v3", artifact.schema === SEALED_SHIPPING_SCHEMA_V3);
     assertSelf("minted brand is verifier-bound", artifact.__brand === "VerifierBoundAttestation");
-    const got = store.get({
+    const got = await store.get({
       owner: "Lilong-Dong-Lab",
       repo: "slidev-theme-hebmu",
       pr: 47,
@@ -274,7 +483,7 @@ export function runSealSelfTest() {
         io: silent,
       },
     );
-    const got = store.get({
+    const got = await store.get({
       owner: "Lilong-Dong-Lab",
       repo: "slidev-theme-hebmu",
       pr: 47,
@@ -340,7 +549,7 @@ export function runSealSelfTest() {
     });
     assertSelf(
       "lander-mintable unsigned JSON → get null",
-      forgeStore.get({ owner: "o", repo: "r", pr: 58 }) === null,
+      (await forgeStore.get({ owner: "o", repo: "r", pr: 58 })) === null,
     );
 
     forgeStore.putRawForTest({
@@ -354,13 +563,13 @@ export function runSealSelfTest() {
     });
     assertSelf(
       "lander-mintable v1 unsigned JSON → get null",
-      forgeStore.get({ owner: "o", repo: "r", pr: 58 }) === null,
+      (await forgeStore.get({ owner: "o", repo: "r", pr: 58 })) === null,
     );
 
     forgeStore.putRawForTest(forgeRandomSigWireForTest(tipMatchingPass));
     assertSelf(
       "lander-mintable forged sig → get null",
-      forgeStore.get({ owner: "o", repo: "r", pr: 58 }) === null,
+      (await forgeStore.get({ owner: "o", repo: "r", pr: 58 })) === null,
     );
 
     // #58: lander-held secrets only (verify public + legacy shared HMAC)
@@ -401,13 +610,13 @@ export function runSealSelfTest() {
     );
     assertSelf(
       "#58 lander-with-shared-key / legacy HMAC wire → get null",
-      forgeStore.get({ owner: "o", repo: "r", pr: 58 }) === null,
+      (await forgeStore.get({ owner: "o", repo: "r", pr: 58 })) === null,
     );
 
-    // True verifier mint still allows
+    // True verifier mint still verifies at store (policy demotes local allow).
     const bound = mintVerifierBoundAttestation(tipMatchingPass, mintKey);
     forgeStore.put(bound);
-    const verified = forgeStore.get({ owner: "o", repo: "r", pr: 58 });
+    const verified = await forgeStore.get({ owner: "o", repo: "r", pr: 58 });
     assertSelf(
       "#58 verifier mint → get branded PASS",
       verified?.__brand === "VerifierBoundAttestation" &&
@@ -478,11 +687,11 @@ export function runSealSelfTest() {
 
 /**
  * @param {readonly string[]} argv
- * @returns {number}
+ * @returns {Promise<number>}
  */
-export function main(argv) {
+export async function main(argv) {
   if (argv.includes("--self-test")) {
-    runSealSelfTest();
+    await runSealSelfTest();
     return 0;
   }
 
@@ -498,12 +707,28 @@ export function main(argv) {
   }
 
   const request = parseSealArgv(argv);
+  if (request.viaActions) {
+    await sealShippingViaActions(request, {
+      resolveHeadRefOid: defaultResolveHeadRefOid,
+      storeRoot: defaultSealedShippingDir(REPO_ROOT),
+    });
+    return 0;
+  }
+
   const mintKey = loadSealMintKeyFromEnv(process.env);
+  const io = {
+    stdout: (s) => process.stdout.write(s),
+    stderr: (s) => process.stderr.write(s),
+  };
   sealShipping(request, {
     resolveHeadRefOid: defaultResolveHeadRefOid,
     store: createMintFsStore(defaultSealedShippingDir(REPO_ROOT)),
     mintKey,
+    io,
   });
+  io.stderr(
+    "seal-shipping: local mint no longer clears ci-only; use --via-actions for PASS seals (#66)\n",
+  );
   return 0;
 }
 
@@ -512,10 +737,12 @@ const isDirectRun =
   fileURLToPath(import.meta.url) === process.argv[1];
 
 if (isDirectRun) {
-  try {
-    process.exitCode = main(process.argv.slice(2));
-  } catch (err) {
-    console.error(err instanceof Error ? err.message : err);
-    process.exitCode = 1;
-  }
+  main(process.argv.slice(2))
+    .then((code) => {
+      process.exitCode = code;
+    })
+    .catch((err) => {
+      console.error(err instanceof Error ? err.message : err);
+      process.exitCode = 1;
+    });
 }
