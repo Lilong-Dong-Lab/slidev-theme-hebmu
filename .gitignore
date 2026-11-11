@@ -14,6 +14,9 @@ CLAUDE.local.md
 .agents/
 skills-lock.json
 
+# Agent scratch notes (transient; durable notes belong in docs/)
+.arena-scratch/
+
 # Verification screenshots
 slide-*.png
 slidev-*.png
