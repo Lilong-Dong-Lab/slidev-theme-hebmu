@@ -756,6 +756,12 @@ scale(x, center = TRUE, scale = TRUE)
 
 </div>
 
+<div class="hebmu-card">
+
+**口径**：R 的 `sd` 与 pandas `.std()` 同用 ddof=1
+
+</div>
+
 <div class="hebmu-callout hebmu-callout-procedure">
 
 `apply(z, 2, scale)` → 热图聚类前常做这一步
