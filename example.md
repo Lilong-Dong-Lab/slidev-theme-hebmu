@@ -636,6 +636,139 @@ layout: default
 <div class="hebmu-source">`stiffness`↑ 更脆；`damping`↓ 更晃。非 Magic Move，不做代码字形变形。</div>
 
 ---
+layout: default
+---
+
+# 列内堆叠标注（fixture: #72）
+
+<div class="hebmu-columns">
+
+<div>
+
+**Z-score 标准化**
+
+```python
+z = (expr - expr.mean()) / expr.std()
+print(z.shape, z.iloc[:3, :3])
+```
+
+<div class="hebmu-callout hebmu-callout-check">
+
+实测范围 **−1.13 ~ 4.73** —— 下一讲热图以这个矩阵为输入
+
+</div>
+
+<div class="hebmu-callout hebmu-callout-key">
+
+**按列广播**：`expr.mean()` 是 Series，减法自动按列对齐铺开
+
+</div>
+
+<div class="hebmu-callout hebmu-callout-warning">
+
+⚠️ `mean/std` 默认 `axis=0`（按列），`0=行、1=列`
+
+</div>
+
+</div>
+
+<div>
+
+**R 对照**
+
+```r
+scale(x, center = TRUE, scale = TRUE)
+```
+
+<div class="hebmu-card">
+
+**同构**：`scale()` = 中心化 + 除以标准差
+
+</div>
+
+<div class="hebmu-card">
+
+**口径**：R 的 `sd` 与 pandas `.std()` 同用 ddof=1
+
+</div>
+
+<div class="hebmu-callout hebmu-callout-procedure">
+
+`apply(z, 2, scale)` → 热图聚类前常做这一步
+
+</div>
+
+</div>
+
+</div>
+
+<div class="hebmu-source">fixture：右列 `pre` + 卡片/标注混排，验证列内相邻间距与列首贴齐（normal 密度）。</div>
+
+---
+layout: default
+density: compact
+---
+
+# 列内堆叠标注 · 紧凑（fixture: #72）
+
+<div class="hebmu-columns">
+
+<div>
+
+**Z-score 标准化**
+
+```python
+z = (expr - expr.mean()) / expr.std()
+print(z.iloc[:3, :3].round(2))
+```
+
+<div class="hebmu-callout hebmu-callout-check">
+
+实测范围 **−1.13 ~ 4.73** —— 下一讲热图以这个矩阵为输入
+
+</div>
+
+<div class="hebmu-callout hebmu-callout-key">
+
+**按列广播**：Series 减法自动按列对齐铺开
+
+</div>
+
+<div class="hebmu-callout hebmu-callout-warning">
+
+⚠️ `mean/std` 默认 `axis=0`（按列），`0=行、1=列`
+
+</div>
+
+</div>
+
+<div>
+
+**R 对照**
+
+```r
+scale(x, center = TRUE, scale = TRUE)
+```
+
+<div class="hebmu-card">
+
+**同构**：`scale()` = 中心化 + 除以标准差
+
+</div>
+
+<div class="hebmu-callout hebmu-callout-procedure">
+
+`apply(z, 2, scale)` → 热图聚类前常做这一步
+
+</div>
+
+</div>
+
+</div>
+
+<div class="hebmu-source">fixture：紧凑密度下的同一布局（compact 间距 10px）。</div>
+
+---
 layout: end
 endMessage: '谢谢！'
 endMessageEn: 'Thank You!'
