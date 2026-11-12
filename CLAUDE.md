@@ -64,7 +64,7 @@ Colors extracted from the Keynote lecture slides' PPTX theme XML; the source fil
 - Chrome band tokens (`:root`): `--hebmu-chrome-band-top` / `--hebmu-chrome-band-size` shared by logo and slide title; `--hebmu-chrome-logo-left` / `--hebmu-chrome-title-left` / `--hebmu-chrome-title-right` for horizontal placement
 - Keynote stage tokens (`:root`, remapped on `.keynote-density-compact`): `--hebmu-stage-pad-*` (framed), `--hebmu-frame-inset-*`, `--hebmu-stage-unframed-pad-*` (default `hideFrame: true`). Framed values: `216px 36px 134px` / insets `184/20/108` (compact: `188px 28px 110px` / `160/16/86`). Unframed: `168px 44px 78px` (compact: `148px 36px 64px`)
 - Block vertical rhythm: `margin-top: 16px` for text/list/table/pre blocks; `.hebmu-card`/`.hebmu-callout` `12px` (compact: text/list/table/pre stay `16px`; blockquote/columns/cards/callouts `10px`)
-- Stacked items in `.hebmu-columns`: first card/callout flush (`margin-top: 0`), adjacent siblings 12px (compact 10px); `pre` bottom margin inside column wrappers 12px (compact 10px), wrapper zeroed (#72)
+- Stacked items in `.hebmu-columns`: first card/callout flush (`margin-top: 0`), adjacent siblings 12px (compact 10px); `pre` bottom margin inside column wrappers 12px (compact 10px), wrapper zeroed (#72). Gap token `--hebmu-stack-gap` (`:root` `12px`, remapped `10px` on compact), one `:is()` rule set serves both densities (#74)
 - Table cells: `0.45em 0.9em` (compact: `0.35em 0.75em`)
 - Theme CSS is hand-written (`styles/layout.css`), not UnoCSS utilities. Add styles here, not as utility classes in markdown.
 

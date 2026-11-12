@@ -44,6 +44,7 @@
   --hebmu-stage-unframed-pad-top: 168px;
   --hebmu-stage-unframed-pad-x: 44px;
   --hebmu-stage-unframed-pad-bottom: 78px;
+  --hebmu-stack-gap: 12px;
 }
 
 .slidev-layout {
@@ -557,6 +558,7 @@
   --hebmu-stage-unframed-pad-top: 148px;
   --hebmu-stage-unframed-pad-x: 36px;
   --hebmu-stage-unframed-pad-bottom: 64px;
+  --hebmu-stack-gap: 10px;
 }
 
 .slidev-layout.keynote-density-compact .keynote-slide-title {
@@ -601,31 +603,6 @@
 .slidev-layout.keynote-density-compact .keynote-stage .hebmu-card,
 .slidev-layout.keynote-density-compact .keynote-stage .hebmu-callout {
   margin-top: 10px;
-}
-
-/* Compact columns: first item flush, peers 10px (#72). Same :not(.hebmu-columns)
-   scoping as the default-density block below. */
-.slidev-layout.keynote-density-compact .keynote-stage .hebmu-columns .hebmu-card,
-.slidev-layout.keynote-density-compact .keynote-stage .hebmu-columns .hebmu-callout {
-  margin-top: 0;
-}
-
-.slidev-layout.keynote-density-compact .keynote-stage .hebmu-columns :not(.hebmu-columns) > .hebmu-callout + .hebmu-callout,
-.slidev-layout.keynote-density-compact .keynote-stage .hebmu-columns :not(.hebmu-columns) > .hebmu-card + .hebmu-card,
-.slidev-layout.keynote-density-compact .keynote-stage .hebmu-columns :not(.hebmu-columns) > .hebmu-callout + .hebmu-card,
-.slidev-layout.keynote-density-compact .keynote-stage .hebmu-columns :not(.hebmu-columns) > .hebmu-card + .hebmu-callout {
-  margin-top: 10px;
-}
-
-/* Code pane → first stacked item: same token as the sibling gap (#72).
-   The wrapper margin is zeroed so collapsing and non-collapsing wrappers
-   both resolve to the pre margin. */
-.slidev-layout.keynote-density-compact .keynote-stage .hebmu-columns :not(.hebmu-columns) > pre {
-  margin-bottom: 10px;
-}
-
-.slidev-layout.keynote-density-compact .keynote-stage .hebmu-columns :not(.hebmu-columns) > .slidev-code-wrapper {
-  margin-bottom: 0;
 }
 
 .slidev-layout.keynote-density-compact .keynote-stage th,
@@ -1117,28 +1094,30 @@
   background: color-mix(in srgb, var(--hebmu-danger) 10%, var(--hebmu-bg));
 }
 
-/* First card/callout in a column stays flush under its heading / code pane.
-   Peers get the stage rhythm back via adjacent-sibling margins (#72).
-   :not(.hebmu-columns) > scopes the gap to items stacked inside a column
-   wrapper — direct children of .hebmu-columns are side-by-side grid items
-   and must stay margin-free (see the 中性卡片 slide in example.md). */
-.slidev-layout .keynote-stage .hebmu-columns .hebmu-card,
-.slidev-layout .keynote-stage .hebmu-columns .hebmu-callout {
+/* Column stack rhythm (#72; collapsed onto one token by #74): the first
+   card/callout under its heading or code pane stays flush, peers get the
+   rhythm back via adjacent-sibling margins. :not(.hebmu-columns) > scopes
+   the gap to items stacked inside a column wrapper — direct children of
+   .hebmu-columns are side-by-side grid items and must stay margin-free,
+   which is why the flush rule is deliberately unscoped (see the 中性卡片
+   slide in example.md). One rule set serves both densities: the peer gap
+   is var(--hebmu-stack-gap) (12px, compact 10px), and the flush rule ties
+   with the compact base-rhythm rule above on specificity and wins on
+   source order. */
+.slidev-layout .keynote-stage .hebmu-columns :is(.hebmu-callout, .hebmu-card) {
   margin-top: 0;
 }
 
-.slidev-layout .keynote-stage .hebmu-columns :not(.hebmu-columns) > .hebmu-callout + .hebmu-callout,
-.slidev-layout .keynote-stage .hebmu-columns :not(.hebmu-columns) > .hebmu-card + .hebmu-card,
-.slidev-layout .keynote-stage .hebmu-columns :not(.hebmu-columns) > .hebmu-callout + .hebmu-card,
-.slidev-layout .keynote-stage .hebmu-columns :not(.hebmu-columns) > .hebmu-card + .hebmu-callout {
-  margin-top: 12px;
+.slidev-layout .keynote-stage .hebmu-columns :not(.hebmu-columns) > :is(.hebmu-callout, .hebmu-card) + :is(.hebmu-callout, .hebmu-card) {
+  margin-top: var(--hebmu-stack-gap);
 }
 
-/* Code pane → first stacked item: same token as the sibling gap (#72).
+/* Code pane → first stacked item: the same token as the sibling gap (#72).
    The wrapper margin is zeroed so collapsing and non-collapsing wrappers
-   both resolve to the pre's margin. */
+   both resolve to the pre's margin. One rule serves both densities via
+   --hebmu-stack-gap (12px, compact 10px). */
 .slidev-layout .keynote-stage .hebmu-columns :not(.hebmu-columns) > pre {
-  margin-bottom: 12px;
+  margin-bottom: var(--hebmu-stack-gap);
 }
 
 .slidev-layout .keynote-stage .hebmu-columns :not(.hebmu-columns) > .slidev-code-wrapper {
