@@ -312,8 +312,10 @@ is no Vue component and no props. Structural variety (merged MultiIndex blank
 cells, stacked index columns, group labels, arrows between frames) stays in the
 slide's own markup, so the component only fixes the visual vocabulary.
 
-Selectors root at `.slidev-layout .keynote-stage`; descendant selectors are
-flat (no nesting, no `@apply`, no UnoCSS utilities). Colors reference theme
+Selectors root at `.slidev-layout .hebmu-pd-*` and stay flat descendants
+(no nesting, no `@apply`, no UnoCSS utilities). The two-class root keeps
+deck-scoped overrides (class plus `[data-v]`, later in source order) ahead
+of the theme on ties, so per-slide sizing works exactly as it does today. Colors reference theme
 tokens only (`--hebmu-primary`, `--hebmu-purple-soft`, `--hebmu-text`, plus a
 `color-mix` hairline on `--hebmu-primary`), so the component follows the theme
 palette without hard-coded hex values.

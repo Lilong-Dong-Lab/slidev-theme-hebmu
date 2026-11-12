@@ -2,9 +2,11 @@
    pair -> column -> tag/label + frame (grid) -> cells.
    Sizes follow the ch09 pd-diagram variant, the largest production variant.
    Dense slides override grid templates, font-size, gaps, and min-heights
-   deck-side; see docs/specs.md "PdDiagram" for the override rule. */
+   deck-side; selectors root at .slidev-layout (0,2,0) so deck-scoped
+   overrides (class + [data-v], same specificity, later order) win —
+   see docs/specs.md "PdDiagram" for the override rule. */
 
-.slidev-layout .keynote-stage .hebmu-pd {
+.slidev-layout .hebmu-pd {
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -12,14 +14,14 @@
   margin: 0.75rem 0 1rem;
 }
 
-.slidev-layout .keynote-stage .hebmu-pd-col {
+.slidev-layout .hebmu-pd-col {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.4rem;
 }
 
-.slidev-layout .keynote-stage .hebmu-pd-tag {
+.slidev-layout .hebmu-pd-tag {
   font-size: 20px;
   font-weight: 700;
   color: var(--hebmu-primary);
@@ -27,7 +29,7 @@
   text-align: center;
 }
 
-.slidev-layout .keynote-stage .hebmu-pd-hint {
+.slidev-layout .hebmu-pd-hint {
   font-size: 20px;
   color: var(--hebmu-text);
   line-height: 1.25;
@@ -36,7 +38,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-.slidev-layout .keynote-stage .hebmu-pd-arrow {
+.slidev-layout .hebmu-pd-arrow {
   align-self: center;
   color: var(--hebmu-purple-soft);
   font-size: 2.25rem;
@@ -44,22 +46,22 @@
   line-height: 1;
 }
 
-.slidev-layout .keynote-stage .hebmu-pd-frame {
+.slidev-layout .hebmu-pd-frame {
   display: grid;
   gap: 0.4rem 0.45rem;
   font-size: 20px;
   line-height: 1.1;
 }
 
-.slidev-layout .keynote-stage .hebmu-pd-group-label {
+.slidev-layout .hebmu-pd-group-label {
   font-size: 17px;
   font-weight: 700;
   color: var(--hebmu-primary);
   text-align: center;
 }
 
-.slidev-layout .keynote-stage .hebmu-pd-idx,
-.slidev-layout .keynote-stage .hebmu-pd-head {
+.slidev-layout .hebmu-pd-idx,
+.slidev-layout .hebmu-pd-head {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -71,16 +73,16 @@
   min-height: 2.9rem;
 }
 
-.slidev-layout .keynote-stage .hebmu-pd-idx {
+.slidev-layout .hebmu-pd-idx {
   min-width: 2.6rem;
 }
 
-.slidev-layout .keynote-stage .hebmu-pd-head {
+.slidev-layout .hebmu-pd-head {
   padding: 0 0.85rem;
   white-space: nowrap;
 }
 
-.slidev-layout .keynote-stage .hebmu-pd-cell {
+.slidev-layout .hebmu-pd-cell {
   display: flex;
   align-items: center;
   justify-content: center;
