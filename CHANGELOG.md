@@ -8,6 +8,18 @@ Pre-1.0, breaking changes bump the minor version. This package is not published
 to npm — consumer decks install it via a `file:` path or git, so a release here
 is the version bump plus these notes.
 
+## [0.6.0] - 2026-11-12
+
+### Added
+
+- **`hebmu-pd-*` PdDiagram CSS component** (`styles/pd-diagram.css`): the
+  pandas brick-diagram roles (pair container, column, tag, hint, arrow, frame,
+  group label, idx/head/cell) move into the theme, so deck authors stop
+  copy-pasting per-deck style blocks. Defaults follow the ch09 `pd-diagram`
+  variant (2.9rem cells, 20px, 5px radius); dense decks override grid
+  templates and sizes deck-side. Documented in `docs/specs.md` under
+  `### PdDiagram`.
+
 ## [Unreleased]
 
 ### Added

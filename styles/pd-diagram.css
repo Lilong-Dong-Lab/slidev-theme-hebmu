@@ -1,0 +1,95 @@
+/* PdDiagram brick-diagram component. Roles for hand-built pandas diagrams:
+   pair -> column -> tag/label + frame (grid) -> cells.
+   Sizes follow the ch09 pd-diagram variant, the largest production variant.
+   Dense slides override grid templates, font-size, gaps, and min-heights
+   deck-side; see docs/specs.md "PdDiagram" for the override rule. */
+
+.slidev-layout .keynote-stage .hebmu-pd {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2.5rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.slidev-layout .keynote-stage .hebmu-pd-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.slidev-layout .keynote-stage .hebmu-pd-tag {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--hebmu-primary);
+  line-height: 1.2;
+  text-align: center;
+}
+
+.slidev-layout .keynote-stage .hebmu-pd-hint {
+  font-size: 20px;
+  color: var(--hebmu-text);
+  line-height: 1.25;
+  text-align: center;
+  opacity: 0.85;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.slidev-layout .keynote-stage .hebmu-pd-arrow {
+  align-self: center;
+  color: var(--hebmu-purple-soft);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.slidev-layout .keynote-stage .hebmu-pd-frame {
+  display: grid;
+  gap: 0.4rem 0.45rem;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.slidev-layout .keynote-stage .hebmu-pd-group-label {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--hebmu-primary);
+  text-align: center;
+}
+
+.slidev-layout .keynote-stage .hebmu-pd-idx,
+.slidev-layout .keynote-stage .hebmu-pd-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--hebmu-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 20px;
+  border-radius: 5px;
+  min-height: 2.9rem;
+}
+
+.slidev-layout .keynote-stage .hebmu-pd-idx {
+  min-width: 2.6rem;
+}
+
+.slidev-layout .keynote-stage .hebmu-pd-head {
+  padding: 0 0.85rem;
+  white-space: nowrap;
+}
+
+.slidev-layout .keynote-stage .hebmu-pd-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--hebmu-purple-soft) 18%, #fff);
+  border: 1px solid color-mix(in srgb, var(--hebmu-primary) 28%, #fff);
+  color: var(--hebmu-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 20px;
+  border-radius: 5px;
+  min-height: 2.9rem;
+  padding: 0 0.75rem;
+}
