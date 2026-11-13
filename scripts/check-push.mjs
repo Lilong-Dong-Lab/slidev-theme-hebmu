@@ -16,7 +16,14 @@ const parse = (v) =>
   /^v?(\d+)\.(\d+)\.(\d+)$/.exec(v ?? "")?.slice(1).map(Number) ?? null;
 const cmp = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
 
-const local = parse(JSON.parse(readFileSync("package.json", "utf8")).version);
+// A gate must not crash: unreadable or malformed package.json degrades to
+// unknown-local (null), which takes the conservative check path below.
+let local = null;
+try {
+  local = parse(JSON.parse(readFileSync("package.json", "utf8")).version);
+} catch {
+  local = null;
+}
 
 const remote = spawnSync("git", ["show", "origin/main:package.json"], {
   encoding: "utf8",
@@ -50,10 +57,16 @@ const baseline = pushed ?? [0, 0, 0];
 
 if (local && cmp(local, baseline) === 0) process.exit(0);
 
-console.error(
-  `pre-push: version ${local?.join(".") ?? "?"} != pushed ` +
-    `${baseline.join(".")} — running check:release`,
-);
+if (!local) {
+  // Fail closed with a clean message: an unknown local version still
+  // routes to check:release rather than crashing the push with a trace.
+  console.error("pre-push: package.json unreadable or malformed — running check:release");
+} else {
+  console.error(
+    `pre-push: version ${local.join(".")} != pushed ` +
+      `${baseline.join(".")} — running check:release`,
+  );
+}
 const check = spawnSync("node", ["scripts/check-release.mjs"], {
   stdio: "inherit",
 });
