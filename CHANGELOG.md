@@ -8,6 +8,17 @@ Pre-1.0, breaking changes bump the minor version. This package is not published
 to npm — consumer decks install it via a `file:` path or git, so a release here
 is the version bump plus these notes.
 
+## [0.6.1] - 2026-11-13
+
+### Fixed
+
+- **PdDiagram dense scales now reach the cells**: `idx`/`head`/`cell` no
+  longer re-declare `font-size: 20px`, which beat deck-side frame-level
+  overrides by inheritance rules, so dense tables rendered at default size
+  and overflowed their columns. The frame keeps its 20px declaration, so
+  the unclassed default look is unchanged and the frame is the single
+  scale knob.
+
 ## [0.6.0] - 2026-11-12
 
 ### Added
