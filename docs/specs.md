@@ -303,3 +303,63 @@ Reusable figure rendering with optional caption.
 **Props**: `url: string` (resolved via `resolveUrl`), `caption?: string`.
 
 **Source**: Theme figure helper used by the `figure` layout.
+
+### PdDiagram
+
+CSS roles for hand-built pandas brick diagrams (Series/DataFrame boxes, groupby
+flows, melt/pivot pairs). Slides write plain `div`s with these classes; there
+is no Vue component and no props. Structural variety (merged MultiIndex blank
+cells, stacked index columns, group labels, arrows between frames) stays in the
+slide's own markup, so the component only fixes the visual vocabulary.
+
+Selectors root at `.slidev-layout .hebmu-pd-*` and stay flat descendants
+(no nesting, no `@apply`, no UnoCSS utilities). The two-class root keeps
+deck-scoped overrides (class plus `[data-v]`, later in source order) ahead
+of the theme on ties, so per-slide sizing works exactly as it does today. Colors reference theme
+tokens only (`--hebmu-primary`, `--hebmu-purple-soft`, `--hebmu-text`, plus a
+`color-mix` hairline on `--hebmu-primary`), so the component follows the theme
+palette without hard-coded hex values.
+
+Default sizes follow the ch09 `pd-diagram` variant: cells and headers
+`min-height: 2.9rem`, font-size `20px`, radius `5px`, frame gap
+`0.4rem 0.45rem`. Dense slides keep their larger-deck look by overriding
+deck-side, exactly as ch10 does today.
+
+| Class | Treatment |
+|---|---|
+| `hebmu-pd` | Flex pair container. Row of columns plus arrows between them. |
+| `hebmu-pd-col` | One column of the pair: label above, frame below. |
+| `hebmu-pd-tag` | Purple bold label above a column. |
+| `hebmu-pd-hint` | Muted monospace caption below a column. |
+| `hebmu-pd-arrow` | Soft-purple arrow glyph between frames. |
+| `hebmu-pd-frame` | Cell grid. The slide supplies `grid-template-columns` per family. |
+| `hebmu-pd-idx` | Primary-purple row-index box, white bold text. |
+| `hebmu-pd-head` | Primary-purple column-header box, white bold text, no wrap. |
+| `hebmu-pd-cell` | Soft-purple wash (`--hebmu-purple-soft` 18% over white), hairline border (`--hebmu-primary` 28% over white), monospace value. |
+| `hebmu-pd-group-label` | Small purple label centered over a `hebmu-pd-frame`. |
+
+An empty `div` renders a blank grid cell: use it for the placeholder corner
+above row indexes and for merged MultiIndex rows that must show no box.
+
+**Usage** (minimal two-column frame):
+```html
+<div class="hebmu-pd">
+  <div class="hebmu-pd-col">
+    <div class="hebmu-pd-tag">表达矩阵</div>
+    <div class="hebmu-pd-frame" style="grid-template-columns: 2.6rem 1fr 1fr;">
+      <div></div><div class="hebmu-pd-head">gene</div><div class="hebmu-pd-head">tpm</div>
+      <div class="hebmu-pd-idx">0</div><div class="hebmu-pd-cell">EGFR</div><div class="hebmu-pd-cell">117.9</div>
+    </div>
+  </div>
+</div>
+```
+
+**Per-deck override rule**: a deck scopes only the grid and density —
+`grid-template-columns` on the frame, plus font-size, gaps, and cell
+min-heights when a slide must be denser than the 2.9rem/20px defaults (ch10
+runs 1.5x and 1.3x scale families this way). Never recolor `hebmu-pd-*`
+deck-side; colors live here so all decks share one palette.
+
+**Source**: Consolidation of the six ch10 brick families (`concat-*`, `rx-*`,
+`gb-*`, `ai-*`, `ml-*`, `pv-*`) and ch09's `pd-*` styles into one component;
+added 0.6.0.
