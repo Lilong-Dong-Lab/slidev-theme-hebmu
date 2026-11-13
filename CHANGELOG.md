@@ -17,9 +17,16 @@ is the version bump plus these notes.
   `.hebmu-pd-frame` declares `font-size` (the arrow is exempt — decorative
   typography, not a scaled cell role), since a direct declaration would beat
   inheritance and silently revert deck-side dense overrides. Wired into CI
-  next to `check:dist`. The check currently reports the known
-  `tag`/`hint`/`group-label` violations and goes green with the follow-up
-  scale fix that removes those declarations.
+  next to `check:dist`. 
+
+### Fixed
+
+- **`tag`/`hint`/`group-label` scale with their frame**: the three roles
+  re-declared `font-size` (20px/20px/17px), which beat frame inheritance and
+  pinned dense tables' captions to the default size. The declarations are
+  removed; the roles now inherit the frame's declaration like
+  `idx`/`head`/`cell` (fixed in #78 for the cell roles). `check:styles`
+  gates the contract in CI from now on.
 
 ## [0.6.1] - 2026-11-13
 

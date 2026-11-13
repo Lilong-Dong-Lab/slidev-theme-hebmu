@@ -81,6 +81,11 @@ CHANGELOG entry exists. Run `npm run check:release` locally **before**
 pushing — the repo's CI enforces it, and a red CI is the most expensive way
 to learn the check exists.
 
+**Style-contract gate**: after touching `styles/pd-diagram.css`, run
+`npm run check:styles`. It enforces the single-scale-knob contract from the
+Live DOM checks section (font-size only on `.hebmu-pd-frame`, plus the
+decorative-arrow exemption) and fails with the offending selectors.
+
 ## Surface sweep
 
 Run when removing or renaming anything user-facing — at **scope time** (the
