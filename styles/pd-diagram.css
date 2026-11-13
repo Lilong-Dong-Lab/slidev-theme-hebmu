@@ -68,7 +68,6 @@
   background: var(--hebmu-primary);
   color: #fff;
   font-weight: 700;
-  font-size: 20px;
   border-radius: 5px;
   min-height: 2.9rem;
 }
@@ -90,7 +89,6 @@
   border: 1px solid color-mix(in srgb, var(--hebmu-primary) 28%, #fff);
   color: var(--hebmu-text);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 20px;
   border-radius: 5px;
   min-height: 2.9rem;
   padding: 0 0.75rem;
