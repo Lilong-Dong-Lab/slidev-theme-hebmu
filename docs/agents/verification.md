@@ -69,10 +69,22 @@ npm run check:dist
 theme image under `dist/assets/`, no root-level copies). A red check is a
 finding; fix the bundling, not the check.
 
+After touching `styles/pd-diagram.css`, run `npm run check:styles`. It
+structurally enforces the single-scale-knob contract from the Live DOM
+checks section: `font-size` may be declared only on `.hebmu-pd-frame` (the
+decorative arrow is exempt). It is currently red on
+`tag`/`hint`/`group-label` by design, until the follow-up scale fix removes
+those declarations.
+
 **Release gate before push**: a version bump is not a release until its
 CHANGELOG entry exists. Run `npm run check:release` locally **before**
 pushing — the repo's CI enforces it, and a red CI is the most expensive way
 to learn the check exists.
+
+**Style-contract gate**: after touching `styles/pd-diagram.css`, run
+`npm run check:styles`. It enforces the single-scale-knob contract from the
+Live DOM checks section (font-size only on `.hebmu-pd-frame`, plus the
+decorative-arrow exemption) and fails with the offending selectors.
 
 ## Surface sweep
 

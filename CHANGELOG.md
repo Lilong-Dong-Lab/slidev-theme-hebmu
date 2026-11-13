@@ -8,6 +8,26 @@ Pre-1.0, breaking changes bump the minor version. This package is not published
 to npm — consumer decks install it via a `file:` path or git, so a release here
 is the version bump plus these notes.
 
+## [0.6.2] - 2026-11-14
+
+### Added
+
+- **`check:styles` enforces the pd-diagram single-scale-knob contract (#80)**:
+  `npm run check:styles` fails when any `.hebmu-pd-*` role other than
+  `.hebmu-pd-frame` declares `font-size` (the arrow is exempt — decorative
+  typography, not a scaled cell role), since a direct declaration would beat
+  inheritance and silently revert deck-side dense overrides. Wired into CI
+  next to `check:dist`. 
+
+### Fixed
+
+- **`tag`/`hint`/`group-label` scale with their frame**: the three roles
+  re-declared `font-size` (20px/20px/17px), which beat frame inheritance and
+  pinned dense tables' captions to the default size. The declarations are
+  removed; the roles now inherit the frame's declaration like
+  `idx`/`head`/`cell` (fixed in #78 for the cell roles). `check:styles`
+  gates the contract in CI from now on.
+
 ## [0.6.1] - 2026-11-13
 
 ### Fixed
