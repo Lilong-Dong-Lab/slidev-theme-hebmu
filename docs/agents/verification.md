@@ -86,6 +86,13 @@ to learn the check exists.
 Live DOM checks section (font-size only on `.hebmu-pd-frame`, plus the
 decorative-arrow exemption) and fails with the offending selectors.
 
+Run `npm run setup:hooks` once per clone to install the pre-push release
+gate. It fires `check:release` only when the `package.json` version differs
+from what `origin/main` (or, failing that, the newest tag) carries; pushes
+at the pushed version are silent. Bypass with `git push --no-verify` — CI
+still runs `check:release`, so bypassing never skips the enforcement, only
+its timing.
+
 ## Surface sweep
 
 Run when removing or renaming anything user-facing — at **scope time** (the

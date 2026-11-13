@@ -8,6 +8,17 @@ Pre-1.0, breaking changes bump the minor version. This package is not published
 to npm — consumer decks install it via a `file:` path or git, so a release here
 is the version bump plus these notes.
 
+## [0.6.3] - 2026-11-14
+
+### Added
+
+- **Pre-push release gate (#81)**: `npm run setup:hooks` installs a
+  `pre-push` hook that runs `check:release` only when the pushed version
+  differs from what `origin/main` (or the newest tag) carries — ordinary
+  pushes stay silent. The gate is bypassable with `git push --no-verify`,
+  but CI still runs `check:release`, so bypassing only moves the check,
+  it never skips enforcement.
+
 ## [0.6.2] - 2026-11-14
 
 ### Added
