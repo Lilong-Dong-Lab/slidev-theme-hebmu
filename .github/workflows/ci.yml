@@ -15,6 +15,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run check:dist
+      - run: npm run check:styles
       - run: npm run check:release
       - run: npm run check:specs
       - run: npm run check:adversarial-land

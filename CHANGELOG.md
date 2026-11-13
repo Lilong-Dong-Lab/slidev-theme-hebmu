@@ -8,6 +8,19 @@ Pre-1.0, breaking changes bump the minor version. This package is not published
 to npm — consumer decks install it via a `file:` path or git, so a release here
 is the version bump plus these notes.
 
+## [0.6.2] - 2026-11-14
+
+### Added
+
+- **`check:styles` enforces the pd-diagram single-scale-knob contract (#80)**:
+  `npm run check:styles` fails when any `.hebmu-pd-*` role other than
+  `.hebmu-pd-frame` declares `font-size` (the arrow is exempt — decorative
+  typography, not a scaled cell role), since a direct declaration would beat
+  inheritance and silently revert deck-side dense overrides. Wired into CI
+  next to `check:dist`. The check currently reports the known
+  `tag`/`hint`/`group-label` violations and goes green with the follow-up
+  scale fix that removes those declarations.
+
 ## [0.6.1] - 2026-11-13
 
 ### Fixed
