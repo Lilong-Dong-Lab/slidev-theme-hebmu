@@ -22,7 +22,6 @@
 }
 
 .slidev-layout .hebmu-pd-tag {
-  font-size: 20px;
   font-weight: 700;
   color: var(--hebmu-primary);
   line-height: 1.2;
@@ -30,7 +29,6 @@
 }
 
 .slidev-layout .hebmu-pd-hint {
-  font-size: 20px;
   color: var(--hebmu-text);
   line-height: 1.25;
   text-align: center;
@@ -54,7 +52,6 @@
 }
 
 .slidev-layout .hebmu-pd-group-label {
-  font-size: 17px;
   font-weight: 700;
   color: var(--hebmu-primary);
   text-align: center;
