@@ -42,6 +42,15 @@ Two disciplines:
 - **Whole-DOM sweep**: for image or presence checks, query the parked DOM
   once. Every `<img>` must report `naturalWidth > 0`.
 
+**pd-diagram scale contract**: the dense font scale is declared on
+`.hebmu-pd-frame` and reaches inner roles by inheritance. Never re-declare
+`font-size` on inner roles (`.hebmu-pd-idx/-head/-cell/-tag/-hint/-group-label`);
+a direct declaration beats inheritance and silently reverts deck-side dense
+overrides to the default. When verifying any pd-diagram change, assert that
+the computed font-size of **every** role a slide uses (tag, hint, and
+group-label included) equals what its frame's declaration produces — not just
+frame/head/cell.
+
 For scale-dependent geometry (the TOC bow), convert with the layout's own
 factor: `layoutRect.height / layout.offsetHeight`.
 
@@ -59,6 +68,11 @@ npm run check:dist
 `scripts/check-dist.mjs` owns the expected manifest (one hashed copy per
 theme image under `dist/assets/`, no root-level copies). A red check is a
 finding; fix the bundling, not the check.
+
+**Release gate before push**: a version bump is not a release until its
+CHANGELOG entry exists. Run `npm run check:release` locally **before**
+pushing — the repo's CI enforces it, and a red CI is the most expensive way
+to learn the check exists.
 
 ## Surface sweep
 
