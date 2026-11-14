@@ -147,9 +147,11 @@
    h2 28→24 使层级比 0.68；bottom 上移 12px 保证照片带不压字。
    几何复验（2026-10-25 实渲染）：36px + 0.015em 字距实测换行 → 34px 回调；
    34px 主标题实测宽 < 614px 可用宽（单行恢复）；
-   标题块顶仍高于照片带底（无压叠）；块右缘 819 < logo 左缘 826 */
+   标题块顶仍高于照片带底（无压叠）；块右缘 819 < logo 左缘 826。
+   再验（2026-11-15）：对照紫色 wave path 底边（~560），非照片带（520）；
+   单行 clearance 目标 ≥8px；bottom 100→94 使 34px H1 恢复该余量。 */
 .slidev-layout.keynote-cover .cover-title {
-  bottom: 100px;        /* was 112px */
+  bottom: 94px;         /* was 100px — purple wave path bottom ~560 */
 }
 
 .slidev-layout.keynote-cover .cover-title h1 {
